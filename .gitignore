@@ -1,0 +1,6 @@
+node_modules/
+backend/.env
+backend/credentials/
+*.xlsx
+*.xls
+.DS_Store

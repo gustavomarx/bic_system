@@ -19,10 +19,20 @@ function getDriveClient(readOnly = true) {
   const scopes = readOnly
     ? ['https://www.googleapis.com/auth/drive.readonly']
     : ['https://www.googleapis.com/auth/drive'];
-  const auth = new google.auth.GoogleAuth({
-    keyFile: path.resolve(process.env.GOOGLE_SERVICE_ACCOUNT_PATH),
-    scopes,
-  });
+
+  let authConfig;
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    // Produção: credenciais via variável de ambiente (base64)
+    const credentials = JSON.parse(
+      Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, 'base64').toString('utf-8')
+    );
+    authConfig = { credentials, scopes };
+  } else {
+    // Local: credenciais via arquivo
+    authConfig = { keyFile: path.resolve(process.env.GOOGLE_SERVICE_ACCOUNT_PATH), scopes };
+  }
+
+  const auth = new google.auth.GoogleAuth(authConfig);
   return google.drive({ version: 'v3', auth });
 }
 

@@ -88,6 +88,53 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({ email: req.user.email, name: req.user.name, isAdmin: !!req.user.isAdmin, modules: req.user.modules ?? null });
 });
 
+// PATCH /api/me — atualiza nome e/ou email do usuário autenticado
+app.patch('/api/me', requireAuth, async (req, res) => {
+  const { name, email } = req.body || {};
+  try {
+    const admin = getFirebaseAdmin();
+    const user = await admin.auth().getUserByEmail(req.user.email);
+    const updates = {};
+    if (name  !== undefined) updates.displayName = name;
+    if (email !== undefined && email !== req.user.email) updates.email = email;
+    if (Object.keys(updates).length) await admin.auth().updateUser(user.uid, updates);
+    const newEmail = email || req.user.email;
+    const newName  = name  !== undefined ? name : req.user.name;
+    const token = jwt.sign(
+      { email: newEmail, name: newName, isAdmin: req.user.isAdmin, modules: req.user.modules ?? null },
+      JWT_SECRET, { expiresIn: '7d' }
+    );
+    res.cookie('token', token, {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000,
+    }).json({ ok: true, name: newName, email: newEmail });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PATCH /api/me/password — atualiza senha verificando a atual
+app.patch('/api/me/password', requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Senhas obrigatórias' });
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Nova senha deve ter pelo menos 6 caracteres' });
+  try {
+    // Verifica senha atual via Firebase REST API
+    const verifyRes = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: req.user.email, password: currentPassword, returnSecureToken: false }) }
+    );
+    if (!verifyRes.ok) return res.status(401).json({ error: 'Senha atual incorreta' });
+    const admin = getFirebaseAdmin();
+    const user = await admin.auth().getUserByEmail(req.user.email);
+    await admin.auth().updateUser(user.uid, { password: newPassword });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ─── Admin — gestão de usuários Firebase ─────────────────────────────────────
 
 function requireAdmin(req, res, next) {

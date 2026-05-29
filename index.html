@@ -1928,7 +1928,7 @@
     <div class="date" id="last-update-badge">Carregando…</div>
   </div>
 
-  <nav class="sidebar-nav">
+  <nav class="sidebar-nav" id="sidebar-nav" style="visibility:hidden">
     <div class="nav-section-label">Módulos</div>
 
     <div class="nav-item active" data-module="comparativo">
@@ -2059,6 +2059,53 @@
     <button class="drawer-close" id="drawer-close-btn" title="Fechar">✕</button>
   </div>
   <div class="drawer-body" id="drawer-body"></div>
+</div>
+
+<!-- Modal criar usuário -->
+<div id="admin-modal-overlay">
+  <div id="admin-modal">
+    <h3>Novo usuário</h3>
+    <form id="admin-modal-form" style="display:flex;flex-direction:column;gap:12px">
+      <div class="admin-field">
+        <label>Nome</label>
+        <input type="text" id="admin-modal-name" placeholder="Nome completo" />
+      </div>
+      <div class="admin-field">
+        <label>E-mail *</label>
+        <input type="email" id="admin-modal-email" placeholder="usuario@email.com" required />
+      </div>
+      <div class="admin-field">
+        <label>Senha *</label>
+        <input type="password" id="admin-modal-password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+      </div>
+      <div id="admin-modal-error"></div>
+      <div class="admin-modal-actions">
+        <button type="button" class="btn-cancel" id="admin-modal-cancel">Cancelar</button>
+        <button type="submit" class="btn-save">Criar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal permissões de módulos -->
+<div id="perm-modal-overlay">
+  <div id="perm-modal">
+    <h3 id="perm-modal-title">Permissões de acesso</h3>
+    <p class="perm-user-label" id="perm-modal-user-label"></p>
+    <div class="perm-all-toggle">
+      <span>Módulos</span>
+      <div style="display:flex;gap:8px">
+        <button class="perm-all-btn" id="perm-select-all">Marcar todos</button>
+        <button class="perm-all-btn" id="perm-deselect-all">Desmarcar todos</button>
+      </div>
+    </div>
+    <div class="perm-modules-grid" id="perm-modules-grid"></div>
+    <div id="perm-modal-error"></div>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn-cancel" id="perm-modal-cancel">Cancelar</button>
+      <button type="button" class="btn-save btn-save-perm" id="perm-modal-save">Salvar</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -2846,50 +2893,59 @@ function renderAnomaliesHTML(anomalies) {
 // ═══════════════════════════════════════════════════════════════════════
 //  NAVEGAÇÃO DA SIDEBAR
 // ═══════════════════════════════════════════════════════════════════════
+function navigateTo(mod) {
+  const item = document.querySelector(`.nav-item[data-module="${mod}"]`);
+  if (!item || item.style.display === 'none') return false;
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  item.classList.add('active');
+  document.getElementById('topbar-sub').textContent = '';
+  window.location.hash = mod;
+
+  if (mod === 'comparativo') {
+    document.getElementById('topbar-title').textContent = 'Comparativo de Sellout';
+    renderComparativo();
+  } else if (mod === 'inatividade') {
+    document.getElementById('topbar-title').textContent = 'Dias sem Venda';
+    renderInatividade();
+  } else if (mod === 'distribuidores') {
+    document.getElementById('topbar-title').textContent = 'Distribuidores BIC';
+    renderDistribuidores();
+  } else if (mod === 'paliativos') {
+    document.getElementById('topbar-title').textContent = 'Paliativos MTrix';
+    renderPaliativos();
+  } else if (mod === 'depara') {
+    document.getElementById('topbar-title').textContent = 'Análise De → Para';
+    renderDepara();
+  } else if (mod === 'historico') {
+    document.getElementById('topbar-title').textContent = 'Histórico de Vendas';
+    renderHistorico();
+  } else if (mod === 'usuarios') {
+    document.getElementById('topbar-title').textContent = 'Usuários';
+    renderUsuarios();
+  } else if (mod === 'batalha') {
+    document.getElementById('topbar-title').textContent = 'Batalha Naval';
+    renderBatalha();
+  } else if (mod === 'admin-users') {
+    document.getElementById('topbar-title').textContent = 'Gestão de Acesso';
+    renderAdminUsers();
+  } else {
+    document.getElementById('topbar-title').textContent = item.querySelector('.nav-icon').nextSibling.textContent.trim();
+    document.getElementById('content-area').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🔧</div>
+        <p>Este módulo está em desenvolvimento e estará disponível em breve.</p>
+      </div>`;
+  }
+  return true;
+}
+
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     const mod = item.dataset.module;
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    item.classList.add('active');
-    document.getElementById('topbar-sub').textContent = '';
-
-    if (mod === 'comparativo') {
-      document.getElementById('topbar-title').textContent = 'Comparativo de Sellout';
-      renderComparativo();
-    } else if (mod === 'inatividade') {
-      document.getElementById('topbar-title').textContent = 'Dias sem Venda';
-      renderInatividade();
-    } else if (mod === 'distribuidores') {
-      document.getElementById('topbar-title').textContent = 'Distribuidores BIC';
-      renderDistribuidores();
-    } else if (mod === 'paliativos') {
-      document.getElementById('topbar-title').textContent = 'Paliativos MTrix';
-      renderPaliativos();
-    } else if (mod === 'depara') {
-      document.getElementById('topbar-title').textContent = 'Análise De → Para';
-      renderDepara();
-    } else if (mod === 'historico') {
-      document.getElementById('topbar-title').textContent = 'Histórico de Vendas';
-      renderHistorico();
-    } else if (mod === 'usuarios') {
-      document.getElementById('topbar-title').textContent = 'Usuários';
-      renderUsuarios();
-    } else if (mod === 'batalha') {
-      document.getElementById('topbar-title').textContent = 'Batalha Naval';
-      renderBatalha();
-    } else if (mod === 'admin-users') {
-      document.getElementById('topbar-title').textContent = 'Gestão de Acesso';
-      renderAdminUsers();
-    } else {
-      document.getElementById('topbar-title').textContent = item.querySelector('.nav-icon').nextSibling.textContent.trim();
-      document.getElementById('content-area').innerHTML = `
-        <div class="empty-state">
-          <div class="icon">🔧</div>
-          <p>Este módulo está em desenvolvimento e estará disponível em breve.</p>
-        </div>`;
-    }
+    navigateTo(mod);
   });
 });
+
 
 // ═══════════════════════════════════════════════════════════════════════
 //  MÓDULO ANÁLISE DE INATIVIDADE
@@ -5206,7 +5262,13 @@ async function init() {
       document.getElementById('last-update-badge').textContent = 'Sem arquivos';
     }
 
-    renderComparativo();
+    // Restaura módulo salvo no hash (ex: F5 na página de Batalha Naval)
+    const hashMod = window.location.hash.replace('#', '');
+    if (hashMod && hashMod !== 'comparativo') {
+      navigateTo(hashMod);
+    } else {
+      renderComparativo();
+    }
   } catch (e) {
     clearInterval(timer);
     document.getElementById('last-update-badge').textContent = 'Erro';
@@ -5218,7 +5280,7 @@ async function init() {
   }
 }
 
-init();
+// init() é chamado pelo initAuth() após confirmar permissões
 
 // ═══════════════════════════════════════════════════════════════════════
 //  MÓDULO HISTÓRICO DE VENDAS
@@ -5799,6 +5861,18 @@ async function initAuth() {
         if (!_currentUser.modules.includes(mod)) item.style.display = 'none';
       });
     }
+
+    // Revela nav após filtrar (sem flash de módulos não permitidos)
+    document.getElementById('sidebar-nav').style.visibility = '';
+
+    // Restaura módulos que não dependem de init() (ex: admin-users)
+    const hashMod = window.location.hash.replace('#', '');
+    if (hashMod === 'admin-users' && _currentUser.isAdmin) {
+      navigateTo('admin-users');
+    } else {
+      // Inicia carregamento de dados após confirmar permissões
+      init();
+    }
   } catch {
     window.location.href = '/login';
   }
@@ -5901,8 +5975,14 @@ function renderAdminTable(users) {
 
   wrap.querySelectorAll('.admin-action.perm').forEach(btn => {
     btn.addEventListener('click', () => {
-      const modules = JSON.parse(btn.dataset.modules || 'null');
-      openPermModal(btn.dataset.uid, btn.dataset.email, btn.dataset.name, modules);
+      try {
+        const raw = btn.dataset.modules;
+        const modules = (raw && raw !== 'undefined') ? JSON.parse(raw) : null;
+        openPermModal(btn.dataset.uid, btn.dataset.email, btn.dataset.name, modules);
+      } catch(err) {
+        console.error('[perm-btn] erro ao abrir modal:', err);
+        alert('Erro ao abrir permissões: ' + err.message);
+      }
     });
   });
 }
@@ -5993,6 +6073,8 @@ document.getElementById('perm-modal-save').addEventListener('click', async () =>
   if (res.ok) {
     overlay.classList.remove('open');
     renderAdminUsers();
+    // Avisa que o usuário precisa relogar para as mudanças surtirem efeito
+    setTimeout(() => alert('Permissões salvas. O usuário precisará fazer logout e login novamente para que as mudanças tenham efeito.'), 150);
   } else {
     errorEl.textContent = data.error || 'Erro ao salvar permissões.';
     errorEl.style.display = 'block';
@@ -6033,53 +6115,6 @@ document.getElementById('admin-modal-form').addEventListener('submit', async e =
 });
 
 </script>
-
-<!-- Modal criar usuário -->
-<div id="admin-modal-overlay">
-  <div id="admin-modal">
-    <h3>Novo usuário</h3>
-    <form id="admin-modal-form" style="display:flex;flex-direction:column;gap:12px">
-      <div class="admin-field">
-        <label>Nome</label>
-        <input type="text" id="admin-modal-name" placeholder="Nome completo" />
-      </div>
-      <div class="admin-field">
-        <label>E-mail *</label>
-        <input type="email" id="admin-modal-email" placeholder="usuario@email.com" required />
-      </div>
-      <div class="admin-field">
-        <label>Senha *</label>
-        <input type="password" id="admin-modal-password" placeholder="Mínimo 6 caracteres" required minlength="6" />
-      </div>
-      <div id="admin-modal-error"></div>
-      <div class="admin-modal-actions">
-        <button type="button" class="btn-cancel" id="admin-modal-cancel">Cancelar</button>
-        <button type="submit" class="btn-save">Criar</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Modal permissões de módulos -->
-<div id="perm-modal-overlay">
-  <div id="perm-modal">
-    <h3 id="perm-modal-title">Permissões de acesso</h3>
-    <p class="perm-user-label" id="perm-modal-user-label"></p>
-    <div class="perm-all-toggle">
-      <span>Módulos</span>
-      <div style="display:flex;gap:8px">
-        <button class="perm-all-btn" id="perm-select-all">Marcar todos</button>
-        <button class="perm-all-btn" id="perm-deselect-all">Desmarcar todos</button>
-      </div>
-    </div>
-    <div class="perm-modules-grid" id="perm-modules-grid"></div>
-    <div id="perm-modal-error"></div>
-    <div class="admin-modal-actions">
-      <button type="button" class="btn-cancel" id="perm-modal-cancel">Cancelar</button>
-      <button type="button" class="btn-save btn-save-perm" id="perm-modal-save">Salvar</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>

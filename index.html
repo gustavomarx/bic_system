@@ -202,6 +202,22 @@
     .btn-save:disabled { opacity: .5; cursor: not-allowed; }
     #admin-modal-error { display: none; padding: 8px 12px; background: #fff1f2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 8px; font-size: 12px; }
 
+    /* ── Permissions modal ──────────────────────────────────────────── */
+    #perm-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; }
+    #perm-modal-overlay.open { display: flex; }
+    #perm-modal { background: #fff; border-radius: 16px; padding: 28px 24px; width: min(460px, 94vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 16px; max-height: 90vh; overflow-y: auto; }
+    #perm-modal h3 { font-size: 16px; font-weight: 700; color: #1a2540; margin: 0; }
+    #perm-modal .perm-user-label { font-size: 12px; color: #7a8ba8; margin-top: -8px; }
+    .perm-modules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .perm-module-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px solid #e8edf3; border-radius: 8px; cursor: pointer; transition: border-color .15s, background .15s; user-select: none; }
+    .perm-module-item:hover { border-color: #1a73e8; background: #f0f6ff; }
+    .perm-module-item input[type=checkbox] { accent-color: #1a73e8; width: 15px; height: 15px; flex-shrink: 0; }
+    .perm-module-item label { font-size: 12px; color: #2d3748; cursor: pointer; line-height: 1.3; }
+    .perm-all-toggle { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e8edf3; margin-bottom: 4px; }
+    .perm-all-toggle span { font-size: 12px; font-weight: 600; color: #7a8ba8; text-transform: uppercase; letter-spacing: .06em; }
+    .perm-all-btn { font-size: 11px; color: #1a73e8; background: none; border: none; cursor: pointer; text-decoration: underline; }
+    #perm-modal-error { display: none; padding: 8px 12px; background: #fff1f2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 8px; font-size: 12px; }
+
     /* ── Main content ────────────────────────────────────────── */
     #main {
       flex: 1;
@@ -5774,6 +5790,15 @@ async function initAuth() {
       document.getElementById('admin-nav-section').style.display = '';
       document.getElementById('admin-nav-item').style.display = '';
     }
+
+    // Filtra módulos do nav com base nas permissões do usuário
+    if (!_currentUser.isAdmin && Array.isArray(_currentUser.modules)) {
+      document.querySelectorAll('.nav-item[data-module]').forEach(item => {
+        const mod = item.dataset.module;
+        if (mod === 'admin-users') return;
+        if (!_currentUser.modules.includes(mod)) item.style.display = 'none';
+      });
+    }
   } catch {
     window.location.href = '/login';
   }
@@ -5842,6 +5867,7 @@ function renderAdminTable(users) {
             <td style="font-size:12px;color:#7a8ba8">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
             <td style="font-size:12px;color:#7a8ba8">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('pt-BR') : 'Nunca'}</td>
             <td style="white-space:nowrap">
+              ${!u.isAdmin ? `<button class="admin-action perm" data-uid="${escHtml(u.uid)}" data-email="${escHtml(u.email)}" data-name="${escHtml(u.name)}" data-modules='${JSON.stringify(u.modules)}' title="Permissões">🔑 Módulos</button>` : ''}
               <button class="admin-action tog" data-uid="${escHtml(u.uid)}" data-disabled="${u.disabled}" title="${u.disabled ? 'Ativar' : 'Desativar'}">
                 ${u.disabled ? '✅ Ativar' : '⏸ Desativar'}
               </button>
@@ -5872,6 +5898,13 @@ function renderAdminTable(users) {
       if (res.ok) { renderAdminUsers(); } else { alert('Erro ao atualizar usuário.'); btn.disabled = false; }
     });
   });
+
+  wrap.querySelectorAll('.admin-action.perm').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modules = JSON.parse(btn.dataset.modules || 'null');
+      openPermModal(btn.dataset.uid, btn.dataset.email, btn.dataset.name, modules);
+    });
+  });
 }
 
 function openAdminModal() {
@@ -5890,6 +5923,82 @@ document.getElementById('admin-modal-overlay').addEventListener('click', e => {
 });
 document.getElementById('admin-modal-cancel').addEventListener('click', () => {
   document.getElementById('admin-modal-overlay').classList.remove('open');
+});
+
+const ALL_MODULES = [
+  { key: 'comparativo',   label: 'Comparativo de Sellout' },
+  { key: 'batalha',       label: 'Batalha Naval' },
+  { key: 'inatividade',   label: 'Dias sem Venda' },
+  { key: 'historico',     label: 'Histórico de Vendas' },
+  { key: 'depara',        label: 'Análise De → Para' },
+  { key: 'distribuidores',label: 'Distribuidores' },
+  { key: 'paliativos',    label: 'Paliativos MTrix' },
+  { key: 'usuarios',      label: 'Usuários' },
+  { key: 'ranking',       label: 'Ranking' },
+  { key: 'evolucao',      label: 'Evolução Histórica' },
+];
+
+function openPermModal(uid, email, name, modules) {
+  const overlay = document.getElementById('perm-modal-overlay');
+  overlay.querySelector('#perm-modal-title').textContent = 'Permissões de acesso';
+  overlay.querySelector('#perm-modal-user-label').textContent = `${name || email} — ${email}`;
+  overlay.querySelector('#perm-modal-error').style.display = 'none';
+  overlay.querySelector('.btn-save-perm').disabled = false;
+  overlay.querySelector('.btn-save-perm').textContent = 'Salvar';
+  overlay.dataset.uid = uid;
+
+  // Render checkboxes
+  const grid = overlay.querySelector('#perm-modules-grid');
+  const allChecked = modules === null; // null = acesso total
+  grid.innerHTML = ALL_MODULES.map(m => `
+    <label class="perm-module-item">
+      <input type="checkbox" name="module" value="${m.key}" ${(allChecked || (modules || []).includes(m.key)) ? 'checked' : ''} />
+      <span style="font-size:12px;color:#2d3748">${m.label}</span>
+    </label>`).join('');
+
+  overlay.classList.add('open');
+}
+
+document.getElementById('perm-modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+document.getElementById('perm-modal-cancel').addEventListener('click', () => {
+  document.getElementById('perm-modal-overlay').classList.remove('open');
+});
+document.getElementById('perm-select-all').addEventListener('click', () => {
+  document.querySelectorAll('#perm-modules-grid input[type=checkbox]').forEach(c => c.checked = true);
+});
+document.getElementById('perm-deselect-all').addEventListener('click', () => {
+  document.querySelectorAll('#perm-modules-grid input[type=checkbox]').forEach(c => c.checked = false);
+});
+document.getElementById('perm-modal-save').addEventListener('click', async () => {
+  const overlay = document.getElementById('perm-modal-overlay');
+  const uid = overlay.dataset.uid;
+  const saveBtn = overlay.querySelector('.btn-save-perm');
+  const errorEl = overlay.querySelector('#perm-modal-error');
+  const checked = [...document.querySelectorAll('#perm-modules-grid input[type=checkbox]:checked')].map(c => c.value);
+  // null = acesso total (todos marcados), senão array dos marcados
+  const modules = checked.length === ALL_MODULES.length ? null : checked;
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Salvando…';
+  errorEl.style.display = 'none';
+
+  const res = await fetch(`/api/admin/users/${uid}/modules`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modules }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    overlay.classList.remove('open');
+    renderAdminUsers();
+  } else {
+    errorEl.textContent = data.error || 'Erro ao salvar permissões.';
+    errorEl.style.display = 'block';
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Salvar';
+  }
 });
 document.getElementById('admin-modal-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -5946,6 +6055,27 @@ document.getElementById('admin-modal-form').addEventListener('submit', async e =
         <button type="submit" class="btn-save">Criar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Modal permissões de módulos -->
+<div id="perm-modal-overlay">
+  <div id="perm-modal">
+    <h3 id="perm-modal-title">Permissões de acesso</h3>
+    <p class="perm-user-label" id="perm-modal-user-label"></p>
+    <div class="perm-all-toggle">
+      <span>Módulos</span>
+      <div style="display:flex;gap:8px">
+        <button class="perm-all-btn" id="perm-select-all">Marcar todos</button>
+        <button class="perm-all-btn" id="perm-deselect-all">Desmarcar todos</button>
+      </div>
+    </div>
+    <div class="perm-modules-grid" id="perm-modules-grid"></div>
+    <div id="perm-modal-error"></div>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn-cancel" id="perm-modal-cancel">Cancelar</button>
+      <button type="button" class="btn-save btn-save-perm" id="perm-modal-save">Salvar</button>
+    </div>
   </div>
 </div>
 

@@ -62,7 +62,8 @@ app.post('/api/login', async (req, res) => {
     const email = decoded.email;
     const name = decoded.name || email.split('@')[0];
     const isAdmin = isAdminEmail(email);
-    const token = jwt.sign({ email, name, isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+    const modules = decoded.modules ?? null; // null = full access
+    const token = jwt.sign({ email, name, isAdmin, modules }, JWT_SECRET, { expiresIn: '7d' });
     res
       .cookie('token', token, {
         httpOnly: true,
@@ -70,7 +71,7 @@ app.post('/api/login', async (req, res) => {
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
-      .json({ ok: true, name, isAdmin });
+      .json({ ok: true, name, isAdmin, modules });
   } catch (err) {
     console.error('Login error:', err.message);
     res.status(401).json({ error: 'Credenciais inválidas' });
@@ -84,7 +85,7 @@ app.post('/api/logout', (req, res) => {
 
 // GET /api/me
 app.get('/api/me', requireAuth, (req, res) => {
-  res.json({ email: req.user.email, name: req.user.name, isAdmin: !!req.user.isAdmin });
+  res.json({ email: req.user.email, name: req.user.name, isAdmin: !!req.user.isAdmin, modules: req.user.modules ?? null });
 });
 
 // ─── Admin — gestão de usuários Firebase ─────────────────────────────────────
@@ -106,6 +107,7 @@ app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
       createdAt:  u.metadata.creationTime,
       lastLogin:  u.metadata.lastSignInTime || null,
       isAdmin:    isAdminEmail(u.email),
+      modules:    u.customClaims?.modules ?? null,  // null = full access
     }));
     res.json({ users });
   } catch (err) {
@@ -147,6 +149,20 @@ app.patch('/api/admin/users/:uid', requireAuth, requireAdmin, async (req, res) =
 app.delete('/api/admin/users/:uid', requireAuth, requireAdmin, async (req, res) => {
   try {
     await getFirebaseAdmin().auth().deleteUser(req.params.uid);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PATCH /api/admin/users/:uid/modules — define módulos permitidos via custom claims
+app.patch('/api/admin/users/:uid/modules', requireAuth, requireAdmin, async (req, res) => {
+  const { modules } = req.body || {};
+  // modules: array of strings (module keys) or null (full access)
+  try {
+    await getFirebaseAdmin().auth().setCustomUserClaims(req.params.uid, {
+      modules: Array.isArray(modules) ? modules : null,
+    });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -1112,12 +1128,12 @@ app.get('/api/batalha-naval-dados', async (req, res) => {
 // SPA fallback — qualquer rota desconhecida serve o index.html (requer auth)
 app.get('*', (req, res) => {
   const token = req.cookies?.token;
-  if (!token) return res.redirect('/login.html');
+  if (!token) return res.redirect('/login');
   try {
     jwt.verify(token, JWT_SECRET);
     res.sendFile(path.join(__dirname, '..', 'index.html'));
   } catch {
-    res.clearCookie('token').redirect('/login.html');
+    res.clearCookie('token').redirect('/login');
   }
 });
 

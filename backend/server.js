@@ -4,25 +4,189 @@ const cors = require('cors');
 const path = require('path');
 const { google } = require('googleapis');
 const XLSX = require('xlsx');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+const admin = require('firebase-admin');
 
 const app = express();
 const PORT = process.env.PORT || 3004;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
 
 // ─── Middlewares ─────────────────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '..')));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
+
+// ─── Firebase Admin ───────────────────────────────────────────────────────────
+function getFirebaseAdmin() {
+  if (admin.apps.length) return admin;
+  const serviceAccount = process.env.FIREBASE_ADMIN_JSON
+    ? JSON.parse(process.env.FIREBASE_ADMIN_JSON)
+    : require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './credentials/firebase-service-account.json'));
+  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+  return admin;
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+function requireAuth(req, res, next) {
+  const token = req.cookies?.token || req.headers?.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Não autenticado' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.clearCookie('token').status(401).json({ error: 'Sessão expirada' });
+  }
+}
+
+// Aplica auth em todas as rotas /api exceto as públicas
+app.use('/api', (req, res, next) => {
+  if (['/login', '/logout', '/health'].includes(req.path)) return next();
+  requireAuth(req, res, next);
+});
+
+function isAdminEmail(email) {
+  const admins = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+  return admins.includes(email.toLowerCase());
+}
+
+// POST /api/login — recebe Firebase ID token, verifica, cria sessão
+app.post('/api/login', async (req, res) => {
+  const { idToken } = req.body || {};
+  if (!idToken) return res.status(400).json({ error: 'Token obrigatório' });
+  try {
+    const decoded = await getFirebaseAdmin().auth().verifyIdToken(idToken);
+    const email = decoded.email;
+    const name = decoded.name || email.split('@')[0];
+    const isAdmin = isAdminEmail(email);
+    const token = jwt.sign({ email, name, isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+    res
+      .cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      })
+      .json({ ok: true, name, isAdmin });
+  } catch (err) {
+    console.error('Login error:', err.message);
+    res.status(401).json({ error: 'Credenciais inválidas' });
+  }
+});
+
+// POST /api/logout
+app.post('/api/logout', (req, res) => {
+  res.clearCookie('token').json({ ok: true });
+});
+
+// GET /api/me
+app.get('/api/me', requireAuth, (req, res) => {
+  res.json({ email: req.user.email, name: req.user.name, isAdmin: !!req.user.isAdmin });
+});
+
+// ─── Admin — gestão de usuários Firebase ─────────────────────────────────────
+
+function requireAdmin(req, res, next) {
+  if (!req.user?.isAdmin) return res.status(403).json({ error: 'Acesso restrito a administradores' });
+  next();
+}
+
+// GET /api/admin/users — lista todos os usuários Firebase Auth
+app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const result = await getFirebaseAdmin().auth().listUsers(1000);
+    const users = result.users.map(u => ({
+      uid:        u.uid,
+      email:      u.email,
+      name:       u.displayName || '',
+      disabled:   u.disabled,
+      createdAt:  u.metadata.creationTime,
+      lastLogin:  u.metadata.lastSignInTime || null,
+      isAdmin:    isAdminEmail(u.email),
+    }));
+    res.json({ users });
+  } catch (err) {
+    console.error('admin/users error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users — cria novo usuário
+app.post('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
+  const { email, password, name } = req.body || {};
+  if (!email || !password) return res.status(400).json({ error: 'Email e senha obrigatórios' });
+  try {
+    const user = await getFirebaseAdmin().auth().createUser({
+      email,
+      password,
+      displayName: name || email.split('@')[0],
+      emailVerified: true,
+    });
+    res.json({ ok: true, uid: user.uid });
+  } catch (err) {
+    const msg = err.code === 'auth/email-already-exists' ? 'E-mail já cadastrado' : err.message;
+    res.status(400).json({ error: msg });
+  }
+});
+
+// PATCH /api/admin/users/:uid — ativa/desativa usuário
+app.patch('/api/admin/users/:uid', requireAuth, requireAdmin, async (req, res) => {
+  const { disabled } = req.body || {};
+  try {
+    await getFirebaseAdmin().auth().updateUser(req.params.uid, { disabled: !!disabled });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE /api/admin/users/:uid — remove usuário
+app.delete('/api/admin/users/:uid', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await getFirebaseAdmin().auth().deleteUser(req.params.uid);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /login ou /login.html — serve login page com Firebase config injetada
+function serveLogin(req, res) {
+  const fs = require('fs');
+  const loginPath = path.join(__dirname, '..', 'login.html');
+  let html;
+  try { html = fs.readFileSync(loginPath, 'utf8'); } catch { return res.status(404).send('login.html not found'); }
+  const config = {
+    apiKey:            process.env.FIREBASE_API_KEY            || '',
+    authDomain:        process.env.FIREBASE_AUTH_DOMAIN        || '',
+    projectId:         process.env.FIREBASE_PROJECT_ID         || '',
+    storageBucket:     process.env.FIREBASE_STORAGE_BUCKET     || '',
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID|| '',
+    appId:             process.env.FIREBASE_APP_ID             || '',
+  };
+  const script = `<script>window.__BIC_FIREBASE_CONFIG__ = ${JSON.stringify(config)}<\/script>`;
+  html = html.replace('<!-- __FIREBASE_CONFIG_PLACEHOLDER__ -->', script);
+  res.setHeader('Content-Type', 'text/html').send(html);
+}
+
+app.get('/login', serveLogin);
+app.get('/login.html', serveLogin);
 
 // ─── Google Drive auth ────────────────────────────────────────────────────────
 function getDriveClient(readOnly = true) {
   const scopes = readOnly
     ? ['https://www.googleapis.com/auth/drive.readonly']
     : ['https://www.googleapis.com/auth/drive'];
-  const auth = new google.auth.GoogleAuth({
-    keyFile: path.resolve(process.env.GOOGLE_SERVICE_ACCOUNT_PATH),
-    scopes,
-  });
+
+  // Suporta service account via env var (Vercel) ou arquivo (local)
+  const authConfig = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+    ? { credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON), scopes }
+    : { keyFile: path.resolve(process.env.GOOGLE_SERVICE_ACCOUNT_PATH), scopes };
+
+  const auth = new google.auth.GoogleAuth(authConfig);
   return google.drive({ version: 'v3', auth });
 }
 
@@ -532,6 +696,7 @@ app.post('/api/distribuidores-atualizar', async (req, res) => {
 
 // ─── Paliativos MTrix ────────────────────────────────────────────────────────
 // GET /api/paliativos — exporta o Google Doc como texto e parseia holdings
+// GET /api/paliativos?debug=1 — retorna o texto bruto do doc para diagnóstico
 app.get('/api/paliativos', async (req, res) => {
   const docId = process.env.GOOGLE_DRIVE_PALIATIVO_DOC_ID;
   if (!docId) return res.status(500).json({ error: 'GOOGLE_DRIVE_PALIATIVO_DOC_ID não configurado' });
@@ -539,52 +704,77 @@ app.get('/api/paliativos', async (req, res) => {
   try {
     const drive = getDriveClient(true);
 
-    // Exporta o Google Doc como texto plano via Drive API
+    // Força busca sem cache adicionando um cabeçalho de controle
     const exportResp = await drive.files.export(
       { fileId: docId, mimeType: 'text/plain' },
       { responseType: 'text' }
     );
     const raw = exportResp.data;
 
+    // Modo debug: retorna texto bruto para diagnóstico
+    if (req.query.debug === '1') {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.send(raw);
+    }
+
     // ── Parser ─────────────────────────────────────────────────────────────
 
-    // Extrai "Atualizado em: DD/MM/YYYY"
-    const atualizadoMatch = raw.match(/Atualizado em:\s*(\d{2}\/\d{2}\/\d{4})/);
+    // Normaliza texto: remove caracteres de controle mantendo \n
+    const normalize = s => s.replace(/\r/g, '').replace(/[^\S\n]+/g, ' ').trim();
+
+    // Extrai "Atualizado em: DD/MM/YYYY" — aceita com ou sem dois-pontos e variações de espaço
+    const atualizadoMatch = raw.match(/Atualizado\s+em[:\s]\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
     const atualizadoEm = atualizadoMatch ? atualizadoMatch[1] : null;
 
-    // Cada holding individual está em seções separadas por "________________"
-    const sections = raw.split(/_{5,}/);
+    // Separa por linha de underscores OU traços (5+ caracteres)
+    const sections = raw.split(/^[_\-]{5,}\s*$/m);
 
     const holdings = [];
 
-    for (const sec of sections) {
-      const lines = sec.split('\n').map(l => l.trim()).filter(Boolean);
+    // Helper: encontra índice de linha que contenha o label (case-insensitive, ignora pontuação)
+    function findLabel(lines, label) {
+      const norm = label.toLowerCase().replace(/[^a-záàãâéêíóôõúç\s]/gi, '').trim();
+      return lines.findIndex(l => {
+        const lNorm = l.toLowerCase().replace(/[^a-záàãâéêíóôõúç\s]/gi, '').trim();
+        return lNorm === norm || l.toLowerCase().startsWith(label.toLowerCase());
+      });
+    }
 
-      // Seção de holding individual: contém "Responsável" e "Obs. / Ações"
-      const respIdx = lines.findIndex(l => l === 'Responsável');
-      const obsIdx  = lines.findIndex(l => l.startsWith('Obs. / Ações'));
+    // Helper: pega valor — linha seguinte ao label OU inline "Label: valor"
+    function fieldAfter(lines, label) {
+      const idx = findLabel(lines, label);
+      if (idx === -1) return null;
+      // Verifica se o valor está na mesma linha "Label: Valor"
+      const colonMatch = lines[idx].match(/^[^:]+:\s*(.+)/);
+      if (colonMatch) return colonMatch[1].trim();
+      // Caso contrário, pega a próxima linha não-vazia
+      for (let i = idx + 1; i < lines.length; i++) {
+        if (lines[i]) return lines[i];
+      }
+      return null;
+    }
+
+    for (const sec of sections) {
+      const lines = sec.split('\n').map(l => normalize(l)).filter(Boolean);
+
+      const respIdx = findLabel(lines, 'Responsável');
+      const obsIdx  = findLabel(lines, 'Obs');
       if (respIdx === -1 || obsIdx === -1) continue;
 
       // Nome da holding: última linha antes de "Responsável" que não é cabeçalho
       let nome = '';
       for (let i = respIdx - 1; i >= 0; i--) {
         const l = lines[i];
-        if (!l || l.includes('Report de Conversão') || l === ' ') continue;
+        if (!l || /report de convers/i.test(l)) continue;
         nome = l;
         break;
       }
       if (!nome) continue;
 
-      // Campo: pega o valor na linha seguinte ao label
-      function fieldAfter(label) {
-        const idx = lines.findIndex(l => l === label);
-        return idx !== -1 && idx + 1 < lines.length ? lines[idx + 1] : null;
-      }
-
-      const responsavel = fieldAfter('Responsável');
-      const previsao    = fieldAfter('Previsão');
-      const customers   = fieldAfter('Customers');
-      const status      = fieldAfter('Status Atual');
+      const responsavel = fieldAfter(lines, 'Responsável');
+      const previsao    = fieldAfter(lines, 'Previsão');
+      const customers   = fieldAfter(lines, 'Customers');
+      const status      = fieldAfter(lines, 'Status Atual');
 
       // Ações: tudo depois de "Obs. / Ações", cada entrada começa com DD/MM/YYYY
       const acaoLines = lines.slice(obsIdx + 1);
@@ -592,7 +782,7 @@ app.get('/api/paliativos', async (req, res) => {
       let currentAcao = null;
 
       for (const line of acaoLines) {
-        const dateMatch = line.match(/^(\d{2}\/\d{2}\/\d{4})\s*[–\-]\s*(.*)/);
+        const dateMatch = line.match(/^(\d{1,2}\/\d{1,2}\/\d{4})\s*[–\-]\s*(.*)/);
         if (dateMatch) {
           if (currentAcao) acoes.push(currentAcao);
           currentAcao = { data: dateMatch[1], texto: dateMatch[2].trim() };
@@ -613,6 +803,7 @@ app.get('/api/paliativos', async (req, res) => {
       return true;
     });
 
+    res.setHeader('Cache-Control', 'no-store');
     res.json({ atualizadoEm, holdings: unique, total: unique.length });
   } catch (err) {
     console.error('Erro ao buscar paliativos:', err.message);
@@ -724,9 +915,210 @@ app.post('/api/depara-upload', express.raw({ type: '*/*', limit: '20mb' }), asyn
   }
 });
 
-// SPA fallback — qualquer rota desconhecida serve o index.html
+// ─── Histórico de Vendas ──────────────────────────────────────────────────────
+
+// GET /api/historico-arquivos — lista historico_DD-MM-YYYY.xlsx (mais recente primeiro)
+app.get('/api/historico-arquivos', async (req, res) => {
+  const folderId = process.env.GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
+  if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_HISTORICO_FOLDER_ID não configurado' });
+  try {
+    const drive = getDriveClient(true);
+    const listResp = await drive.files.list({
+      q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields: 'files(id, name, createdTime)',
+      orderBy: 'name desc',
+      pageSize: 100,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+    });
+    const files = (listResp.data.files || [])
+      .map(f => {
+        const date = extractDateFromName(f.name);
+        return { id: f.id, name: f.name, date: date ? date.iso : null, dateFormatted: date ? date.formatted : null };
+      })
+      .filter(f => f.date !== null)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.json(files);
+  } catch (err) {
+    console.error('Erro ao listar histórico:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/historico-dados?fileId= — baixa e parseia arquivo de histórico de vendas
+app.get('/api/historico-dados', async (req, res) => {
+  const folderId = process.env.GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
+  if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_HISTORICO_FOLDER_ID não configurado' });
+  try {
+    const drive = getDriveClient(true);
+    let fileId = req.query.fileId;
+
+    if (!fileId) {
+      // Pega o mais recente
+      const listResp = await drive.files.list({
+        q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+        fields: 'files(id, name)',
+        orderBy: 'name desc',
+        pageSize: 1,
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true,
+      });
+      const files = listResp.data.files || [];
+      if (!files.length) return res.status(404).json({ error: 'Nenhum arquivo encontrado na pasta.' });
+      fileId = files[0].id;
+    }
+
+    const fileResp = await drive.files.get(
+      { fileId, alt: 'media', supportsAllDrives: true },
+      { responseType: 'arraybuffer' }
+    );
+
+    const workbook  = XLSX.read(fileResp.data, { type: 'array' });
+    const sheetName = workbook.SheetNames.find(n => n === 'Histórico') || workbook.SheetNames[0];
+    const rawRows   = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
+
+    const rows = rawRows.map(r => ({
+      holding:     String(r['HOLDING']      || r['holding']      || ''),
+      partnerName: String(r['PARTNER_NAME'] || r['partner_name'] || r['PARTNER NAME'] || ''),
+      cnpj:        String(r['CNPJ']         || r['cnpj']         || r['CNPJ_CUSTOMER'] || ''),
+      anoMes:      String(r['ANO_MES']      || r['ano_mes']      || r['ANO_MES_FIX'] || ''),
+      valor:       Number(r['VENDA_VALOR']  || r['venda_valor']  || 0),
+    })).filter(r => r.partnerName && r.anoMes);
+
+    res.json({ rows, fileId });
+  } catch (err) {
+    console.error('Erro ao baixar histórico:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Usuários — arquivo mais recente do Drive ─────────────────────────────────
+app.get('/api/usuarios-arquivo', async (req, res) => {
+  try {
+    const drive    = getDriveClient(true);
+    const folderId = process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID;
+    const listResp = await drive.files.list({
+      q:                         `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields:                    'files(id, name, createdTime)',
+      orderBy:                   'createdTime desc',
+      supportsAllDrives:         true,
+      includeItemsFromAllDrives: true,
+    });
+    const files = listResp.data.files || [];
+    if (!files.length) return res.json(null);
+    const f = files[0];
+    res.json({ fileId: f.id, name: f.name, createdTime: f.createdTime });
+  } catch (err) {
+    console.error('Erro /api/usuarios-arquivo:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/usuarios-dados', async (req, res) => {
+  try {
+    const { fileId } = req.query;
+    if (!fileId) return res.status(400).json({ error: 'fileId obrigatório' });
+
+    const drive    = getDriveClient(true);
+    const fileResp = await drive.files.get(
+      { fileId, alt: 'media', supportsAllDrives: true },
+      { responseType: 'arraybuffer' }
+    );
+
+    const wb          = XLSX.read(fileResp.data, { type: 'array' });
+    const wsDistrib   = wb.Sheets['Distribuidores'];
+    const wsIndustria = wb.Sheets['Industria'];
+
+    const distribuidores = wsDistrib   ? XLSX.utils.sheet_to_json(wsDistrib)   : [];
+    const industria      = wsIndustria ? XLSX.utils.sheet_to_json(wsIndustria) : [];
+
+    res.json({ distribuidores, industria });
+  } catch (err) {
+    console.error('Erro /api/usuarios-dados:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Batalha Naval — leitura do Drive ────────────────────────────────────────
+app.get('/api/batalha-naval-arquivos', async (req, res) => {
+  try {
+    const drive    = getDriveClient(true);
+    const folderId = process.env.GOOGLE_DRIVE_BATALHA_FOLDER_ID;
+    if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado' });
+
+    const listResp = await drive.files.list({
+      q:                         `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields:                    'files(id, name, createdTime)',
+      orderBy:                   'createdTime desc',
+      pageSize:                  50,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives:         true,
+    });
+
+    res.json({ files: listResp.data.files || [] });
+  } catch (err) {
+    console.error('Erro /api/batalha-naval-arquivos:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/batalha-naval-arquivo', async (req, res) => {
+  try {
+    const drive    = getDriveClient(true);
+    const folderId = process.env.GOOGLE_DRIVE_BATALHA_FOLDER_ID;
+    if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado' });
+
+    const listResp = await drive.files.list({
+      q:                         `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields:                    'files(id, name, createdTime)',
+      orderBy:                   'createdTime desc',
+      pageSize:                  5,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives:         true,
+    });
+
+    const files = listResp.data.files || [];
+    if (!files.length) return res.json({ fileId: null, name: null, createdTime: null });
+    const f = files[0];
+    res.json({ fileId: f.id, name: f.name, createdTime: f.createdTime });
+  } catch (err) {
+    console.error('Erro /api/batalha-naval-arquivo:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/batalha-naval-dados', async (req, res) => {
+  try {
+    const { fileId } = req.query;
+    if (!fileId) return res.status(400).json({ error: 'fileId obrigatório' });
+
+    const drive    = getDriveClient(true);
+    const fileResp = await drive.files.get(
+      { fileId, alt: 'media', supportsAllDrives: true },
+      { responseType: 'arraybuffer' }
+    );
+
+    const wb   = XLSX.read(fileResp.data, { type: 'array' });
+    const ws   = wb.Sheets['Dados'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
+
+    res.json({ rows });
+  } catch (err) {
+    console.error('Erro /api/batalha-naval-dados:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// SPA fallback — qualquer rota desconhecida serve o index.html (requer auth)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  const token = req.cookies?.token;
+  if (!token) return res.redirect('/login.html');
+  try {
+    jwt.verify(token, JWT_SECRET);
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+  } catch {
+    res.clearCookie('token').redirect('/login.html');
+  }
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────

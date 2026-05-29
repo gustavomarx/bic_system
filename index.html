@@ -133,13 +133,74 @@
     }
 
     .sidebar-footer {
-      padding: 14px 20px;
+      padding: 14px 16px;
       border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-user-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
+    }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-email { font-size: 10px; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-logout {
+      width: 100%;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.45);
       font-size: 11px;
-      color: rgba(255,255,255,0.25);
+      cursor: pointer;
+      transition: all .15s;
       text-align: center;
     }
-    .sidebar-footer span { color: rgba(255,255,255,0.45); }
+    .sidebar-logout:hover { background: rgba(255,80,80,.15); border-color: rgba(255,80,80,.3); color: rgba(255,120,120,.9); }
+
+    /* ── Admin module ────────────────────────────────────────── */
+    .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .admin-btn { padding: 8px 16px; background: #1a73e8; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .admin-btn:hover { background: #1557b0; }
+    .admin-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .admin-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: #7a8ba8; text-transform: uppercase; letter-spacing: .06em; background: #f8fafc; border-bottom: 1px solid #e8edf3; }
+    .admin-table td { padding: 11px 14px; font-size: 13px; color: #2d3748; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr:hover td { background: #f8fafc; }
+    .badge-admin { display: inline-block; padding: 2px 8px; background: #ebf3ff; color: #1a73e8; font-size: 10px; font-weight: 700; border-radius: 10px; }
+    .badge-disabled { display: inline-block; padding: 2px 8px; background: #fff1f2; color: #e53935; font-size: 10px; font-weight: 700; border-radius: 10px; }
+    .badge-active { display: inline-block; padding: 2px 8px; background: #e8f5e9; color: #2e7d32; font-size: 10px; font-weight: 700; border-radius: 10px; }
+    .admin-action { background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 12px; transition: background .15s; }
+    .admin-action.del:hover { background: #fff1f2; color: #e53935; }
+    .admin-action.tog:hover { background: #f0f4f8; }
+
+    /* ── Modal admin ──────────────────────────────────────────── */
+    #admin-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; }
+    #admin-modal-overlay.open { display: flex; }
+    #admin-modal { background: #fff; border-radius: 16px; padding: 28px 24px; width: min(400px, 94vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 16px; }
+    #admin-modal h3 { font-size: 16px; font-weight: 700; color: #1a2540; margin: 0; }
+    .admin-field label { display: block; font-size: 11px; font-weight: 600; color: #7a8ba8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+    .admin-field input { width: 100%; border: 1.5px solid #dde3ed; border-radius: 8px; padding: 9px 12px; font-size: 14px; color: #1a2540; outline: none; transition: border-color .15s; }
+    .admin-field input:focus { border-color: #1a73e8; }
+    .admin-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+    .admin-modal-actions button { padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background .15s; }
+    .btn-cancel { background: #f0f4f8; color: #7a8ba8; }
+    .btn-cancel:hover { background: #e2e8f0; }
+    .btn-save { background: #1a73e8; color: #fff; }
+    .btn-save:hover { background: #1557b0; }
+    .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+    #admin-modal-error { display: none; padding: 8px 12px; background: #fff1f2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 8px; font-size: 12px; }
 
     /* ── Main content ────────────────────────────────────────── */
     #main {
@@ -208,6 +269,39 @@
     .btn-compare:hover { opacity: 0.88; }
     .btn-compare:active { transform: scale(0.97); }
     .btn-compare:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Holding filter ──────────────────────────────────────── */
+    .holding-filter-wrap { display: flex; flex-direction: column; gap: 5px; flex: 1.5; min-width: 220px; position: relative; }
+    .holding-filter-wrap label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .holding-filter-row { display: flex; gap: 6px; align-items: center; }
+    .holding-filter-input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1px solid var(--bic-border);
+      border-radius: 7px;
+      font-size: 13.5px;
+      color: var(--text-main);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .holding-filter-input:focus { border-color: var(--bic-orange); }
+    .holding-filter-input.active { border-color: var(--bic-orange); background: #FFF8F3; }
+    .btn-clear-filter {
+      padding: 9px 10px;
+      background: none;
+      border: 1px solid var(--bic-border);
+      border-radius: 7px;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      display: none;
+    }
+    .btn-clear-filter.visible { display: block; }
+    .btn-clear-filter:hover { border-color: var(--red); color: var(--red); }
+    .holding-filter-hint { position: absolute; top: 100%; left: 0; margin-top: 4px; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 
     /* ── Loading ─────────────────────────────────────────────── */
     .loading-overlay {
@@ -540,6 +634,24 @@
     }
     .btn-load-inativ:hover { opacity: 0.88; }
     .btn-load-inativ:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Filtro dias da semana ───────────────────────────────── */
+    .dow-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dow-btn {
+      padding: 5px 12px;
+      border: 1px solid var(--bic-border);
+      border-radius: 6px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .15s;
+      min-width: 42px;
+      text-align: center;
+    }
+    .dow-btn:hover { border-color: var(--bic-orange); color: var(--bic-orange); }
+    .dow-btn.active { background: var(--bic-orange); border-color: var(--bic-orange); color: #fff; }
 
     /* ── Info bar (período carregado) ────────────────────────── */
     .inativ-info-bar {
@@ -1447,6 +1559,341 @@
     }
     .dp-upload-ok  { background: #DCFCE7; color: #166534; }
     .dp-upload-err { background: #FEE2E2; color: #991B1B; }
+    /* filtro updated_by */
+    .dp-updatedby-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .dp-updatedby-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+    .dp-ub-btn {
+      padding: 4px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--bic-border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .dp-ub-btn.active {
+      background: var(--bic-orange);
+      color: #fff;
+      border-color: var(--bic-orange);
+    }
+    /* filtros por coluna */
+    .dp-filter-row th { padding: 2px 4px !important; background: #F9FAFB; }
+    .dp-col-filter {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 3px 6px;
+      font-size: 11px;
+      border: 1px solid var(--bic-border);
+      border-radius: 4px;
+      background: #fff;
+      color: var(--text-main);
+      outline: none;
+      min-width: 60px;
+    }
+    .dp-col-filter:focus { border-color: var(--bic-orange); }
+
+    /* ── Módulo Histórico de Vendas ──────────────────────────────────── */
+    .hist-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .hist-modo-group {
+      display: flex;
+      border: 1px solid var(--bic-border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .hist-modo-btn {
+      padding: 0 14px;
+      height: 34px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: #fff;
+      color: var(--text-muted);
+      transition: background .15s, color .15s;
+    }
+    .hist-modo-btn.active {
+      background: var(--bic-orange);
+      color: #fff;
+    }
+    .hist-modo-btn:not(.active):hover { background: #FFF8F3; color: var(--bic-orange); }
+    .hist-ano-select {
+      height: 34px;
+      border: 1px solid var(--bic-border);
+      border-radius: 6px;
+      padding: 0 10px;
+      font-size: 13px;
+      color: var(--text-main);
+      background: #fff;
+      cursor: pointer;
+    }
+    .hist-search {
+      flex: 1;
+      min-width: 200px;
+      max-width: 280px;
+      height: 34px;
+      border: 1px solid var(--bic-border);
+      border-radius: 6px;
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--text-main);
+      background: #fff;
+      outline: none;
+    }
+    .hist-search:focus { border-color: var(--bic-orange); }
+    .hist-file-badge {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .hist-table-wrap {
+      background: #fff;
+      border: 1px solid var(--bic-border);
+      border-radius: 10px;
+      overflow: auto;
+      max-height: calc(100vh - 240px);
+    }
+    .hist-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .hist-th {
+      position: sticky;
+      top: 0;
+      background: var(--bic-gray);
+      border-bottom: 1px solid var(--bic-border);
+      padding: 9px 14px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-align: right;
+    }
+    .hist-th-name {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      top: 0;
+      z-index: 3;
+      background: var(--bic-gray);
+    }
+    .hist-td {
+      padding: 7px 14px;
+      border-bottom: 1px solid var(--bic-border);
+      white-space: nowrap;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-main);
+    }
+    .hist-td-name {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background: #fff;
+      z-index: 1;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+    .hist-tr:nth-child(even) .hist-td-name { background: #FAFAFA; }
+    .hist-tr:nth-child(even) .hist-td      { background: #FAFAFA; }
+    .hist-tr:hover .hist-td,
+    .hist-tr:hover .hist-td-name { background: #FFF8F3; }
+    .hist-td-zero { color: #CBD5E1; }
+    .hist-td-total {
+      font-weight: 700;
+      background: #FFF8F3;
+    }
+    .hist-td-total-name {
+      font-weight: 700;
+      background: #FFF8F3;
+      position: sticky;
+      left: 0;
+      z-index: 1;
+    }
+    .hist-tfoot tr { border-top: 2px solid var(--bic-border); }
+    .hist-tfoot .hist-td,
+    .hist-tfoot .hist-td-name {
+      font-weight: 700;
+      font-size: 12px;
+      background: var(--bic-gray);
+      position: sticky;
+      bottom: 0;
+      border-bottom: none;
+    }
+    .hist-tfoot .hist-td-name {
+      left: 0;
+      z-index: 2;
+    }
+    .hist-spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid var(--bic-border);
+      border-top-color: var(--bic-orange);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .hist-empty {
+      padding: 64px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .hist-empty-icon { font-size: 36px; display: block; margin-bottom: 10px; }
+
+    /* ── Batalha Naval ───────────────────────────────────────────────── */
+    .bn-toolbar {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--bic-border);
+    }
+    .bn-toolbar-group { display: flex; flex-direction: column; gap: 5px; }
+    .bn-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .bn-select {
+      padding: 7px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--bic-border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      font-size: 13px;
+      min-width: 200px;
+      outline: none;
+    }
+    .bn-select:focus { border-color: var(--bic-orange); }
+    .bn-btn-refresh {
+      padding: 7px 16px;
+      border-radius: 7px;
+      border: 1px solid var(--bic-border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .bn-btn-refresh:hover { background: #f5f5f5; }
+    .bn-btn-refresh:disabled { opacity: .5; cursor: not-allowed; }
+    .bn-file-info { font-size: 11px; color: var(--text-muted); align-self: flex-end; padding-bottom: 2px; }
+    .bn-status { padding: 32px 24px; font-size: 13px; color: var(--text-muted); }
+    .bn-grid-wrap { overflow: auto; padding: 0 24px 28px; max-height: calc(100vh - 180px); }
+    .bn-table {
+      border-collapse: collapse;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .bn-table th {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      padding: 7px 10px;
+      text-align: center;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--bic-border);
+      z-index: 4;
+      font-size: 11px;
+    }
+    .bn-table th.bn-th-partner {
+      position: sticky;
+      left: 0;
+      z-index: 5;
+      text-align: left;
+      min-width: 200px;
+      max-width: 260px;
+      background: #fff;
+    }
+    .bn-table td {
+      padding: 5px 10px;
+      text-align: right;
+      border-bottom: 1px solid var(--bic-border);
+      border-right: 1px solid var(--bic-border);
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+      background: #fff;
+    }
+    .bn-table td.bn-td-partner {
+      position: sticky;
+      left: 0;
+      background: #fff;
+      text-align: left;
+      font-weight: 500;
+      font-size: 12px;
+      z-index: 1;
+      border-right: 2px solid var(--bic-border);
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bn-table td.bn-venda-pos { background: #dcfce7; color: #166534; }
+    .bn-table td.bn-venda-neg { background: #fee2e2; color: #991b1b; }
+    .bn-table td.bn-venda-nil { color: var(--text-muted); text-align: center; }
+    .bn-table tr:hover td { filter: brightness(.97); }
+    .bn-dow-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 24px 0;
+    }
+    .bn-dow-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-right: 4px;
+    }
+    .bn-dow-chip {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 20px;
+      border: 1px solid var(--bic-border);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .bn-dow-chip.active {
+      background: #f0f9ff;
+      color: #0369a1;
+      border-color: #bae6fd;
+    }
+    .bn-dow-chip:hover { opacity: .8; }
 
   </style>
 </head>
@@ -1473,9 +1920,24 @@
       Comparativo de Sellout
     </div>
 
+    <div class="nav-item" data-module="batalha">
+      <span class="nav-icon">🎯</span>
+      Batalha Naval
+    </div>
+
     <div class="nav-item" data-module="inatividade">
       <span class="nav-icon">💤</span>
-      Análise de Inatividade
+      Dias sem Venda
+    </div>
+
+    <div class="nav-item" data-module="historico">
+      <span class="nav-icon">📅</span>
+      Histórico de Vendas
+    </div>
+
+    <div class="nav-item" data-module="depara">
+      <span class="nav-icon">🔄</span>
+      Análise De → Para
     </div>
 
     <div class="nav-item" data-module="distribuidores">
@@ -1488,9 +1950,9 @@
       Paliativos MTrix
     </div>
 
-    <div class="nav-item" data-module="depara">
-      <span class="nav-icon">🔄</span>
-      Análise De → Para
+    <div class="nav-item" data-module="usuarios">
+      <span class="nav-icon">👥</span>
+      Usuários
     </div>
 
     <div class="nav-item" data-module="ranking">
@@ -1504,10 +1966,23 @@
       Evolução Histórica
       <span class="soon-badge">Em breve</span>
     </div>
+
+    <div class="nav-section-label" id="admin-nav-section" style="display:none">Admin</div>
+    <div class="nav-item" data-module="admin-users" id="admin-nav-item" style="display:none">
+      <span class="nav-icon">🔐</span>
+      Gestão de Acesso
+    </div>
   </nav>
 
   <div class="sidebar-footer">
-    Powered by <span>Sellers</span>
+    <div class="sidebar-user" id="sidebar-user">
+      <div class="sidebar-user-avatar" id="sidebar-avatar">?</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sidebar-name">Carregando…</div>
+        <div class="sidebar-user-email" id="sidebar-email"></div>
+      </div>
+    </div>
+    <button class="sidebar-logout" id="btn-logout">Sair</button>
   </div>
 </aside>
 
@@ -1784,9 +2259,9 @@ function renderComparativo() {
     return;
   }
 
-  // Ajuste 3: exibe apenas a data extraída do nome, não o nome completo
+  // Ajuste 3: exibe data + nome do arquivo discreto
   const fOpts = state.files.map(f =>
-    `<option value="${f.id}">${f.dateFormatted}</option>`
+    `<option value="${f.id}">${f.dateFormatted}  –  ${f.name}</option>`
   ).join('');
 
   area.innerHTML = `
@@ -1798,6 +2273,15 @@ function renderComparativo() {
       <div class="selector-group">
         <label>Arquivo atual</label>
         <select id="sel-curr">${fOpts}</select>
+      </div>
+      <div class="holding-filter-wrap">
+        <label>Filtrar por holding</label>
+        <div class="holding-filter-row">
+          <input type="text" id="holding-filter" class="holding-filter-input" placeholder="Buscar holding…" list="holdings-datalist" autocomplete="off">
+          <datalist id="holdings-datalist"></datalist>
+          <button class="btn-clear-filter" id="btn-clear-filter" title="Limpar filtro">✕</button>
+        </div>
+        <span class="holding-filter-hint" id="holding-filter-hint"></span>
       </div>
       <button class="btn-compare" id="btn-compare">Comparar</button>
     </div>
@@ -1817,8 +2301,39 @@ function renderComparativo() {
 
   document.getElementById('btn-compare').addEventListener('click', runComparison);
 
+  // ── Filtro de holding ──
+  const filterInput = document.getElementById('holding-filter');
+  const clearBtn    = document.getElementById('btn-clear-filter');
+  const filterHint  = document.getElementById('holding-filter-hint');
+
+  filterInput.addEventListener('input', () => {
+    const q = filterInput.value.trim();
+    filterInput.classList.toggle('active', q.length > 0);
+    clearBtn.classList.toggle('visible', q.length > 0);
+    if (!state.comparison) return;
+    const filtered = applyHoldingFilter(state.comparison, q);
+    renderResult(filtered);
+    updateFilterHint(filterHint, q, filtered);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    filterInput.value = '';
+    filterInput.classList.remove('active');
+    clearBtn.classList.remove('visible');
+    filterHint.textContent = '';
+    if (state.comparison) renderResult(state.comparison);
+  });
+
   // Executa comparativo automaticamente com os arquivos mais recentes
   runComparison();
+}
+
+function updateFilterHint(el, q, filtered) {
+  if (!el) return;
+  if (!q) { el.textContent = ''; el.style.color = 'var(--text-muted)'; return; }
+  const count = [...new Set(filtered.monthRows.flatMap(m => m.holdings.map(h => h.holding)))].length;
+  if (count === 0) { el.textContent = 'Nenhuma holding encontrada.'; el.style.color = 'var(--red)'; }
+  else { el.textContent = `${count} holding(s) encontrada(s)`; el.style.color = 'var(--text-muted)'; }
 }
 
 async function runComparison() {
@@ -1859,7 +2374,20 @@ async function runComparison() {
     if (cmpMsg) cmpMsg.textContent = 'Gerando comparativo…';
     const result = compare(prevRows, currRows);
     state.comparison = result;
-    renderResult(result);
+
+    // Popula datalist com todas as holdings únicas
+    const dl = document.getElementById('holdings-datalist');
+    if (dl) {
+      const allH = [...new Set(result.monthRows.flatMap(m => m.holdings.map(h => h.holding)))].sort();
+      dl.innerHTML = allH.map(h => `<option value="${h}">`).join('');
+    }
+
+    // Re-aplica filtro ativo (se o usuário já havia filtrado)
+    const filterInput = document.getElementById('holding-filter');
+    const activeQuery = filterInput ? filterInput.value.trim() : '';
+    const toRender = activeQuery ? applyHoldingFilter(result, activeQuery) : result;
+    renderResult(toRender);
+    if (activeQuery) updateFilterHint(document.getElementById('holding-filter-hint'), activeQuery, toRender);
   } catch (e) {
     clearInterval(cmpTimer);
     resultArea.innerHTML = `<div class="error-banner">Erro ao comparar: ${e.message}</div>`;
@@ -1869,11 +2397,47 @@ async function runComparison() {
   }
 }
 
+function applyHoldingFilter(r, query) {
+  if (!query) return r;
+  const q = query.toLowerCase();
+  let totalPrev = 0, totalCurr = 0;
+  const filteredMonths = [];
+
+  for (const mRow of r.monthRows) {
+    const holdings = mRow.holdings.filter(h => h.holding.toLowerCase().includes(q));
+    if (!holdings.length) continue;
+    const mPrev = holdings.reduce((s, h) => s + h.prev, 0);
+    const mCurr = holdings.reduce((s, h) => s + h.curr, 0);
+    const varAbs = mCurr - mPrev;
+    const varPct = mPrev !== 0 ? (varAbs / mPrev) * 100 : null;
+    const status = varAbs > 0 ? 'up' : varAbs < 0 ? 'down' : 'equal';
+    totalPrev += mPrev;
+    totalCurr += mCurr;
+    filteredMonths.push({ ...mRow, holdings, prev: mPrev, curr: mCurr, varAbs, varPct, status });
+  }
+
+  const totalVarAbs = totalCurr - totalPrev;
+  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / totalPrev) * 100 : null;
+  const holdingsDown = [...new Set(
+    filteredMonths.flatMap(m => m.holdings.filter(h => h.status === 'down').map(h => h.holding))
+  )].length;
+  const anomalies = {
+    gone:          r.anomalies.gone.filter(h => h.toLowerCase().includes(q)),
+    newH:          r.anomalies.newH.filter(h => h.toLowerCase().includes(q)),
+    monthsRemoved: r.anomalies.monthsRemoved
+      .map(a => ({ ...a, holdings: a.holdings.filter(h => h.toLowerCase().includes(q)) }))
+      .filter(a => a.holdings.length),
+  };
+  const anomalyCount = anomalies.gone.length + anomalies.newH.length + anomalies.monthsRemoved.length;
+
+  return { ...r, monthRows: filteredMonths, totalPrev, totalCurr, totalVarAbs, totalVarPct, holdingsDown, anomalyCount, anomalies };
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 //  RENDER RESULTADO
 // ═══════════════════════════════════════════════════════════════════════
 
-// Mapa nome → tipo de integração (fonte: monitoramento_bic/integracoes.js)
+// Mapa nome → tipo de integração (fonte: bic_monitor/integracoes.js)
 const integracoes = {
   "A L F DA ROCHA COMERCIO LTDA - 794644": "sellers",
   "ARMAZEM MATEUS SA - 206762": "temp",
@@ -2277,7 +2841,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       document.getElementById('topbar-title').textContent = 'Comparativo de Sellout';
       renderComparativo();
     } else if (mod === 'inatividade') {
-      document.getElementById('topbar-title').textContent = 'Análise de Inatividade';
+      document.getElementById('topbar-title').textContent = 'Dias sem Venda';
       renderInatividade();
     } else if (mod === 'distribuidores') {
       document.getElementById('topbar-title').textContent = 'Distribuidores BIC';
@@ -2288,6 +2852,18 @@ document.querySelectorAll('.nav-item').forEach(item => {
     } else if (mod === 'depara') {
       document.getElementById('topbar-title').textContent = 'Análise De → Para';
       renderDepara();
+    } else if (mod === 'historico') {
+      document.getElementById('topbar-title').textContent = 'Histórico de Vendas';
+      renderHistorico();
+    } else if (mod === 'usuarios') {
+      document.getElementById('topbar-title').textContent = 'Usuários';
+      renderUsuarios();
+    } else if (mod === 'batalha') {
+      document.getElementById('topbar-title').textContent = 'Batalha Naval';
+      renderBatalha();
+    } else if (mod === 'admin-users') {
+      document.getElementById('topbar-title').textContent = 'Gestão de Acesso';
+      renderAdminUsers();
     } else {
       document.getElementById('topbar-title').textContent = item.querySelector('.nav-icon').nextSibling.textContent.trim();
       document.getElementById('content-area').innerHTML = `
@@ -2306,11 +2882,12 @@ document.querySelectorAll('.nav-item').forEach(item => {
 const inativState = {
   snapshots:    [],   // [{date, dateFormatted, fileId, rows:[...]}]
   filteredSnap: [],   // snapshots dentro do período selecionado
-  activeTab:    'serie',
+  activeTab:    'ranking',
   periodoSel:   'mes_atual',  // preset ativo
   customInicio: '',
   customFim:    '',
-  filterModo:   null, // null | 'sellers' | 'ftp' | 'temp'
+  filterModos:  [], // [] = todos; qualquer combinação de 'sellers','ftp','temp','outros'
+  filterDias:   [],   // [] = todos; [0..6] = Dom..Sáb
 };
 
 // ── Tooltip global ──────────────────────────────────────────────────
@@ -2461,6 +3038,14 @@ function renderInatividade() {
           <label>Até:</label>
           <input type="date" id="custom-fim" value="${todayIso}">
         </div>
+        <div style="margin-top:14px">
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Dias da semana</div>
+          <div class="dow-btns" id="dow-btns">
+            ${[['Dom',0],['Seg',1],['Ter',2],['Qua',3],['Qui',4],['Sex',5],['Sáb',6]].map(([n,d]) =>
+              `<button class="dow-btn${inativState.filterDias.includes(d)?' active':''}" data-dow="${d}">${n}</button>`
+            ).join('')}
+          </div>
+        </div>
       </div>
       <button class="btn-load-inativ" id="btn-load-inativ">Carregar histórico</button>
     </div>
@@ -2481,6 +3066,18 @@ function renderInatividade() {
   });
 
   document.getElementById('btn-load-inativ').addEventListener('click', carregarHistorico);
+
+  // Botões de dias da semana
+  area.querySelectorAll('.dow-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = Number(btn.dataset.dow);
+      const idx = inativState.filterDias.indexOf(d);
+      if (idx >= 0) inativState.filterDias.splice(idx, 1);
+      else inativState.filterDias.push(d);
+      btn.classList.toggle('active', inativState.filterDias.includes(d));
+      if (inativState.snapshots.length) renderInativBody();
+    });
+  });
 
   // Listeners nos inputs de data custom — reaplicam filtro ao mudar
   document.getElementById('custom-inicio').addEventListener('change', () => {
@@ -2574,13 +3171,21 @@ function renderInativBody() {
   const allRows    = agregarOcorrencias(snaps);
   const rowsPeriodo = filtrarRows(allRows, preset, ci, cf);
 
-  // Aplica filtro de modo de integração
+  // Aplica filtro de modo de integração (multi-select)
   const MODOS_CONHECIDOS = ['sellers', 'ftp', 'temp'];
-  const rows = inativState.filterModo
-    ? inativState.filterModo === 'outros'
-      ? rowsPeriodo.filter(r => !MODOS_CONHECIDOS.includes(lookupIntegracaoDynamic(r.partner, r.cnpj)))
-      : rowsPeriodo.filter(r => lookupIntegracaoDynamic(r.partner, r.cnpj) === inativState.filterModo)
+  const rowsModo = inativState.filterModos.length
+    ? rowsPeriodo.filter(r => {
+        const modo = lookupIntegracaoDynamic(r.partner, r.cnpj);
+        return inativState.filterModos.some(m =>
+          m === 'outros' ? !MODOS_CONHECIDOS.includes(modo) : modo === m
+        );
+      })
     : rowsPeriodo;
+
+  // Aplica filtro de dias da semana
+  const rows = inativState.filterDias.length
+    ? rowsModo.filter(r => inativState.filterDias.includes(Number(r.diaNum)))
+    : rowsModo;
 
   const { inicio, fim } = calcPeriodo(preset, ci, cf);
   const fmtIso = iso => iso.split('-').reverse().join('/');
@@ -2590,12 +3195,17 @@ function renderInativBody() {
   const lbl        = labelPeriodo(preset, ci, cf);
 
   const modosBtns = [
-    { key: null,      label: 'Todos' },
+    { key: '',        label: 'Todos' },
     { key: 'sellers', label: 'Sellers' },
     { key: 'ftp',     label: 'FTP' },
     { key: 'temp',    label: 'Paliativo' },
     { key: 'outros',  label: 'Outros' },
-  ].map(m => `<button class="inativ-modo-btn${inativState.filterModo === m.key ? ' active' : ''}" data-modo="${m.key ?? ''}">${m.label}</button>`).join('');
+  ].map(m => {
+    const active = m.key === ''
+      ? inativState.filterModos.length === 0
+      : inativState.filterModos.includes(m.key);
+    return `<button class="inativ-modo-btn${active ? ' active' : ''}" data-modo="${m.key}">${m.label}</button>`;
+  }).join('');
 
   body.innerHTML = `
     <div class="inativ-info-bar">
@@ -2613,7 +3223,7 @@ function renderInativBody() {
     <div class="inativ-tabs">
       <button class="inativ-tab-btn ${inativState.activeTab==='ranking'?'active':''}" data-tab="ranking">🏆 Ranking Geral</button>
       <button class="inativ-tab-btn ${inativState.activeTab==='padrao'?'active':''}" data-tab="padrao">🔁 Padrão Recorrente</button>
-      <button class="inativ-tab-btn ${inativState.activeTab==='serie'?'active':''}" data-tab="serie">📈 Série Temporal</button>
+      <!-- <button class="inativ-tab-btn ${inativState.activeTab==='serie'?'active':''}" data-tab="serie">📈 Série Temporal</button> -->
     </div>
 
     <div id="inativ-tab-content"></div>
@@ -2625,7 +3235,13 @@ function renderInativBody() {
   body.querySelectorAll('.inativ-modo-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const m = btn.dataset.modo;
-      inativState.filterModo = m === '' ? null : m;
+      if (m === '') {
+        inativState.filterModos = [];
+      } else {
+        const idx = inativState.filterModos.indexOf(m);
+        if (idx === -1) inativState.filterModos.push(m);
+        else inativState.filterModos.splice(idx, 1);
+      }
       renderInativBody();
     });
   });
@@ -2656,6 +3272,10 @@ function renderInativTab() {
 //  Filtro de parceiro: "Todos" mostra o total geral; selecionado = apenas aquele
 // ═══════════════════════════════════════════════════════════════════════
 function renderSerieTemporal(container, rows) {
+  // Mapa partner → cnpj (para ícone de integração)
+  const cnpjByPartner = {};
+  rows.forEach(r => { if (r.cnpj && !cnpjByPartner[r.partner]) cnpjByPartner[r.partner] = r.cnpj; });
+
   // Agrupa por mês
   const byMonth = {};
   for (const r of rows) {
@@ -2797,6 +3417,10 @@ const DIAS_LABEL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const DIAS_FULL  = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 
 function renderPadraoRecorrente(container, rows) {
+  // Monta mapa partner → cnpj (para lookupIntegracaoDynamic)
+  const cnpjByPartner = {};
+  rows.forEach(r => { if (r.cnpj && !cnpjByPartner[r.partner]) cnpjByPartner[r.partner] = r.cnpj; });
+
   // Monta: { partner -> { diaNum: count } }
   const matrix = {};
   for (const r of rows) {
@@ -3218,6 +3842,75 @@ async function preCarregarDistribuidores() {
     const activeModule = document.querySelector('.nav-item.active')?.dataset?.module;
     if (activeModule === 'inatividade') renderInativBody();
   } catch { /* silencioso — não bloqueia a app */ }
+}
+
+async function preCarregarInatividade() {
+  if (inativState.snapshots.length) return;
+  try {
+    const resp = await fetch('/api/inatividade-historico?limit=1');
+    if (!resp.ok) return;
+    const { snapshots } = await resp.json();
+    if (snapshots && snapshots.length) inativState.snapshots = snapshots;
+  } catch { /* silencioso */ }
+}
+
+async function preCarregarPaliativos() {
+  if (palState.loaded) return;
+  try {
+    const resp = await fetch('/api/paliativos');
+    if (!resp.ok) return;
+    palState.data   = await resp.json();
+    palState.loaded = true;
+  } catch { /* silencioso */ }
+}
+
+async function preCarregarDepara() {
+  if (deparaState.loaded) return;
+  try {
+    const listResp = await fetch('/api/depara-arquivos');
+    if (!listResp.ok) return;
+    const files = await listResp.json();
+    if (!files.length) return;
+    const latest = files[0];
+    deparaState.fileId   = latest.id;
+    deparaState.fileName = latest.name;
+    const fileResp = await fetch(`/api/depara-arquivo?fileId=${latest.id}`);
+    if (!fileResp.ok) return;
+    const { rows } = await fileResp.json();
+    deparaState.rows    = rows || [];
+    deparaState.columns = rows && rows.length ? Object.keys(rows[0]) : [];
+    deparaState.sortCol = null;
+    deparaState.loaded  = true;
+  } catch { /* silencioso */ }
+}
+
+const historicoState = {
+  rows:       [],     // [{holding, partnerName, cnpj, anoMes, valor}]
+  modo:       'ano',  // 'ano' | 'mes'
+  anoSel:     '',
+  search:     '',
+  fileDate:   '',
+  filterModo: null,  // null | 'sellers' | 'ftp' | 'temp' | 'outros'
+  loaded:     false,
+};
+
+async function preCarregarHistorico() {
+  if (historicoState.loaded) return;
+  try {
+    const listResp = await fetch('/api/historico-arquivos');
+    if (!listResp.ok) return;
+    const files = await listResp.json();
+    if (!files.length) return;
+    const latest = files[0];
+    const dataResp = await fetch(`/api/historico-dados?fileId=${latest.id}`);
+    if (!dataResp.ok) return;
+    const { rows } = await dataResp.json();
+    historicoState.rows     = rows || [];
+    historicoState.fileDate = `${latest.name}${latest.dateFormatted ? ' · ' + latest.dateFormatted : ''}`;
+    const anos = [...new Set(rows.map(r => (r.anoMes || '').substring(0, 4)).filter(Boolean))].sort().reverse();
+    historicoState.anoSel = anos[0] || '';
+    historicoState.loaded = true;
+  } catch { /* silencioso */ }
 }
 
 async function carregarDistribuidores() {
@@ -3753,13 +4446,16 @@ document.getElementById('pal-overlay').addEventListener('click', fecharDrawerPal
 // ═══════════════════════════════════════════════════════════════════════
 
 const deparaState = {
-  rows:     [],       // todas as linhas do arquivo mais recente
-  columns:  [],       // cabeçalhos detectados
-  fileName: null,
-  fileId:   null,
-  sortCol:  null,
-  sortAsc:  true,
-  search:   '',
+  rows:            [],   // todas as linhas do arquivo mais recente
+  columns:         [],   // cabeçalhos detectados
+  fileName:        null,
+  fileId:          null,
+  sortCol:         null,
+  sortAsc:         true,
+  search:          '',
+  colFilters:      {},   // { colName: filterText }
+  updatedByFilter: '',   // '' | 'job_bq_bic_0' .. 'job_bq_bic_4'
+  loaded:          false,
 };
 
 function renderDepara() {
@@ -3792,6 +4488,14 @@ function renderDepara() {
         <span class="dp-file-info" id="dp-file-info"></span>
       </div>
 
+      <!-- Filtro match_updated_by -->
+      <div class="dp-updatedby-bar">
+        <span class="dp-updatedby-label">Atualizado por:</span>
+        ${['', 'job_bq_bic_0','job_bq_bic_1','job_bq_bic_2','job_bq_bic_3','job_bq_bic_4']
+          .map(k => `<button class="dp-ub-btn${deparaState.updatedByFilter === k ? ' active' : ''}" data-ub="${k}">${k === '' ? 'Todos' : k}</button>`)
+          .join('')}
+      </div>
+
       <!-- Tabela -->
       <div class="dp-table-wrap">
         <table id="dp-table">
@@ -3807,6 +4511,14 @@ function renderDepara() {
   document.getElementById('dp-search').addEventListener('input', e => {
     deparaState.search = e.target.value;
     renderDeparaTable();
+  });
+
+  document.querySelectorAll('.dp-ub-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deparaState.updatedByFilter = btn.dataset.ub;
+      document.querySelectorAll('.dp-ub-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderDeparaTable();
+    });
   });
 
   document.getElementById('dp-btn-refresh').addEventListener('click', async () => {
@@ -3886,7 +4598,17 @@ function renderDepara() {
     }
   });
 
-  carregarDepara();
+  if (deparaState.loaded) {
+    const infoEl = document.getElementById('dp-file-info');
+    if (infoEl && deparaState.fileName) infoEl.textContent = `Arquivo: ${deparaState.fileName}`;
+    const countEl = document.getElementById('dp-count');
+    if (countEl) countEl.textContent = deparaState.rows.length;
+    const subEl = document.getElementById('dp-count-sub');
+    if (subEl) subEl.textContent = deparaState.fileName || '';
+    renderDeparaTable();
+  } else {
+    carregarDepara();
+  }
 }
 
 async function carregarDepara() {
@@ -3924,6 +4646,7 @@ async function carregarDepara() {
     deparaState.rows    = rows || [];
     deparaState.columns = rows && rows.length ? Object.keys(rows[0]) : [];
     deparaState.sortCol = null;
+    deparaState.loaded  = true;
 
     renderDeparaTable();
   } catch(err) {
@@ -3934,14 +4657,28 @@ async function carregarDepara() {
   }
 }
 
-function renderDeparaTable() {
-  const { rows, columns, search, sortCol, sortAsc } = deparaState;
+function renderDeparaTable(focusCol) {
+  const { rows, columns, search, sortCol, sortAsc, colFilters, updatedByFilter } = deparaState;
 
-  // Filtra
+  // Filtro global
   const q = (search || '').toLowerCase().trim();
   let visible = q
     ? rows.filter(r => columns.some(c => String(r[c] ?? '').toLowerCase().includes(q)))
     : [...rows];
+
+  // Filtro match_updated_by — busca a coluna ignorando case
+  if (updatedByFilter) {
+    const ubCol = columns.find(c => c.toLowerCase().replace(/\s/g, '_') === 'match_updated_by');
+    if (ubCol) {
+      visible = visible.filter(r => String(r[ubCol] ?? '').trim() === updatedByFilter);
+    }
+  }
+
+  // Filtros por coluna
+  for (const [col, val] of Object.entries(colFilters)) {
+    const fv = (val || '').toLowerCase().trim();
+    if (fv) visible = visible.filter(r => String(r[col] ?? '').toLowerCase().includes(fv));
+  }
 
   // Ordena
   if (sortCol) {
@@ -3973,14 +4710,21 @@ function renderDeparaTable() {
     return;
   }
 
-  // Cabeçalho
+  // Cabeçalho — linha 1: nomes ordenáveis | linha 2: inputs de filtro por coluna
   const thead = document.getElementById('dp-thead');
   if (thead) {
-    thead.innerHTML = '<tr>' + columns.map(col => {
+    const sortRow = '<tr>' + columns.map(col => {
       let cls = 'dp-th';
       if (sortCol === col) cls += sortAsc ? ' sort-asc' : ' sort-desc';
       return `<th class="${cls}" data-col="${col}">${col}</th>`;
     }).join('') + '</tr>';
+
+    const filterRow = '<tr class="dp-filter-row">' + columns.map(col => {
+      const val = colFilters[col] || '';
+      return `<th class="dp-th-filter"><input class="dp-col-filter" data-col="${col}" type="text" placeholder="…" value="${val.replace(/"/g, '&quot;')}" /></th>`;
+    }).join('') + '</tr>';
+
+    thead.innerHTML = sortRow + filterRow;
 
     thead.querySelectorAll('.dp-th').forEach(th => {
       th.addEventListener('click', () => {
@@ -3994,6 +4738,21 @@ function renderDeparaTable() {
         renderDeparaTable();
       });
     });
+
+    thead.querySelectorAll('.dp-col-filter').forEach(input => {
+      input.addEventListener('input', e => {
+        const col = e.target.dataset.col;
+        deparaState.colFilters[col] = e.target.value;
+        renderDeparaTable(col);
+      });
+      // Impede que clique no input dispare o sort da coluna
+      input.addEventListener('click', e => e.stopPropagation());
+    });
+
+    if (focusCol) {
+      const el = thead.querySelector(`.dp-col-filter[data-col="${CSS.escape(focusCol)}"]`);
+      if (el) { el.focus(); const len = el.value.length; el.setSelectionRange(len, len); }
+    }
   }
 
   // Corpo
@@ -4010,6 +4769,389 @@ function renderDeparaTable() {
       return `<td${num ? ' class="dp-td-num"' : ''}>${v === null || v === undefined ? '' : v}</td>`;
     }).join('') + '</tr>'
   ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  BATALHA NAVAL
+// ═══════════════════════════════════════════════════════════════════════
+const batalhaState = {
+  rows:         [],
+  fileId:       null,
+  loaded:       false,
+  diasSemana:   [0,1,2,3,4,5,6], // 0=Dom … 6=Sáb; todos ativos por padrão
+  searchDistrib: '',
+};
+
+function batalhaFmtBRL(v) {
+  return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function batalhaPopularSelects() {
+  // Holdings únicas
+  const holdingsSet = {};
+  batalhaState.rows.forEach(r => { if (r.HOLDING) holdingsSet[r.HOLDING] = true; });
+  const holdings = Object.keys(holdingsSet).sort();
+
+  const holdingSel = document.getElementById('bn-holding-sel');
+  if (holdingSel) {
+    holdingSel.innerHTML = '<option value="">— selecione —</option>' +
+      '<option value="__todas__">Todas as holdings</option>' +
+      holdings.map(h => `<option value="${h}">${h}</option>`).join('');
+  }
+
+  // Meses únicos — mais recente primeiro
+  const mesesSet = {};
+  batalhaState.rows.forEach(r => { if (r.VENDA_DATA) mesesSet[r.VENDA_DATA.slice(0,7)] = true; });
+  const meses = Object.keys(mesesSet).sort().reverse();
+
+  const mesSel = document.getElementById('bn-mes-sel');
+  if (mesSel) {
+    mesSel.innerHTML = meses.map(m => {
+      const [y, mo] = m.split('-');
+      const label = new Date(Number(y), Number(mo)-1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      return `<option value="${m}">${label}</option>`;
+    }).join('');
+  }
+}
+
+function batalhaExportarCSV() {
+  const mes     = document.getElementById('bn-mes-sel')?.value;
+  const holding = document.getElementById('bn-holding-sel')?.value;
+  if (!mes || !holding) return;
+
+  const rowsFilt = batalhaState.rows.filter(r =>
+    (holding === '__todas__' || r.HOLDING === holding) && r.VENDA_DATA && r.VENDA_DATA.slice(0,7) === mes
+  );
+
+  const allPartnersSet = {};
+  batalhaState.rows.forEach(r => {
+    if (r.PARTNER_NAME && (holding === '__todas__' || r.HOLDING === holding))
+      allPartnersSet[r.PARTNER_NAME] = true;
+  });
+  const allPartners = Object.keys(allPartnersSet).sort();
+  const csvQ = (batalhaState.searchDistrib || '').toLowerCase().trim();
+  const partners = csvQ ? allPartners.filter(p => p.toLowerCase().includes(csvQ)) : allPartners;
+  if (!partners.length) return;
+
+  const [y, mo] = mes.split('-');
+  const diasNoMes = new Date(Number(y), Number(mo), 0).getDate();
+  const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const dias = Array.from({ length: diasNoMes }, (_, i) => i + 1)
+    .filter(d => batalhaState.diasSemana.includes(new Date(Number(y), Number(mo)-1, d).getDay()));
+
+  const idx = {};
+  rowsFilt.forEach(r => {
+    const dia = Number((r.VENDA_DATA || '').slice(8,10));
+    const key = r.PARTNER_NAME + '||' + dia;
+    idx[key] = (idx[key] || 0) + Number(r.VENDA_VALOR || 0);
+  });
+
+  const fmtVal = v => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Envolve campo em aspas para proteger vírgulas/ponto-e-vírgula no Excel
+  const q = s => `"${String(s).replace(/"/g, '""')}"`;
+
+  const sep = ';';
+
+  const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const nomeMes = `${MESES_PT[Number(mo)-1]} ${y}`;
+  const holdingLabel = holding === '__todas__' ? 'Todas as Holdings' : holding;
+
+  const meta    = `${q('Batalha Naval')}${sep}${q(holdingLabel)}${sep}${q(nomeMes)}`;
+  const header  = [q('Distribuidora'), ...dias.map(d => {
+    const dow = DIAS_SEMANA[new Date(Number(y), Number(mo)-1, d).getDay()];
+    return q(`${d}/${mo} ${dow}`);
+  })].join(sep);
+
+  const totais = dias.map(d => {
+    const t = partners.reduce((acc, p) => acc + (idx[p+'||'+d] || 0), 0);
+    return t === 0 ? q('') : q(fmtVal(t));
+  });
+  const totalRow = [q('TOTAL'), ...totais].join(sep);
+
+  const body = partners.map(p => {
+    const cells = dias.map(d => {
+      const key = p + '||' + d;
+      if (!(key in idx)) return q('');
+      return idx[key] === 0 ? q('') : q(fmtVal(idx[key]));
+    });
+    return [q(p), ...cells].join(sep);
+  }).join('\n');
+
+  const csv = '\uFEFF' + meta + '\n' + header + '\n' + body + '\n' + totalRow;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `batalha-naval_${mes}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function batalhaRenderGrid() {
+  const mes     = document.getElementById('bn-mes-sel')?.value;
+  const holding = document.getElementById('bn-holding-sel')?.value;
+  const status  = document.getElementById('bn-status');
+  const wrap    = document.getElementById('bn-grid-wrap');
+
+  if (!mes || !holding) {
+    status.textContent = 'Selecione uma holding e um mês para visualizar.';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  // Dados de vendas do mês selecionado
+  const rowsFilt = batalhaState.rows.filter(r =>
+    (holding === '__todas__' || r.HOLDING === holding) && r.VENDA_DATA && r.VENDA_DATA.slice(0,7) === mes
+  );
+
+  // Lista COMPLETA de distribuidoras da holding (todos os meses) — inclui sem venda no mês
+  const allPartnersSet = {};
+  batalhaState.rows.forEach(r => {
+    if (r.PARTNER_NAME && (holding === '__todas__' || r.HOLDING === holding))
+      allPartnersSet[r.PARTNER_NAME] = true;
+  });
+  const partners = Object.keys(allPartnersSet).sort();
+
+  if (!partners.length) {
+    status.textContent = 'Nenhum dado para a seleção.';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  // Filtro de busca por nome de distribuidora
+  const bnQ = (batalhaState.searchDistrib || '').toLowerCase().trim();
+  const partnersVisiveis = bnQ ? partners.filter(p => p.toLowerCase().includes(bnQ)) : partners;
+  const bnHint = document.getElementById('bn-search-hint');
+  if (bnHint) {
+    if (bnQ) {
+      if (!partnersVisiveis.length) { bnHint.textContent = 'Nenhuma distribuidora encontrada.'; bnHint.style.color = 'var(--red)'; }
+      else { bnHint.textContent = `${partnersVisiveis.length} de ${partners.length} distribuidora(s)`; bnHint.style.color = 'var(--text-muted)'; }
+    } else {
+      bnHint.textContent = '';
+    }
+  }
+
+  const [y, mo] = mes.split('-');
+  const diasNoMes = new Date(Number(y), Number(mo), 0).getDate();
+  const dias = Array.from({ length: diasNoMes }, (_, i) => i + 1)
+    .filter(d => batalhaState.diasSemana.includes(new Date(Number(y), Number(mo)-1, d).getDay()));
+
+  // Índice partner+dia → valor (só do mês selecionado)
+  const idx = {};
+  rowsFilt.forEach(r => {
+    const dia = Number((r.VENDA_DATA || '').slice(8,10));
+    const key = r.PARTNER_NAME + '||' + dia;
+    idx[key] = (idx[key] || 0) + Number(r.VENDA_VALOR || 0);
+  });
+
+  const countLabel = bnQ
+    ? `${partnersVisiveis.length} de ${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`
+    : `${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`;
+  status.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">${countLabel}</span>`;
+
+  const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const thead = `<thead><tr>
+    <th class="bn-th-partner">Distribuidora</th>
+    ${dias.map(d => {
+      const dow = DIAS_SEMANA[new Date(Number(y), Number(mo)-1, d).getDay()];
+      return `<th>${d}<br><span style="font-weight:400;font-size:10px;opacity:.7">${dow}</span></th>`;
+    }).join('')}
+  </tr></thead>`;
+
+  const tbody = '<tbody>' + partnersVisiveis.map(p => {
+    const cells = dias.map(d => {
+      const key = p + '||' + d;
+      if (!(key in idx)) return `<td class="bn-venda-nil">—</td>`;
+      const v = idx[key];
+      const cls = v > 0 ? 'bn-venda-pos' : v < 0 ? 'bn-venda-neg' : 'bn-venda-nil';
+      return `<td class="${cls}" title="${batalhaFmtBRL(v)}">${v === 0 ? '—' : batalhaFmtBRL(v)}</td>`;
+    }).join('');
+    return `<tr><td class="bn-td-partner" title="${p}">${p}</td>${cells}</tr>`;
+  }).join('') + '</tbody>';
+
+  wrap.innerHTML = `<table class="bn-table">${thead}${tbody}</table>`;
+}
+
+async function batalhaAbrirHistorico() {
+  const sel    = document.getElementById('bn-hist-sel');
+  const status = document.getElementById('bn-status');
+  if (!sel) return;
+
+  // Se já está visível, apenas foca
+  if (sel.style.display !== 'none') { sel.focus(); return; }
+
+  sel.innerHTML = '<option value="">Carregando…</option>';
+  sel.style.display = 'inline-block';
+
+  try {
+    const resp  = await fetch('/api/batalha-naval-arquivos');
+    const data  = await resp.json();
+    const files = data.files || [];
+
+    if (!files.length) {
+      sel.innerHTML = '<option value="">Nenhum arquivo encontrado</option>';
+      return;
+    }
+
+    sel.innerHTML = '<option value="">— escolha um arquivo —</option>' +
+      files.map(f => {
+        const dt = new Date(f.createdTime).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+        return `<option value="${f.id}">${f.name} (${dt})</option>`;
+      }).join('');
+    sel.focus();
+  } catch (err) {
+    if (status) status.textContent = 'Erro ao listar arquivos: ' + err.message;
+    sel.style.display = 'none';
+  }
+}
+
+async function batalhaCarregarHistorico(fileId) {
+  const sel      = document.getElementById('bn-hist-sel');
+  const status   = document.getElementById('bn-status');
+  const fileInfo = document.getElementById('bn-file-info');
+  if (!fileId) return;
+
+  sel.style.display = 'none';
+  if (status) status.textContent = 'Baixando dados…';
+
+  try {
+    const resp = await fetch(`/api/batalha-naval-dados?fileId=${fileId}`);
+    const data = await resp.json();
+    const nome = sel.options[sel.selectedIndex]?.text || fileId;
+
+    batalhaState.rows   = data.rows || [];
+    batalhaState.loaded = true;
+    batalhaState.fileId = fileId;
+    if (fileInfo) fileInfo.textContent = `🕓 ${nome}`;
+    batalhaPopularSelects();
+    if (status) status.textContent = '';
+    batalhaRenderGrid();
+  } catch (err) {
+    if (status) status.textContent = 'Erro ao carregar arquivo: ' + err.message;
+  }
+}
+
+async function batalhaCarregar() {
+  const status   = document.getElementById('bn-status');
+  const fileInfo = document.getElementById('bn-file-info');
+  if (status) status.textContent = 'Carregando arquivo do Drive…';
+
+  try {
+    const arqResp = await fetch('/api/batalha-naval-arquivo');
+    const arq     = await arqResp.json();
+
+    if (!arq.fileId) {
+      if (status) status.textContent = 'Nenhum arquivo encontrado no Drive. Aguarde a próxima atualização do monitoramento.';
+      return;
+    }
+
+    batalhaState.fileId = arq.fileId;
+    if (fileInfo && arq.createdTime) {
+      const dt = new Date(arq.createdTime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      fileInfo.textContent = `${arq.name} · ${dt}`;
+    }
+
+    if (status) status.textContent = 'Baixando dados…';
+    const dadosResp = await fetch(`/api/batalha-naval-dados?fileId=${arq.fileId}`);
+    const dados     = await dadosResp.json();
+
+    batalhaState.rows   = dados.rows || [];
+    batalhaState.loaded = true;
+
+    batalhaPopularSelects();
+    if (status) status.textContent = '';
+    batalhaRenderGrid();
+  } catch (err) {
+    if (status) status.textContent = 'Erro ao carregar: ' + err.message;
+  }
+}
+
+function renderBatalha() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `
+    <div>
+      <div class="bn-toolbar">
+        <div class="bn-toolbar-group">
+          <label class="bn-label">Holding</label>
+          <select id="bn-holding-sel" class="bn-select"><option value="">— selecione —</option></select>
+        </div>
+        <div class="bn-toolbar-group">
+          <label class="bn-label">Mês</label>
+          <select id="bn-mes-sel" class="bn-select"></select>
+        </div>
+        <div class="holding-filter-wrap" style="flex:0 0 auto;min-width:200px">
+          <label>Buscar distribuidora</label>
+          <div class="holding-filter-row">
+            <input type="text" id="bn-search-distrib" class="holding-filter-input" placeholder="Filtrar distribuidora…" autocomplete="off">
+            <button class="btn-clear-filter" id="bn-clear-search" title="Limpar busca">✕</button>
+          </div>
+          <span class="holding-filter-hint" id="bn-search-hint"></span>
+        </div>
+        <span id="bn-file-info" class="bn-file-info"></span>
+        <select id="bn-hist-sel" onchange="batalhaCarregarHistorico(this.value)" style="display:none;font-size:11px;padding:3px 6px;border:1px solid var(--bic-border);border-radius:5px;background:var(--card-bg);color:var(--text-muted);cursor:pointer;max-width:220px"></select>
+        <button onclick="batalhaAbrirHistorico()" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 6px;opacity:.55" title="Carregar arquivo histórico do Drive">🕓 histórico</button>
+        <button id="bn-export-btn" onclick="batalhaExportarCSV()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;white-space:nowrap">⬇ Exportar CSV</button>
+      </div>
+      <div class="bn-dow-row">
+        <span class="bn-dow-label">Dias</span>
+        ${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((d,i) =>
+          `<span class="bn-dow-chip active" data-dow="${i}">${d}</span>`
+        ).join('')}
+      </div>
+      <div id="bn-status" class="bn-status">Carregando…</div>
+      <div id="bn-grid-wrap" class="bn-grid-wrap"></div>
+    </div>
+  `;
+
+  document.getElementById('bn-holding-sel').addEventListener('change', batalhaRenderGrid);
+  document.getElementById('bn-mes-sel').addEventListener('change', batalhaRenderGrid);
+
+  const bnSearchInput = document.getElementById('bn-search-distrib');
+  const bnClearBtn    = document.getElementById('bn-clear-search');
+  bnSearchInput.value = batalhaState.searchDistrib;
+  if (batalhaState.searchDistrib) {
+    bnSearchInput.classList.add('active');
+    bnClearBtn.classList.add('visible');
+  }
+  bnSearchInput.addEventListener('input', () => {
+    batalhaState.searchDistrib = bnSearchInput.value;
+    bnSearchInput.classList.toggle('active', bnSearchInput.value.length > 0);
+    bnClearBtn.classList.toggle('visible', bnSearchInput.value.length > 0);
+    batalhaRenderGrid();
+  });
+  bnClearBtn.addEventListener('click', () => {
+    batalhaState.searchDistrib = '';
+    bnSearchInput.value = '';
+    bnSearchInput.classList.remove('active');
+    bnClearBtn.classList.remove('visible');
+    const hint = document.getElementById('bn-search-hint');
+    if (hint) hint.textContent = '';
+    batalhaRenderGrid();
+  });
+
+  document.querySelectorAll('.bn-dow-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const dow = Number(chip.dataset.dow);
+      const idx = batalhaState.diasSemana.indexOf(dow);
+      if (idx === -1) {
+        batalhaState.diasSemana.push(dow);
+        chip.classList.add('active');
+      } else {
+        if (batalhaState.diasSemana.length === 1) return; // nunca zera
+        batalhaState.diasSemana.splice(idx, 1);
+        chip.classList.remove('active');
+      }
+      batalhaRenderGrid();
+    });
+  });
+
+  if (batalhaState.loaded) {
+    batalhaPopularSelects();
+    document.getElementById('bn-status').textContent = '';
+    batalhaRenderGrid();
+  } else {
+    batalhaCarregar();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -4032,6 +5174,11 @@ async function init() {
   }, 250);
 
   preCarregarDistribuidores(); // silencioso, em paralelo
+  preCarregarInatividade();
+  preCarregarPaliativos();
+  preCarregarDepara();
+  preCarregarHistorico();
+  carregarUsuarios();
   try {
     state.files = await fetchFiles();
     clearInterval(timer);
@@ -4056,6 +5203,751 @@ async function init() {
 }
 
 init();
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MÓDULO HISTÓRICO DE VENDAS
+// ═══════════════════════════════════════════════════════════════════════
+
+const HIST_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const fmtBRL = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function renderHistorico() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `
+    <div style="padding:20px">
+      <div class="hist-toolbar" id="hist-toolbar">
+        <div class="hist-modo-group">
+          <button class="hist-modo-btn active" id="hist-btn-ano" onclick="histSetModo('ano')">Por Ano</button>
+          <button class="hist-modo-btn" id="hist-btn-mes" onclick="histSetModo('mes')">Por Mês</button>
+        </div>
+        <select class="hist-ano-select" id="hist-ano-select" style="display:none" onchange="histAnoChange()">
+        </select>
+        <input class="hist-search" id="hist-search" type="text" placeholder="Filtrar distribuidora…" oninput="renderHistoricoTable()">
+        <button class="dp-btn dp-btn-outline" id="hist-btn-refresh" onclick="histRefresh()">↻ Atualizar</button>
+        <span class="hist-file-badge" id="hist-file-badge"></span>
+      </div>
+      <div class="inativ-modo-bar" id="hist-modo-bar" style="display:none"></div>
+      <div class="hist-table-wrap" id="hist-table-wrap">
+        <div class="hist-empty" id="hist-empty">
+          <span class="hist-empty-icon">📅</span>
+          <span class="hist-spinner"></span> Carregando histórico de vendas…
+        </div>
+        <table class="hist-table" id="hist-table" style="display:none">
+          <thead id="hist-thead"></thead>
+          <tbody id="hist-tbody"></tbody>
+          <tfoot class="hist-tfoot" id="hist-tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  `;
+  if (historicoState.loaded) {
+    const anos = [...new Set(historicoState.rows.map(r => (r.anoMes || '').substring(0, 4)).filter(Boolean))].sort().reverse();
+    historicoState.anoSel = historicoState.anoSel || anos[0] || '';
+    const selAno = document.getElementById('hist-ano-select');
+    if (selAno) { selAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join(''); selAno.value = historicoState.anoSel; }
+    const badge = document.getElementById('hist-file-badge');
+    if (badge && historicoState.fileDate) badge.textContent = `Arquivo: ${historicoState.fileDate}`;
+    _histRenderModoBar();
+    renderHistoricoTable();
+  } else {
+    carregarHistoricoVendas();
+  }
+}
+
+function histSetModo(modo) {
+  historicoState.modo = modo;
+  const btnAno = document.getElementById('hist-btn-ano');
+  const btnMes = document.getElementById('hist-btn-mes');
+  const selAno = document.getElementById('hist-ano-select');
+  if (!btnAno) return;
+  btnAno.classList.toggle('active', modo === 'ano');
+  btnMes.classList.toggle('active', modo === 'mes');
+  selAno.style.display = modo === 'mes' ? '' : 'none';
+  renderHistoricoTable();
+}
+
+function histAnoChange() {
+  const sel = document.getElementById('hist-ano-select');
+  if (sel) historicoState.anoSel = sel.value;
+  renderHistoricoTable();
+}
+
+async function histRefresh() {
+  const btn = document.getElementById('hist-btn-refresh');
+  if (btn) { btn.disabled = true; btn.textContent = '↻ Buscando…'; }
+  historicoState.rows = [];
+  historicoState.filterModo = null;
+  await carregarHistoricoVendas();
+  if (btn) { btn.disabled = false; btn.textContent = '↻ Atualizar'; }
+}
+
+async function carregarHistoricoVendas() {
+  try {
+    // 1. Lista arquivos para pegar o mais recente
+    const listResp = await fetch('/api/historico-arquivos');
+    if (!listResp.ok) throw new Error(await listResp.text());
+    const files = await listResp.json();
+
+    const badgeEl = document.getElementById('hist-file-badge');
+
+    if (!files.length) {
+      const emptyEl = document.getElementById('hist-empty');
+      if (emptyEl) emptyEl.innerHTML = '<span class="hist-empty-icon">📅</span>Nenhum arquivo de histórico encontrado no Drive.';
+      return;
+    }
+
+    const latest = files[0];
+    if (badgeEl) badgeEl.textContent = `Arquivo: ${latest.name}${latest.dateFormatted ? ' · ' + latest.dateFormatted : ''}`;
+
+    // 2. Baixa e parseia
+    const dataResp = await fetch(`/api/historico-dados?fileId=${latest.id}`);
+    if (!dataResp.ok) throw new Error(await dataResp.text());
+    const { rows } = await dataResp.json();
+
+    historicoState.rows     = rows || [];
+    historicoState.fileDate = `${latest.name}${latest.dateFormatted ? ' · ' + latest.dateFormatted : ''}`;
+    historicoState.loaded   = true;
+
+    // Popular select de anos
+    const anos = [...new Set(rows.map(r => (r.anoMes || '').substring(0, 4)).filter(Boolean))].sort().reverse();
+    historicoState.anoSel = anos[0] || '';
+    const selAno = document.getElementById('hist-ano-select');
+    if (selAno) {
+      selAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+      selAno.value = historicoState.anoSel;
+    }
+
+    _histRenderModoBar();
+    renderHistoricoTable();
+  } catch (err) {
+    const emptyEl = document.getElementById('hist-empty');
+    if (emptyEl) emptyEl.innerHTML = `<span class="hist-empty-icon">⚠️</span>Erro ao carregar: ${err.message}`;
+  }
+}
+
+function renderHistoricoTable() {
+  if (historicoState.modo === 'ano') {
+    _histRenderPorAno();
+  } else {
+    _histRenderPorMes();
+  }
+}
+
+const HIST_MODOS_CONHECIDOS = ['sellers', 'ftp', 'temp'];
+
+function _histRows() {
+  const q = (historicoState.search || (document.getElementById('hist-search') || {}).value || '').toLowerCase();
+  historicoState.search = q;
+
+  let rows = q
+    ? historicoState.rows.filter(r => r.partnerName.toLowerCase().includes(q))
+    : historicoState.rows;
+
+  const modo = historicoState.filterModo;
+  if (modo) {
+    rows = modo === 'outros'
+      ? rows.filter(r => !HIST_MODOS_CONHECIDOS.includes(lookupIntegracaoDynamic(r.partnerName, r.cnpj)))
+      : rows.filter(r => lookupIntegracaoDynamic(r.partnerName, r.cnpj) === modo);
+  }
+
+  return rows;
+}
+
+function _histRenderModoBar() {
+  const bar = document.getElementById('hist-modo-bar');
+  if (!bar) return;
+  const modos = [
+    { key: null,      label: 'Todos' },
+    { key: 'sellers', label: 'Sellers' },
+    { key: 'ftp',     label: 'FTP' },
+    { key: 'temp',    label: 'Paliativo' },
+    { key: 'outros',  label: 'Outros' },
+  ];
+  bar.innerHTML = '<span class="inativ-modo-label">Modo de integração:</span>' +
+    modos.map(m => {
+      const active = historicoState.filterModo === m.key ? ' active' : '';
+      return `<button class="inativ-modo-btn${active}" data-modo="${m.key ?? ''}">${m.label}</button>`;
+    }).join('');
+  bar.style.display = 'flex';
+  bar.querySelectorAll('.inativ-modo-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.modo;
+      historicoState.filterModo = m === '' ? null : m;
+      _histRenderModoBar();
+      renderHistoricoTable();
+    });
+  });
+}
+
+function _histShow(thead, tbody, tfoot) {
+  const table   = document.getElementById('hist-table');
+  const emptyEl = document.getElementById('hist-empty');
+  const th      = document.getElementById('hist-thead');
+  const tb      = document.getElementById('hist-tbody');
+  const tf      = document.getElementById('hist-tfoot');
+  if (!table) return;
+  if (!thead) {
+    table.style.display = 'none';
+    if (emptyEl) { emptyEl.style.display = ''; emptyEl.innerHTML = '<span class="hist-empty-icon">🔍</span>Nenhuma distribuidora encontrada.'; }
+    return;
+  }
+  table.style.display = '';
+  if (emptyEl) emptyEl.style.display = 'none';
+  th.innerHTML = thead;
+  tb.innerHTML = tbody;
+  tf.innerHTML = tfoot;
+}
+
+function _histRenderPorAno() {
+  const rows = _histRows();
+  if (!rows.length) { _histShow(null); return; }
+
+  // Anos únicos
+  const anos = [...new Set(rows.map(r => (r.anoMes || '').substring(0, 4)).filter(Boolean))].sort();
+
+  // Pivot distribuidora → ano → soma
+  const dist = {};
+  rows.forEach(r => {
+    const p = r.partnerName;
+    const a = (r.anoMes || '').substring(0, 4);
+    if (!a) return;
+    if (!dist[p]) dist[p] = {};
+    dist[p][a] = (dist[p][a] || 0) + r.valor;
+  });
+
+  const parceiros = Object.keys(dist).sort();
+  const totAno = {};
+  anos.forEach(a => { totAno[a] = 0; });
+
+  const thead = `<tr>
+    <th class="hist-th hist-th-name">Distribuidora</th>
+    ${anos.map(a => `<th class="hist-th">${a}</th>`).join('')}
+    <th class="hist-th" style="background:#FFF8F3">Total</th>
+  </tr>`;
+
+  const tbody = parceiros.map((p, i) => {
+    let totalDist = 0;
+    const cells = anos.map(a => {
+      const v = dist[p][a] || 0;
+      totAno[a] += v;
+      totalDist += v;
+      return v === 0
+        ? `<td class="hist-td hist-td-zero">—</td>`
+        : `<td class="hist-td">${fmtBRL(v)}</td>`;
+    }).join('');
+    return `<tr class="hist-tr">
+      <td class="hist-td hist-td-name" title="${p}">${p}</td>
+      ${cells}
+      <td class="hist-td hist-td-total">${fmtBRL(totalDist)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalGeral = anos.reduce((s, a) => s + totAno[a], 0);
+  const tfoot = `<tr>
+    <td class="hist-td hist-td-name" style="background:var(--bic-gray);position:sticky;left:0;z-index:2;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)">Total</td>
+    ${anos.map(a => `<td class="hist-td" style="background:var(--bic-gray);font-weight:700;border-top:2px solid var(--bic-border)">${fmtBRL(totAno[a])}</td>`).join('')}
+    <td class="hist-td hist-td-total" style="background:#FFF8F3;border-top:2px solid var(--bic-border)">${fmtBRL(totalGeral)}</td>
+  </tr>`;
+
+  _histShow(thead, tbody, tfoot);
+}
+
+function _histRenderPorMes() {
+  const anoSel = historicoState.anoSel;
+  if (!anoSel) { _histShow(null); return; }
+
+  // Lista completa de distribuidores (filtrada só pela busca, não pelo ano)
+  const allRows = _histRows();
+  if (!allRows.length) { _histShow(null); return; }
+
+  // Linhas do ano selecionado para montar os valores do pivot
+  const rowsAno = allRows.filter(r => (r.anoMes || '').substring(0, 4) === anoSel);
+
+  const meses = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+
+  // Pivot distribuidora → mes → soma (só do ano selecionado)
+  const dist = {};
+  rowsAno.forEach(r => {
+    const p = r.partnerName;
+    const m = (r.anoMes || '').substring(5, 7);
+    if (!m) return;
+    if (!dist[p]) dist[p] = {};
+    dist[p][m] = (dist[p][m] || 0) + r.valor;
+  });
+
+  // Todos os distribuidores do dataset (para incluir os sem venda no ano)
+  const parceiros = [...new Set(allRows.map(r => r.partnerName))].sort();
+  const totMes = {};
+  meses.forEach(m => { totMes[m] = 0; });
+
+  const thead = `<tr>
+    <th class="hist-th hist-th-name">Distribuidora</th>
+    ${meses.map((m, i) => `<th class="hist-th">${HIST_MESES[i]}</th>`).join('')}
+    <th class="hist-th" style="background:#FFF8F3">Total ${anoSel}</th>
+  </tr>`;
+
+  const tbody = parceiros.map(p => {
+    let totalDist = 0;
+    const cells = meses.map(m => {
+      const v = (dist[p] && dist[p][m]) || 0;
+      totMes[m] += v;
+      totalDist += v;
+      return v === 0
+        ? `<td class="hist-td hist-td-zero">—</td>`
+        : `<td class="hist-td">${fmtBRL(v)}</td>`;
+    }).join('');
+    return `<tr class="hist-tr">
+      <td class="hist-td hist-td-name" title="${p}">${p}</td>
+      ${cells}
+      <td class="hist-td hist-td-total">${fmtBRL(totalDist)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalGeral = meses.reduce((s, m) => s + totMes[m], 0);
+  const tfoot = `<tr>
+    <td class="hist-td hist-td-name" style="background:var(--bic-gray);position:sticky;left:0;z-index:2;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)">Total</td>
+    ${meses.map(m => `<td class="hist-td" style="background:var(--bic-gray);font-weight:700;border-top:2px solid var(--bic-border)">${totMes[m] ? fmtBRL(totMes[m]) : '—'}</td>`).join('')}
+    <td class="hist-td hist-td-total" style="background:#FFF8F3;border-top:2px solid var(--bic-border)">${fmtBRL(totalGeral)}</td>
+  </tr>`;
+
+  _histShow(thead, tbody, tfoot);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MÓDULO USUÁRIOS
+// ═══════════════════════════════════════════════════════════════════════
+const usuariosState = {
+  distribuidores: [],
+  industria: [],
+  abaAtiva: 'distribuidores',
+  arquivo: '',
+  carregado: false,
+  sortCol: null,
+  sortAsc: true,
+  permissaoBi: 'sim',  // 'sim' | 'nao' | 'todos'
+};
+
+function renderUsuarios() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `
+    <div style="padding:20px">
+      <div class="hist-toolbar" style="margin-bottom:0">
+        <div class="hist-modo-group">
+          <button class="hist-modo-btn active" id="usu-btn-distrib" onclick="usuSetAba('distribuidores')">🏢 Distribuidores</button>
+          <button class="hist-modo-btn" id="usu-btn-industria" onclick="usuSetAba('industria')">🏭 Indústria</button>
+        </div>
+        <div class="hist-modo-group" id="usu-perm-filter">
+          <button class="hist-modo-btn active" id="usu-perm-sim" onclick="usuSetPermissao('sim')">✅ Permissão BI: Sim</button>
+          <button class="hist-modo-btn" id="usu-perm-nao" onclick="usuSetPermissao('nao')">❌ Não</button>
+          <button class="hist-modo-btn" id="usu-perm-todos" onclick="usuSetPermissao('todos')">Todos</button>
+        </div>
+        <input class="hist-search" id="usu-search" type="text" placeholder="Buscar por nome, e-mail ou empresa…" oninput="renderUsuariosTabela()">
+        <button class="dp-btn dp-btn-outline" id="usu-btn-refresh" onclick="usuRefresh()">↻ Atualizar</button>
+        <span class="hist-file-badge" id="usu-file-badge"></span>
+      </div>
+      <div style="margin:10px 0 14px;font-size:12px;color:var(--text-muted)" id="usu-counter"></div>
+      <div class="hist-table-wrap">
+        <div class="hist-empty" id="usu-empty">
+          <span class="hist-empty-icon">👥</span>
+          <span class="hist-spinner"></span> Carregando usuários…
+        </div>
+        <table class="hist-table" id="usu-table" style="display:none;width:100%">
+          <thead id="usu-thead"></thead>
+          <tbody id="usu-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  // Garante estado inicial do filtro de permissão
+  _atualizarBotoesPerm();
+  if (usuariosState.abaAtiva !== 'distribuidores') {
+    const permFilter = document.getElementById('usu-perm-filter');
+    if (permFilter) permFilter.style.display = 'none';
+  }
+
+  if (usuariosState.carregado) {
+    renderUsuariosTabela();
+  } else {
+    carregarUsuarios();
+  }
+}
+
+function usuSetAba(aba) {
+  usuariosState.abaAtiva    = aba;
+  usuariosState.sortCol     = null;
+  usuariosState.sortAsc     = true;
+  usuariosState.permissaoBi = 'sim';
+  const btnD = document.getElementById('usu-btn-distrib');
+  const btnI = document.getElementById('usu-btn-industria');
+  if (btnD) btnD.classList.toggle('active', aba === 'distribuidores');
+  if (btnI) btnI.classList.toggle('active', aba === 'industria');
+  const search = document.getElementById('usu-search');
+  if (search) search.value = '';
+  // Mostra filtro de permissão só na aba distribuidores
+  const permFilter = document.getElementById('usu-perm-filter');
+  if (permFilter) permFilter.style.display = aba === 'distribuidores' ? '' : 'none';
+  _atualizarBotoesPerm();
+  renderUsuariosTabela();
+}
+
+function usuSetPermissao(valor) {
+  usuariosState.permissaoBi = valor;
+  _atualizarBotoesPerm();
+  renderUsuariosTabela();
+}
+
+function _atualizarBotoesPerm() {
+  ['sim','nao','todos'].forEach(v => {
+    const btn = document.getElementById(`usu-perm-${v}`);
+    if (btn) btn.classList.toggle('active', usuariosState.permissaoBi === v);
+  });
+}
+
+async function usuRefresh() {
+  const btn = document.getElementById('usu-btn-refresh');
+  if (btn) { btn.disabled = true; btn.textContent = '↻ Buscando…'; }
+  usuariosState.carregado = false;
+  await carregarUsuarios();
+  if (btn) { btn.disabled = false; btn.textContent = '↻ Atualizar'; }
+}
+
+async function carregarUsuarios() {
+  try {
+    const arqResp = await fetch('/api/usuarios-arquivo');
+    if (!arqResp.ok) throw new Error(await arqResp.text());
+    const arquivo = await arqResp.json();
+
+    if (!arquivo) {
+      const el = document.getElementById('usu-empty');
+      if (el) el.innerHTML = '<span class="hist-empty-icon">👥</span>Nenhum arquivo de usuários encontrado no Drive.';
+      return;
+    }
+
+    const badge = document.getElementById('usu-file-badge');
+    if (badge) badge.textContent = `Arquivo: ${arquivo.name}`;
+
+    const dadosResp = await fetch(`/api/usuarios-dados?fileId=${arquivo.fileId}`);
+    if (!dadosResp.ok) throw new Error(await dadosResp.text());
+    const { distribuidores, industria } = await dadosResp.json();
+
+    usuariosState.distribuidores = distribuidores || [];
+    usuariosState.industria      = industria      || [];
+    usuariosState.arquivo        = arquivo.name;
+    usuariosState.carregado      = true;
+
+    renderUsuariosTabela();
+  } catch (err) {
+    const el = document.getElementById('usu-empty');
+    if (el) el.innerHTML = `<span class="hist-empty-icon">⚠️</span>Erro ao carregar: ${err.message}`;
+  }
+}
+
+function usuSort(col) {
+  if (usuariosState.sortCol === col) {
+    usuariosState.sortAsc = !usuariosState.sortAsc;
+  } else {
+    usuariosState.sortCol = col;
+    usuariosState.sortAsc = true;
+  }
+  renderUsuariosTabela();
+}
+
+function renderUsuariosTabela() {
+  const isDistrib = usuariosState.abaAtiva === 'distribuidores';
+  const q = (document.getElementById('usu-search')?.value || '').toLowerCase().trim();
+  const source = isDistrib ? usuariosState.distribuidores : usuariosState.industria;
+
+  let filtered = source.slice();
+
+  // Filtro de Permissão BI (só distribuidores)
+  if (isDistrib && usuariosState.permissaoBi !== 'todos') {
+    const esperado = usuariosState.permissaoBi === 'sim' ? 'Sim' : 'Não';
+    filtered = filtered.filter(r => (r.Tem_Permissao || '') === esperado);
+  }
+
+  // Filtro de busca
+  if (q) {
+    filtered = filtered.filter(r =>
+      (r.Nome    || '').toLowerCase().includes(q)
+   || (r.Email   || '').toLowerCase().includes(q)
+   || (r.Empresa || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Ordenação
+  if (usuariosState.sortCol) {
+    const col = usuariosState.sortCol;
+    const asc = usuariosState.sortAsc;
+    filtered = filtered.slice().sort((a, b) => {
+      if (col === 'Tem_Permissao') {
+        const va = (a[col] || '') === 'Sim' ? 1 : 0;
+        const vb = (b[col] || '') === 'Sim' ? 1 : 0;
+        return asc ? va - vb : vb - va;
+      }
+      const va = (a[col] || '').toLowerCase();
+      const vb = (b[col] || '').toLowerCase();
+      return asc ? va.localeCompare(vb, 'pt-BR') : vb.localeCompare(va, 'pt-BR');
+    });
+  }
+
+  const counter = document.getElementById('usu-counter');
+  if (counter) counter.textContent = `${filtered.length} usuário${filtered.length !== 1 ? 's' : ''}`;
+
+  const emptyEl = document.getElementById('usu-empty');
+  const table   = document.getElementById('usu-table');
+  const thead   = document.getElementById('usu-thead');
+  const tbody   = document.getElementById('usu-tbody');
+
+  if (!usuariosState.carregado) return;
+
+  if (!filtered.length) {
+    if (emptyEl) { emptyEl.style.display = ''; emptyEl.innerHTML = '<span class="hist-empty-icon">👥</span>Nenhum resultado encontrado.'; }
+    if (table) table.style.display = 'none';
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (table) table.style.display = '';
+
+  const sortIcon = (col) => {
+    if (usuariosState.sortCol !== col) return ' <span style="opacity:.35;font-size:10px">⇅</span>';
+    return usuariosState.sortAsc ? ' <span style="font-size:10px">▲</span>' : ' <span style="font-size:10px">▼</span>';
+  };
+  const thStyle = 'cursor:pointer;user-select:none';
+
+  if (isDistrib) {
+    thead.innerHTML = `<tr>
+      <th class="hist-th" style="min-width:200px;${thStyle}" onclick="usuSort('Empresa')">Empresa${sortIcon('Empresa')}</th>
+      <th class="hist-th" style="min-width:180px;${thStyle}" onclick="usuSort('Nome')">Nome${sortIcon('Nome')}</th>
+      <th class="hist-th" style="min-width:220px;${thStyle}" onclick="usuSort('Email')">E-mail${sortIcon('Email')}</th>
+      <th class="hist-th" style="min-width:130px;${thStyle}" onclick="usuSort('Tem_Permissao')">Permissão BI${sortIcon('Tem_Permissao')}</th>
+    </tr>`;
+    tbody.innerHTML = filtered.map(r => {
+      const perm = (r.Tem_Permissao || '') === 'Sim';
+      const badge = perm
+        ? `<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600">Sim</span>`
+        : `<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600">Não</span>`;
+      return `<tr class="hist-tr">
+        <td class="hist-td">${escHtml(r.Empresa)}</td>
+        <td class="hist-td">${escHtml(r.Nome)}</td>
+        <td class="hist-td"><a href="mailto:${escHtml(r.Email)}" style="color:var(--bic-orange)">${escHtml(r.Email)}</a></td>
+        <td class="hist-td">${badge}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    thead.innerHTML = `<tr>
+      <th class="hist-th" style="min-width:200px;${thStyle}" onclick="usuSort('Nome')">Nome${sortIcon('Nome')}</th>
+      <th class="hist-th" style="min-width:240px;${thStyle}" onclick="usuSort('Email')">E-mail${sortIcon('Email')}</th>
+    </tr>`;
+    tbody.innerHTML = filtered.map(r => `<tr class="hist-tr">
+      <td class="hist-td">${escHtml(r.Nome)}</td>
+      <td class="hist-td"><a href="mailto:${escHtml(r.Email)}" style="color:var(--bic-orange)">${escHtml(r.Email)}</a></td>
+    </tr>`).join('');
+  }
+}
+
+function escHtml(str) {
+  return (str || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AUTH — inicialização e controle de sessão
+// ═══════════════════════════════════════════════════════════════════════
+
+let _currentUser = null;
+
+async function initAuth() {
+  try {
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (!res.ok) { window.location.href = '/login'; return; }
+    _currentUser = await res.json();
+
+    // Preenche sidebar
+    const name = _currentUser.name || _currentUser.email;
+    document.getElementById('sidebar-name').textContent = name;
+    document.getElementById('sidebar-email').textContent = _currentUser.email;
+    document.getElementById('sidebar-avatar').textContent = name.charAt(0).toUpperCase();
+
+    // Exibe admin nav se for admin
+    if (_currentUser.isAdmin) {
+      document.getElementById('admin-nav-section').style.display = '';
+      document.getElementById('admin-nav-item').style.display = '';
+    }
+  } catch {
+    window.location.href = '/login';
+  }
+}
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/login';
+});
+
+initAuth();
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MÓDULO ADMIN — gestão de usuários Firebase
+// ═══════════════════════════════════════════════════════════════════════
+
+async function renderAdminUsers() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `
+    <div class="admin-header">
+      <div>
+        <div style="font-size:13px;color:#7a8ba8;margin-bottom:2px">Projeto: bic-system-ab183</div>
+      </div>
+      <button class="admin-btn" id="admin-new-user-btn">+ Novo usuário</button>
+    </div>
+    <div id="admin-users-table-wrap">
+      <p style="color:#7a8ba8;font-size:13px">Carregando usuários…</p>
+    </div>`;
+
+  document.getElementById('admin-new-user-btn').addEventListener('click', () => openAdminModal());
+
+  try {
+    const res = await fetch('/api/admin/users', { credentials: 'include' });
+    const data = await res.json();
+    renderAdminTable(data.users || []);
+  } catch {
+    document.getElementById('admin-users-table-wrap').innerHTML =
+      '<p style="color:#e53935;font-size:13px">Erro ao carregar usuários.</p>';
+  }
+}
+
+function renderAdminTable(users) {
+  const wrap = document.getElementById('admin-users-table-wrap');
+  if (!users.length) { wrap.innerHTML = '<p style="color:#7a8ba8;font-size:13px">Nenhum usuário cadastrado.</p>'; return; }
+
+  wrap.innerHTML = `
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Criado em</th>
+          <th>Último acesso</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${users.map(u => `
+          <tr data-uid="${escHtml(u.uid)}">
+            <td style="font-weight:600">${escHtml(u.name || '—')}</td>
+            <td>${escHtml(u.email)}</td>
+            <td>${u.isAdmin ? '<span class="badge-admin">Admin</span>' : '<span style="font-size:12px;color:#7a8ba8">Usuário</span>'}</td>
+            <td>${u.disabled ? '<span class="badge-disabled">Desativado</span>' : '<span class="badge-active">Ativo</span>'}</td>
+            <td style="font-size:12px;color:#7a8ba8">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
+            <td style="font-size:12px;color:#7a8ba8">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('pt-BR') : 'Nunca'}</td>
+            <td style="white-space:nowrap">
+              <button class="admin-action tog" data-uid="${escHtml(u.uid)}" data-disabled="${u.disabled}" title="${u.disabled ? 'Ativar' : 'Desativar'}">
+                ${u.disabled ? '✅ Ativar' : '⏸ Desativar'}
+              </button>
+              <button class="admin-action del" data-uid="${escHtml(u.uid)}" data-email="${escHtml(u.email)}" title="Remover">🗑</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+
+  wrap.querySelectorAll('.admin-action.del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm(`Remover o usuário "${btn.dataset.email}"? Esta ação não pode ser desfeita.`)) return;
+      btn.disabled = true;
+      const res = await fetch(`/api/admin/users/${btn.dataset.uid}`, { method: 'DELETE', credentials: 'include' });
+      if (res.ok) { renderAdminUsers(); } else { alert('Erro ao remover usuário.'); btn.disabled = false; }
+    });
+  });
+
+  wrap.querySelectorAll('.admin-action.tog').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const disabled = btn.dataset.disabled === 'true';
+      btn.disabled = true;
+      const res = await fetch(`/api/admin/users/${btn.dataset.uid}`, {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disabled: !disabled }),
+      });
+      if (res.ok) { renderAdminUsers(); } else { alert('Erro ao atualizar usuário.'); btn.disabled = false; }
+    });
+  });
+}
+
+function openAdminModal() {
+  const overlay = document.getElementById('admin-modal-overlay');
+  overlay.querySelector('#admin-modal-name').value = '';
+  overlay.querySelector('#admin-modal-email').value = '';
+  overlay.querySelector('#admin-modal-password').value = '';
+  overlay.querySelector('#admin-modal-error').style.display = 'none';
+  overlay.querySelector('.btn-save').disabled = false;
+  overlay.querySelector('.btn-save').textContent = 'Criar';
+  overlay.classList.add('open');
+}
+
+document.getElementById('admin-modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+document.getElementById('admin-modal-cancel').addEventListener('click', () => {
+  document.getElementById('admin-modal-overlay').classList.remove('open');
+});
+document.getElementById('admin-modal-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const overlay = document.getElementById('admin-modal-overlay');
+  const saveBtn = overlay.querySelector('.btn-save');
+  const errorEl = overlay.querySelector('#admin-modal-error');
+  const name  = overlay.querySelector('#admin-modal-name').value.trim();
+  const email = overlay.querySelector('#admin-modal-email').value.trim();
+  const password = overlay.querySelector('#admin-modal-password').value;
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Criando…';
+  errorEl.style.display = 'none';
+
+  const res = await fetch('/api/admin/users', {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    overlay.classList.remove('open');
+    renderAdminUsers();
+  } else {
+    errorEl.textContent = data.error || 'Erro ao criar usuário.';
+    errorEl.style.display = 'block';
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Criar';
+  }
+});
+
 </script>
+
+<!-- Modal criar usuário -->
+<div id="admin-modal-overlay">
+  <div id="admin-modal">
+    <h3>Novo usuário</h3>
+    <form id="admin-modal-form" style="display:flex;flex-direction:column;gap:12px">
+      <div class="admin-field">
+        <label>Nome</label>
+        <input type="text" id="admin-modal-name" placeholder="Nome completo" />
+      </div>
+      <div class="admin-field">
+        <label>E-mail *</label>
+        <input type="email" id="admin-modal-email" placeholder="usuario@email.com" required />
+      </div>
+      <div class="admin-field">
+        <label>Senha *</label>
+        <input type="password" id="admin-modal-password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+      </div>
+      <div id="admin-modal-error"></div>
+      <div class="admin-modal-actions">
+        <button type="button" class="btn-cancel" id="admin-modal-cancel">Cancelar</button>
+        <button type="submit" class="btn-save">Criar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>

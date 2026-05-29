@@ -2026,12 +2026,9 @@
   </div>
 
   <div class="content-area" id="content-area">
-    <div class="dist-loading-box" id="init-loading-box">
+    <div class="dist-loading-box">
       <div class="spinner" style="width:28px;height:28px;border-width:3px"></div>
-      <div id="init-load-msg" style="font-size:13px;color:var(--text-muted)">Conectando ao Drive…</div>
-      <div style="width:220px;height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden;margin-top:4px">
-        <div id="init-load-bar" style="height:100%;width:0%;background:var(--bic-orange);border-radius:3px;transition:width .4s ease"></div>
-      </div>
+      <div style="font-size:13px;color:var(--text-muted)">Carregando…</div>
     </div>
   </div>
 </div>
@@ -5295,22 +5292,7 @@ function renderBatalha() {
 //  INICIALIZAÇÃO
 // ═══════════════════════════════════════════════════════════════════════
 async function init() {
-  const bar = document.getElementById('init-load-bar');
-  const msg = document.getElementById('init-load-msg');
-  let fakeP = 0;
-  const timer = setInterval(() => {
-    if (fakeP < 80) {
-      fakeP += Math.random() * 15;
-      if (bar) bar.style.width = Math.min(fakeP, 80) + '%';
-      if (msg) {
-        if (fakeP < 35) msg.textContent = 'Conectando ao Drive…';
-        else if (fakeP < 65) msg.textContent = 'Listando arquivos de sellout…';
-        else msg.textContent = 'Preparando módulo…';
-      }
-    }
-  }, 250);
-
-  preCarregarDistribuidores(); // silencioso, em paralelo
+  preCarregarDistribuidores();
   preCarregarInatividade();
   preCarregarPaliativos();
   preCarregarDepara();
@@ -5318,8 +5300,6 @@ async function init() {
   carregarUsuarios();
   try {
     state.files = await fetchFiles();
-    clearInterval(timer);
-    if (bar) bar.style.width = '100%';
 
     if (state.files.length) {
       document.getElementById('last-update-badge').textContent = state.files[0].dateFormatted;
@@ -5327,7 +5307,6 @@ async function init() {
       document.getElementById('last-update-badge').textContent = 'Sem arquivos';
     }
 
-    // Restaura módulo salvo no hash (ex: F5 na página de Batalha Naval)
     const hashMod = window.location.hash.replace('#', '');
     if (hashMod && hashMod !== 'comparativo') {
       navigateTo(hashMod);
@@ -5335,7 +5314,6 @@ async function init() {
       renderComparativo();
     }
   } catch (e) {
-    clearInterval(timer);
     document.getElementById('last-update-badge').textContent = 'Erro';
     document.getElementById('content-area').innerHTML = `
       <div class="error-banner">

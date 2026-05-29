@@ -6021,7 +6021,9 @@ document.getElementById('admin-modal-form').addEventListener('submit', async e =
   const data = await res.json();
   if (res.ok) {
     overlay.classList.remove('open');
-    renderAdminUsers();
+    saveBtn.textContent = 'Criado!';
+    // Firebase leva ~800ms para refletir o novo usuário no listUsers
+    setTimeout(() => renderAdminUsers(), 900);
   } else {
     errorEl.textContent = data.error || 'Erro ao criar usuário.';
     errorEl.style.display = 'block';

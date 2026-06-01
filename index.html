@@ -4980,7 +4980,15 @@ const batalhaState = {
   loaded:       false,
   diasSemana:   [0,1,2,3,4,5,6], // 0=Dom … 6=Sáb; todos ativos por padrão
   searchDistrib: '',
+  sortCol:      null,  // null | 'partner' | 'check' | número do dia (1–31)
+  sortAsc:      true,
 };
+
+function bnSort(col) {
+  if (batalhaState.sortCol === col) batalhaState.sortAsc = !batalhaState.sortAsc;
+  else { batalhaState.sortCol = col; batalhaState.sortAsc = true; }
+  batalhaRenderGrid();
+}
 
 function bnGetChecks() {
   try { return JSON.parse(localStorage.getItem('bn_checks') || '{}'); } catch { return {}; }
@@ -5168,16 +5176,42 @@ function batalhaRenderGrid() {
   const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const checks = bnGetChecks();
 
+  // ── Ordenação ──────────────────────────────────────────────────────────
+  const sc  = batalhaState.sortCol;
+  const asc = batalhaState.sortAsc;
+  const sIcon = col => {
+    if (sc !== col) return '<span style="opacity:.3;font-size:9px;margin-left:2px">⇅</span>';
+    return asc ? '<span style="font-size:9px;margin-left:2px">▲</span>'
+               : '<span style="font-size:9px;margin-left:2px">▼</span>';
+  };
+  const thStyle = 'cursor:pointer;user-select:none';
+
+  let sorted = partnersVisiveis.slice();
+  if (sc === 'partner') {
+    sorted.sort((a, b) => asc ? a.localeCompare(b, 'pt-BR') : b.localeCompare(a, 'pt-BR'));
+  } else if (sc === 'check') {
+    sorted.sort((a, b) => {
+      const va = checks[a] ? 1 : 0, vb = checks[b] ? 1 : 0;
+      return asc ? va - vb : vb - va;
+    });
+  } else if (typeof sc === 'number') {
+    sorted.sort((a, b) => {
+      const va = idx[a + '||' + sc] ?? -Infinity;
+      const vb = idx[b + '||' + sc] ?? -Infinity;
+      return asc ? va - vb : vb - va;
+    });
+  }
+
   const thead = `<thead><tr>
-    <th class="bn-th-partner">Distribuidora</th>
+    <th class="bn-th-partner" style="${thStyle}" onclick="bnSort('partner')">Distribuidora${sIcon('partner')}</th>
     ${dias.map(d => {
       const dow = DIAS_SEMANA[new Date(Number(y), Number(mo)-1, d).getDay()];
-      return `<th>${d}<br><span style="font-weight:400;font-size:10px;opacity:.7">${dow}</span></th>`;
+      return `<th style="${thStyle}" onclick="bnSort(${d})">${d}<br><span style="font-weight:400;font-size:10px;opacity:.7">${dow}</span>${sIcon(d)}</th>`;
     }).join('')}
-    <th class="bn-th-check">✓</th>
+    <th class="bn-th-check" style="${thStyle}" onclick="bnSort('check')">✓${sIcon('check')}</th>
   </tr></thead>`;
 
-  const tbody = '<tbody>' + partnersVisiveis.map(p => {
+  const tbody = '<tbody>' + sorted.map(p => {
     const cells = dias.map(d => {
       const key = p + '||' + d;
       if (!(key in idx)) return `<td class="bn-venda-nil">—</td>`;

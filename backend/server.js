@@ -6,6 +6,8 @@ const { google } = require('googleapis');
 const XLSX = require('xlsx');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const multer = require('multer');
+const uploadMemory = multer({ storage: multer.memoryStorage() });
 const admin = require('firebase-admin');
 
 const app = express();
@@ -1170,6 +1172,431 @@ app.get('/api/batalha-naval-dados', async (req, res) => {
     console.error('Erro /api/batalha-naval-dados:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/email-massa/debug — diagnóstico de matching coordenadores × sellout × usuários
+app.get('/api/email-massa/debug', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const drive = getDriveClient(true);
+
+    // Coordenadores do Firestore
+    const db = getFirebaseAdmin().firestore();
+    const coordDoc = await db.collection('system_config').doc('coordenadores').get();
+    const coordMapa = coordDoc.exists ? (coordDoc.data().mapa || {}) : {};
+    const coordKeys = Object.keys(coordMapa).slice(0, 30).map(k => ({ original: k, normalizado: normalizeStr(k) }));
+
+    // Amostra de customers do sellout
+    const selloutList = await drive.files.list({
+      q: `'${process.env.GOOGLE_DRIVE_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields: 'files(id,name)', orderBy: 'createdTime desc', pageSize: 1,
+      supportsAllDrives: true, includeItemsFromAllDrives: true,
+    });
+    let selloutCustomers = [];
+    if (selloutList.data.files?.length) {
+      const resp = await drive.files.get(
+        { fileId: selloutList.data.files[0].id, alt: 'media', supportsAllDrives: true },
+        { responseType: 'arraybuffer' }
+      );
+      const wb = XLSX.read(resp.data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: null }).map(normalizeRow);
+      const unique = new Map();
+      for (const r of rows) {
+        if (r.customer && !unique.has(r.customer)) unique.set(r.customer, normalizeStr(r.customer));
+        if (unique.size >= 20) break;
+      }
+      selloutCustomers = [...unique.entries()].map(([orig, norm]) => ({ original: orig, normalizado: norm }));
+    }
+
+    // Amostra de Empresas do XLSX de usuários
+    const usuList = await drive.files.list({
+      q: `'${process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields: 'files(id,name)', orderBy: 'createdTime desc', pageSize: 1,
+      supportsAllDrives: true, includeItemsFromAllDrives: true,
+    });
+    let usuEmpresas = [];
+    if (usuList.data.files?.length) {
+      const resp = await drive.files.get(
+        { fileId: usuList.data.files[0].id, alt: 'media', supportsAllDrives: true },
+        { responseType: 'arraybuffer' }
+      );
+      const wb = XLSX.read(resp.data, { type: 'array' });
+      const ws = wb.Sheets['Distribuidores'];
+      const rows = ws ? XLSX.utils.sheet_to_json(ws, { defval: '' }) : [];
+      const unique = new Map();
+      for (const r of rows) {
+        const emp = String(r.Empresa || '').trim();
+        if (emp && !unique.has(emp)) unique.set(emp, normalizeStr(emp));
+        if (unique.size >= 20) break;
+      }
+      usuEmpresas = [...unique.entries()].map(([orig, norm]) => ({ original: orig, normalizado: norm }));
+    }
+
+    res.json({ coordKeys, selloutCustomers, usuEmpresas });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Gmail OAuth2 ────────────────────────────────────────────────────────────
+
+function getGmailOAuth2Client(redirectUri) {
+  return new google.auth.OAuth2(
+    process.env.GMAIL_CLIENT_ID,
+    process.env.GMAIL_CLIENT_SECRET,
+    redirectUri
+  );
+}
+
+function getRedirectUri(req) {
+  const host = req.get('host');
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  return `${protocol}://${host}/api/gmail/callback`;
+}
+
+async function getGmailTokens() {
+  const db = getFirebaseAdmin().firestore();
+  const doc = await db.collection('system_config').doc('gmail_token').get();
+  return doc.exists ? doc.data() : null;
+}
+
+async function saveGmailTokens(tokens) {
+  const db = getFirebaseAdmin().firestore();
+  await db.collection('system_config').doc('gmail_token').set(tokens, { merge: true });
+}
+
+async function getAuthenticatedGmailClient(req) {
+  const tokens = await getGmailTokens();
+  if (!tokens) throw new Error('Gmail não autenticado. Acesse /api/gmail/auth para conectar.');
+  const oauth2Client = getGmailOAuth2Client(getRedirectUri(req));
+  oauth2Client.setCredentials(tokens);
+  oauth2Client.on('tokens', async (newTokens) => {
+    await saveGmailTokens(newTokens);
+  });
+  return oauth2Client;
+}
+
+// GET /api/gmail/auth — inicia fluxo OAuth2 (abre consent screen)
+app.get('/api/gmail/auth', requireAuth, requireAdmin, (req, res) => {
+  const oauth2Client = getGmailOAuth2Client(getRedirectUri(req));
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
+    prompt: 'consent',
+  });
+  res.redirect(url);
+});
+
+// GET /api/gmail/callback — recebe código, troca por token, salva no Firestore
+app.get('/api/gmail/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).send('Código ausente');
+  try {
+    const oauth2Client = getGmailOAuth2Client(getRedirectUri(req));
+    const { tokens } = await oauth2Client.getToken(code);
+    await saveGmailTokens({ ...tokens, savedAt: new Date().toISOString() });
+    res.send(`
+      <html><body style="font-family:sans-serif;text-align:center;padding:60px">
+        <h2 style="color:#16a34a">✓ Gmail conectado com sucesso!</h2>
+        <p>Pode fechar esta aba e voltar ao sistema.</p>
+        <script>setTimeout(()=>window.close(),3000)</script>
+      </body></html>
+    `);
+  } catch (err) {
+    console.error('Gmail callback error:', err.message);
+    res.status(500).send(`<p>Erro: ${err.message}</p>`);
+  }
+});
+
+// GET /api/gmail/status — verifica se Gmail está autenticado
+app.get('/api/gmail/status', requireAuth, async (req, res) => {
+  try {
+    const tokens = await getGmailTokens();
+    if (!tokens) return res.json({ connected: false });
+    const oauth2Client = getGmailOAuth2Client(getRedirectUri(req));
+    oauth2Client.setCredentials(tokens);
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    const profile = await gmail.users.getProfile({ userId: 'me' });
+    res.json({ connected: true, email: profile.data.emailAddress, savedAt: tokens.savedAt || null });
+  } catch (err) {
+    res.json({ connected: false, error: err.message });
+  }
+});
+
+// ─── Coordenadores ────────────────────────────────────────────────────────────
+
+// POST /api/coordenadores/importar — upload XLSX, parseia, salva no Firestore
+app.post('/api/coordenadores/importar', requireAuth, requireAdmin, uploadMemory.single('arquivo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
+
+    const wb   = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!rows.length) return res.status(400).json({ error: 'Planilha vazia' });
+
+    const colKeys    = Object.keys(rows[0]);
+    // empresa/partner: chave de match com o sellout (partner_name ou organization_name)
+    const empresaCol = colKeys.find(k => /^partner_name$/i.test(k))
+                    || colKeys.find(k => /partner/i.test(k))
+                    || colKeys.find(k => /organization_name/i.test(k));
+    // coordenador: nome do VP / responsável
+    const nomeCol    = colKeys.find(k => /^vp_name$/i.test(k))
+                    || colKeys.find(k => /vp_name|coord/i.test(k));
+    const emailCol   = colKeys.find(k => /^email$/i.test(k));
+
+    if (!empresaCol || !emailCol) {
+      return res.status(400).json({
+        error: 'Colunas não identificadas automaticamente',
+        colunas_encontradas: colKeys,
+        esperado: 'partner_name (empresa) + email + (opcional) vp_name',
+      });
+    }
+
+    // mapa: empresa_normalizada → [{ nome, email, empresaOriginal }]
+    const mapa = {};
+    for (const row of rows) {
+      const empresa = String(row[empresaCol] || '').trim();
+      const email   = String(row[emailCol]   || '').trim().toLowerCase();
+      const nome    = nomeCol ? String(row[nomeCol] || '').trim() : email;
+      if (!empresa || !email || !email.includes('@')) continue;
+      if (!mapa[empresa]) mapa[empresa] = [];
+      if (!mapa[empresa].find(c => c.email === email)) {
+        mapa[empresa].push({ nome, email });
+      }
+    }
+
+    const totalEmpresas = Object.keys(mapa).length;
+    const totalCoord    = Object.values(mapa).reduce((acc, arr) => acc + arr.length, 0);
+
+    const db = getFirebaseAdmin().firestore();
+    await db.collection('system_config').doc('coordenadores').set({
+      mapa,
+      importadoEm: new Date().toISOString(),
+      colunas: { empresa: empresaCol, nome: nomeCol || null, email: emailCol },
+    });
+
+    res.json({ ok: true, totalEmpresas, totalCoord, colunas: { empresa: empresaCol, nome: nomeCol, email: emailCol } });
+  } catch (err) {
+    console.error('Erro /api/coordenadores/importar:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/coordenadores — retorna mapeamento atual
+app.get('/api/coordenadores', requireAuth, async (req, res) => {
+  try {
+    const db  = getFirebaseAdmin().firestore();
+    const doc = await db.collection('system_config').doc('coordenadores').get();
+    if (!doc.exists) return res.json({ mapa: {}, importadoEm: null });
+    res.json(doc.data());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Email em Massa ───────────────────────────────────────────────────────────
+
+function normalizeStr(str) {
+  return String(str).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// GET /api/email-massa/holdings — cruza sellout + usuarios + coordenadores
+app.get('/api/email-massa/holdings', requireAuth, async (req, res) => {
+  try {
+    const drive = getDriveClient(true);
+
+    // 1. Sellout mais recente → mapa holding → Set<customer normalizado>
+    const selloutList = await drive.files.list({
+      q:         `'${process.env.GOOGLE_DRIVE_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields:    'files(id, name, createdTime)',
+      orderBy:   'createdTime desc',
+      pageSize:  1,
+      supportsAllDrives: true, includeItemsFromAllDrives: true,
+    });
+    if (!selloutList.data.files?.length) return res.status(404).json({ error: 'Nenhum arquivo de sellout encontrado' });
+
+    const selloutResp = await drive.files.get(
+      { fileId: selloutList.data.files[0].id, alt: 'media', supportsAllDrives: true },
+      { responseType: 'arraybuffer' }
+    );
+    const selloutRows = XLSX.utils.sheet_to_json(
+      XLSX.read(selloutResp.data, { type: 'array' }).Sheets[XLSX.read(selloutResp.data, { type: 'array' }).SheetNames[0]],
+      { defval: null }
+    ).map(normalizeRow);
+
+    const holdingCustomers = {};
+    for (const row of selloutRows) {
+      if (!row.holding || !row.customer) continue;
+      const h = String(row.holding).trim();
+      const c = normalizeStr(String(row.customer).trim());
+      if (!holdingCustomers[h]) holdingCustomers[h] = new Set();
+      holdingCustomers[h].add(c);
+    }
+
+    // 2. Usuários XLSX → mapa empresa normalizada → [{ nome, email }]
+    const usuariosList = await drive.files.list({
+      q:         `'${process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      fields:    'files(id, name, createdTime)',
+      orderBy:   'createdTime desc',
+      pageSize:  1,
+      supportsAllDrives: true, includeItemsFromAllDrives: true,
+    });
+    if (!usuariosList.data.files?.length) return res.status(404).json({ error: 'Nenhum arquivo de usuários encontrado' });
+
+    const usuariosResp = await drive.files.get(
+      { fileId: usuariosList.data.files[0].id, alt: 'media', supportsAllDrives: true },
+      { responseType: 'arraybuffer' }
+    );
+    const usuariosWb  = XLSX.read(usuariosResp.data, { type: 'array' });
+    const wsDistrib   = usuariosWb.Sheets['Distribuidores'];
+    const distribRows = wsDistrib ? XLSX.utils.sheet_to_json(wsDistrib, { defval: '' }) : [];
+
+    const empresaEmails = {};
+    for (const d of distribRows) {
+      const empresa = normalizeStr(String(d.Empresa || '').trim());
+      const email   = String(d.Email || '').trim().toLowerCase();
+      const nome    = String(d.Nome  || '').trim();
+      if (!empresa || !email || !email.includes('@')) continue;
+      if (!empresaEmails[empresa]) empresaEmails[empresa] = [];
+      empresaEmails[empresa].push({ nome, email });
+    }
+
+    // 3. Coordenadores do Firestore
+    const db       = getFirebaseAdmin().firestore();
+    const coordDoc = await db.collection('system_config').doc('coordenadores').get();
+    const coordMapa = coordDoc.exists ? (coordDoc.data().mapa || {}) : {};
+
+    // 4. Montar grupos
+    const holdings        = [];
+    const empresasComHolding = new Set();
+
+    for (const [holding, customersSet] of Object.entries(holdingCustomers)) {
+      const emailsMap = new Map();
+      const empresasMatch = [];
+
+      for (const custNorm of customersSet) {
+        const matches = empresaEmails[custNorm] || [];
+        if (matches.length) {
+          empresasMatch.push(custNorm);
+          empresasComHolding.add(custNorm);
+          for (const m of matches) emailsMap.set(m.email, m);
+        }
+      }
+
+      // Coordenadores: casar pelo nome da empresa (customer), não pelo nome da holding
+      const coordMap = new Map();
+      for (const custNorm of customersSet) {
+        const coordKey = Object.keys(coordMapa).find(k => normalizeStr(k) === custNorm);
+        if (coordKey) {
+          for (const c of coordMapa[coordKey]) {
+            if (!coordMap.has(c.email)) coordMap.set(c.email, c);
+          }
+        }
+      }
+      const coordenadores = [...coordMap.values()];
+
+      holdings.push({
+        holding,
+        empresas:      [...customersSet],
+        empresasMatch,
+        emails:        [...emailsMap.values()],
+        coordenadores,
+        totalEmpresas: customersSet.size,
+        totalEmails:   emailsMap.size,
+      });
+    }
+
+    // Usuários sem holding
+    const semHolding = [];
+    for (const [empNorm, emailsArr] of Object.entries(empresaEmails)) {
+      if (!empresasComHolding.has(empNorm)) semHolding.push(...emailsArr);
+    }
+
+    holdings.sort((a, b) => a.holding.localeCompare(b.holding));
+    res.json({ holdings, semHolding });
+  } catch (err) {
+    console.error('Erro /api/email-massa/holdings:', err.message);
+  res.status(500).json({ error: err.message });
+  }
+});
+
+function buildEmailRaw({ to, cc, bcc, subject, html }) {
+  const lines = [
+    `To: ${to}`,
+    cc  ? `Cc: ${cc}`   : null,
+    bcc ? `Bcc: ${bcc}` : null,
+    'Content-Type: text/html; charset=utf-8',
+    'MIME-Version: 1.0',
+    `Subject: =?utf-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    '',
+    html,
+  ].filter(l => l !== null);
+  return Buffer.from(lines.join('\r\n')).toString('base64url');
+}
+
+// POST /api/email-massa/enviar — SSE, 1 email por holding
+app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) => {
+  const { holdings, assunto, corpo, cc = [], cco = [] } = req.body || {};
+  if (!holdings?.length)  return res.status(400).json({ error: 'Nenhuma holding selecionada' });
+  if (!assunto?.trim())   return res.status(400).json({ error: 'Assunto obrigatório' });
+  if (!corpo?.trim())     return res.status(400).json({ error: 'Corpo obrigatório' });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    const oauth2Client = await getAuthenticatedGmailClient(req);
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+    send({ tipo: 'inicio', total: holdings.length });
+
+    for (let i = 0; i < holdings.length; i++) {
+      const h = holdings[i];
+      send({ tipo: 'iniciando', holding: h.holding, indice: i + 1, total: holdings.length });
+
+      try {
+        const toList  = h.emails.map(e => e.email);
+        const ccList  = [...(h.coordenadores || []).map(c => c.email), ...cc].filter(Boolean);
+        const bccList = [...cco].filter(Boolean);
+
+        // Substitui {{holding}} pelo nome real da holding
+        const holdingNome = h.holding;
+        const assuntoFinal = assunto.replace(/\{\{holding\}\}/gi, holdingNome);
+        const corpoFinal   = corpo.replace(/\{\{holding\}\}/gi, holdingNome);
+
+        const raw = buildEmailRaw({
+          to:      toList.join(', '),
+          cc:      ccList.length  ? ccList.join(', ')  : null,
+          bcc:     bccList.length ? bccList.join(', ') : null,
+          subject: assuntoFinal,
+          html:    corpoFinal,
+        });
+
+        await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
+
+        send({ tipo: 'enviado', holding: h.holding, indice: i + 1, total: holdings.length, totalEmails: toList.length });
+      } catch (err) {
+        send({ tipo: 'erro', holding: h.holding, indice: i + 1, total: holdings.length, erro: err.message });
+      }
+
+      if (i < holdings.length - 1) await new Promise(r => setTimeout(r, 500));
+    }
+
+    send({ tipo: 'concluido', total: holdings.length });
+  } catch (err) {
+    send({ tipo: 'erro_fatal', erro: err.message });
+  }
+  res.end();
 });
 
 // SPA fallback — qualquer rota desconhecida serve o index.html (requer auth)

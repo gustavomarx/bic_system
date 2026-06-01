@@ -1926,6 +1926,51 @@
     }
     .bn-dow-chip:hover { opacity: .8; }
 
+    /* ── Email em Massa ──────────────────────────────────────── */
+    #email-massa-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:300; align-items:center; justify-content:center; }
+    #email-massa-overlay.open { display:flex; }
+    #email-massa-modal { background:#fff; border-radius:16px; width:min(720px,96vw); max-height:92vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); display:flex; flex-direction:column; }
+    #email-massa-modal .em-header { padding:20px 24px 16px; border-bottom:1px solid #eee; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:#fff; z-index:1; }
+    #email-massa-modal .em-header h3 { margin:0; font-size:16px; font-weight:700; color:#1a2540; }
+    #email-massa-modal .em-body { padding:20px 24px; display:flex; flex-direction:column; gap:16px; }
+    .em-field label { display:block; font-size:12px; font-weight:600; color:#5a6a7e; margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
+    .em-field input[type=text], .em-field textarea { width:100%; box-sizing:border-box; border:1px solid #d1d9e6; border-radius:8px; padding:10px 12px; font-size:13px; font-family:inherit; resize:vertical; }
+    .em-field input[type=text]:focus, .em-field textarea:focus { outline:none; border-color:var(--bic-orange); }
+    .em-tabs { display:flex; gap:8px; border-bottom:1px solid #eee; margin-bottom:12px; }
+    .em-tab { padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; border:none; background:none; color:#7a8ba8; border-bottom:2px solid transparent; transition:.15s; }
+    .em-tab.active { color:var(--bic-orange); border-bottom-color:var(--bic-orange); }
+    .em-preview { border:1px solid #e2e8f0; border-radius:8px; padding:14px; min-height:100px; font-size:13px; background:#fafafa; }
+    .em-chip-input { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid #d1d9e6; border-radius:8px; padding:8px 10px; min-height:42px; cursor:text; }
+    .em-chip-input:focus-within { border-color:var(--bic-orange); }
+    .em-chip { background:#f1f5f9; color:#334155; font-size:12px; padding:3px 8px; border-radius:20px; display:flex; align-items:center; gap:4px; }
+    .em-chip button { background:none; border:none; cursor:pointer; color:#94a3b8; font-size:14px; line-height:1; padding:0; }
+    .em-chip-input input { border:none; outline:none; font-size:12px; flex:1; min-width:120px; padding:2px 0; }
+    .em-summary { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; font-size:12px; color:#475569; display:flex; gap:16px; flex-wrap:wrap; }
+    .em-summary span strong { color:#1a2540; }
+    .em-footer { padding:16px 24px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px; position:sticky; bottom:0; background:#fff; }
+    /* Progresso SSE */
+    .em-progress-list { display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; }
+    .em-progress-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; font-size:13px; background:#f8fafc; }
+    .em-progress-item.enviado { background:#f0fdf4; }
+    .em-progress-item.erro { background:#fff1f2; }
+    .em-progress-item.enviando { background:#fffbeb; }
+    .em-progress-icon { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+    .em-progress-bar { height:4px; background:#e2e8f0; border-radius:4px; margin:8px 0; overflow:hidden; }
+    .em-progress-bar-fill { height:100%; background:var(--bic-orange); border-radius:4px; transition:width .4s ease; }
+    /* Holdings table */
+    .holdings-table-wrap { overflow-x:auto; }
+    .holdings-tr { cursor:pointer; }
+    .holdings-tr:hover { background:#fff8f3; }
+    .holdings-checkbox { width:18px; height:18px; accent-color:var(--bic-orange); cursor:pointer; }
+    .holdings-coordenador-tag { background:#e0f2fe; color:#0369a1; font-size:11px; padding:2px 8px; border-radius:12px; display:inline-block; margin:1px; }
+    .gmail-status-bar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; font-size:12px; margin-bottom:12px; }
+    .gmail-status-bar.connected { background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
+    .gmail-status-bar.disconnected { background:#fff1f2; color:#b91c1c; border:1px solid #fca5a5; }
+    [contenteditable][placeholder]:empty:before { content:attr(placeholder); color:#9ca3af; pointer-events:none; }
+    #em-corpo ul, #em-corpo ol { padding-left:24px; margin:4px 0; }
+    #em-corpo li { margin:2px 0; }
+    #em-corpo p { margin:4px 0; }
+
   </style>
 </head>
 <body>
@@ -2166,6 +2211,23 @@
     <div class="admin-modal-actions">
       <button type="button" class="btn-cancel" id="perm-modal-cancel">Cancelar</button>
       <button type="button" class="btn-save btn-save-perm" id="perm-modal-save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ MODAL EMAIL EM MASSA -->
+<div id="email-massa-overlay">
+  <div id="email-massa-modal">
+    <div class="em-header">
+      <h3 id="em-modal-title">Enviar Email em Massa</h3>
+      <button onclick="fecharModalEmailMassa()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#7a8ba8;line-height:1">×</button>
+    </div>
+    <div class="em-body" id="em-modal-body">
+      <!-- preenchido dinamicamente -->
+    </div>
+    <div class="em-footer" id="em-modal-footer">
+      <button class="dp-btn dp-btn-outline" onclick="fecharModalEmailMassa()">Cancelar</button>
+      <button class="dp-btn dp-btn-primary" id="em-btn-enviar" onclick="iniciarEnvioEmails()">Enviar</button>
     </div>
   </div>
 </div>
@@ -5647,6 +5709,13 @@ const usuariosState = {
   sortCol: null,
   sortAsc: true,
   permissaoBi: 'sim',  // 'sim' | 'nao' | 'todos'
+  // Holdings
+  holdings: [],
+  semHolding: [],
+  holdingsCarregado: false,
+  holdingsSelecionadas: new Set(),
+  gmailConectado: false,
+  gmailEmail: '',
 };
 
 function renderUsuarios() {
@@ -5657,6 +5726,7 @@ function renderUsuarios() {
         <div class="hist-modo-group">
           <button class="hist-modo-btn active" id="usu-btn-distrib" onclick="usuSetAba('distribuidores')">🏢 Distribuidores</button>
           <button class="hist-modo-btn" id="usu-btn-industria" onclick="usuSetAba('industria')">🏭 Indústria</button>
+          <button class="hist-modo-btn" id="usu-btn-holdings" onclick="usuSetAba('holdings')">📧 Holdings</button>
         </div>
         <div class="hist-modo-group" id="usu-perm-filter">
           <button class="hist-modo-btn active" id="usu-perm-sim" onclick="usuSetPermissao('sim')">✅ Permissão BI: Sim</button>
@@ -5699,17 +5769,24 @@ function usuSetAba(aba) {
   usuariosState.sortCol     = null;
   usuariosState.sortAsc     = true;
   usuariosState.permissaoBi = 'sim';
-  const btnD = document.getElementById('usu-btn-distrib');
-  const btnI = document.getElementById('usu-btn-industria');
-  if (btnD) btnD.classList.toggle('active', aba === 'distribuidores');
-  if (btnI) btnI.classList.toggle('active', aba === 'industria');
+  ['distrib','industria','holdings'].forEach(id => {
+    const btn = document.getElementById(`usu-btn-${id}`);
+    if (btn) btn.classList.toggle('active', aba === ({distrib:'distribuidores',industria:'industria',holdings:'holdings'}[id]));
+  });
   const search = document.getElementById('usu-search');
   if (search) search.value = '';
-  // Mostra filtro de permissão só na aba distribuidores
   const permFilter = document.getElementById('usu-perm-filter');
   if (permFilter) permFilter.style.display = aba === 'distribuidores' ? '' : 'none';
+  const searchBar = document.getElementById('usu-search');
+  if (searchBar) searchBar.style.display = aba === 'holdings' ? 'none' : '';
+  const refreshBtn = document.getElementById('usu-btn-refresh');
+  if (refreshBtn) refreshBtn.style.display = aba === 'holdings' ? 'none' : '';
   _atualizarBotoesPerm();
-  renderUsuariosTabela();
+  if (aba === 'holdings') {
+    renderHoldings();
+  } else {
+    renderUsuariosTabela();
+  }
 }
 
 function usuSetPermissao(valor) {
@@ -5867,6 +5944,575 @@ function renderUsuariosTabela() {
     </tr>`).join('');
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  EMAIL EM MASSA — Holdings
+// ═══════════════════════════════════════════════════════════════════════
+
+async function renderHoldings() {
+  const emptyEl = document.getElementById('usu-empty');
+  const table   = document.getElementById('usu-table');
+  if (table)   table.style.display = 'none';
+
+  // Se já está carregado e renderizado, apenas atualiza seleção inline
+  if (usuariosState.holdingsCarregado && document.getElementById('holdings-content')) {
+    _atualizarSelecaoHoldings();
+    return;
+  }
+
+  // Limpa conteúdo anterior do counter ao recarregar
+  const counterEl = document.getElementById('usu-counter');
+  if (counterEl) counterEl.innerHTML = '';
+
+  if (emptyEl) { emptyEl.style.display = ''; emptyEl.innerHTML = '<span class="hist-spinner"></span> Carregando holdings…'; }
+
+  // Verifica Gmail e coordenadores em paralelo
+  const [gData, coordData] = await Promise.all([
+    fetch('/api/gmail/status').then(r=>r.json()).catch(()=>({connected:false})),
+    fetch('/api/coordenadores').then(r=>r.json()).catch(()=>({mapa:{},importadoEm:null})),
+  ]);
+  usuariosState.gmailConectado = gData.connected;
+  usuariosState.gmailEmail     = gData.email || '';
+
+  let coordStatus = '';
+  if (coordData.importadoEm) {
+    const d = new Date(coordData.importadoEm).toLocaleDateString('pt-BR');
+    const total = Object.values(coordData.mapa || {}).reduce((a,v)=>a+v.length,0);
+    coordStatus = `<span style="color:#166534;font-size:12px">✓ ${total} coordenadores importados (${d})</span>`;
+  } else {
+    coordStatus = `<span style="color:#92400e;font-size:12px">⚠ Nenhum coordenador importado</span>`;
+  }
+
+  // Carrega holdings
+  try {
+    const r = await fetch('/api/email-massa/holdings');
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    usuariosState.holdings             = data.holdings || [];
+    usuariosState.semHolding           = data.semHolding || [];
+    usuariosState.holdingsCarregado    = true;
+    usuariosState.holdingsSelecionadas = new Set();
+  } catch (err) {
+    if (emptyEl) emptyEl.innerHTML = `<span class="hist-empty-icon">⚠️</span>Erro ao carregar holdings: ${err.message}`;
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const counter = document.getElementById('usu-counter');
+  if (!counter) return;
+
+  const gmailBar = usuariosState.gmailConectado
+    ? `<div class="gmail-status-bar connected">✓ Gmail conectado: <strong>${escHtml(usuariosState.gmailEmail)}</strong></div>`
+    : `<div class="gmail-status-bar disconnected">⚠ Gmail não conectado. <a href="#" onclick="conectarGmail(event)" style="color:#b91c1c;font-weight:600">Conectar agora →</a></div>`;
+
+  counter.innerHTML = `
+    ${gmailBar}
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span id="holdings-resumo-texto" style="font-size:12px;color:#5a6a7e"></span>
+        ${coordStatus}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px">
+          📥 Importar Coordenadores
+          <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarCoordenadores(this)">
+        </label>
+        <button class="dp-btn dp-btn-outline" onclick="usuariosState.holdingsCarregado=false;renderHoldings()">↻ Recarregar</button>
+        <button class="dp-btn dp-btn-primary" id="btn-enviar-email-massa" onclick="abrirModalEmailMassa()" disabled style="opacity:.4">📤 Enviar Email</button>
+      </div>
+    </div>
+    <div id="holdings-content" class="holdings-table-wrap">
+      <table class="hist-table" style="width:100%">
+        <thead>
+          <tr>
+            <th class="hist-th" style="width:36px">
+              <input type="checkbox" class="holdings-checkbox" id="chk-todas" onchange="usuToggleTodasHoldings(this.checked)">
+            </th>
+            <th class="hist-th" style="width:24px"></th>
+            <th class="hist-th">Holding</th>
+            <th class="hist-th" style="text-align:center;width:90px">Empresas</th>
+            <th class="hist-th" style="text-align:center;width:80px">Emails</th>
+            <th class="hist-th">Coordenadores de Vendas</th>
+          </tr>
+        </thead>
+        <tbody id="holdings-tbody">
+          ${_renderHoldingsLinhas()}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  _atualizarSelecaoHoldings();
+}
+
+function _renderHoldingsLinhas() {
+  const h   = usuariosState.holdings;
+  const sel = usuariosState.holdingsSelecionadas;
+  return h.map((hld, idx) => {
+    const checked = sel.has(hld.holding);
+    const nomeCoord = (nome, email) => {
+      if (nome && nome !== email && !nome.includes('@')) return nome;
+      return email.split('@')[0];
+    };
+    const coords = hld.coordenadores.length
+      ? `<span class="holdings-coordenador-tag">${hld.coordenadores.length}</span>`
+      : `<span style="color:#9ca3af;font-size:11px">—</span>`;
+    const hEsc = escHtml(hld.holding);
+    return `
+      <tr class="hist-tr" id="hld-row-${idx}" style="cursor:pointer">
+        <td class="hist-td" onclick="event.stopPropagation()">
+          <input type="checkbox" class="holdings-checkbox" data-holding="${hEsc}"
+            onchange="usuToggleHolding(${idx},this.checked)" ${checked?'checked':''}>
+        </td>
+        <td class="hist-td" onclick="usuExpandHolding(${idx},event)" style="color:#9ca3af;font-size:12px;user-select:none" id="hld-exp-${idx}">▶</td>
+        <td class="hist-td" style="font-weight:600" onclick="usuToggleHolding(${idx})">${hEsc}</td>
+        <td class="hist-td" style="text-align:center;color:#475569" onclick="usuToggleHolding(${idx})">${hld.totalEmpresas}</td>
+        <td class="hist-td" style="text-align:center" onclick="usuToggleHolding(${idx})">
+          <span style="background:${hld.totalEmails>0?'#f0fdf4':'#fee2e2'};color:${hld.totalEmails>0?'#166534':'#991b1b'};padding:2px 10px;border-radius:4px;font-size:12px;font-weight:600">${hld.totalEmails}</span>
+        </td>
+        <td class="hist-td" onclick="usuToggleHolding(${idx})">${coords}</td>
+      </tr>
+      <tr id="hld-detail-${idx}" style="display:none;background:#f8fafc">
+        <td colspan="6" style="padding:0 16px 14px 52px">
+          <div style="font-size:11px;color:#64748b;margin-top:10px;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Empresas nesta holding</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${hld.empresas.map(emp => {
+              const temEmail = hld.empresasMatch && hld.empresasMatch.includes(emp);
+              return `<span style="background:${temEmail?'#e0f2fe':'#f1f5f9'};color:${temEmail?'#0369a1':'#64748b'};font-size:11px;padding:3px 10px;border-radius:12px">${escHtml(emp)}</span>`;
+            }).join('')}
+          </div>
+          ${hld.emails.length ? `
+          <div style="font-size:11px;color:#64748b;margin-top:12px;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Emails distribuidores (${hld.emails.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${hld.emails.map(e=>`<span style="background:#f0fdf4;color:#166534;font-size:11px;padding:3px 10px;border-radius:12px">${escHtml(e.nome)} &lt;${escHtml(e.email)}&gt;</span>`).join('')}
+          </div>` : '<div style="font-size:11px;color:#9ca3af;margin-top:12px">Nenhum email de distribuidor encontrado</div>'}
+          ${hld.coordenadores.length ? `
+          <div style="font-size:11px;color:#64748b;margin-top:12px;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Coordenadores de Vendas (${hld.coordenadores.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${hld.coordenadores.map(c=>`<span style="background:#eff6ff;color:#1d4ed8;font-size:11px;padding:3px 10px;border-radius:12px">${escHtml(nomeCoord(c.nome,c.email))} &lt;${escHtml(c.email)}&gt;</span>`).join('')}
+          </div>` : ''}
+        </td>
+      </tr>`;
+  }).join('') + (usuariosState.semHolding.length ? `
+    <tr class="hist-tr" style="opacity:.5">
+      <td class="hist-td"></td><td class="hist-td"></td>
+      <td class="hist-td" style="font-style:italic;color:#9ca3af">Sem holding</td>
+      <td class="hist-td"></td>
+      <td class="hist-td" style="text-align:center;font-size:12px;color:#9ca3af">${usuariosState.semHolding.length} emails</td>
+      <td class="hist-td"></td>
+    </tr>` : '');
+}
+
+function usuExpandHolding(idx, e) {
+  e.stopPropagation();
+  const detail = document.getElementById(`hld-detail-${idx}`);
+  const arrow  = document.getElementById(`hld-exp-${idx}`);
+  if (!detail) return;
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : '';
+  if (arrow) arrow.textContent = open ? '▶' : '▼';
+}
+
+function usuToggleHolding(idx, force) {
+  const hld = usuariosState.holdings[idx];
+  if (!hld) return;
+  const sel = usuariosState.holdingsSelecionadas;
+  const novo = force !== undefined ? force : !sel.has(hld.holding);
+  if (novo) sel.add(hld.holding); else sel.delete(hld.holding);
+  _atualizarSelecaoHoldings();
+}
+
+function usuToggleTodasHoldings(checked) {
+  const sel = usuariosState.holdingsSelecionadas;
+  if (checked) usuariosState.holdings.forEach(h => sel.add(h.holding));
+  else sel.clear();
+  _atualizarSelecaoHoldings();
+}
+
+function _atualizarSelecaoHoldings() {
+  const sel = usuariosState.holdingsSelecionadas;
+  const h   = usuariosState.holdings;
+
+  // Atualiza checkboxes inline (sem re-render)
+  document.querySelectorAll('[data-holding]').forEach(cb => {
+    cb.checked = sel.has(cb.dataset.holding);
+  });
+  const chkTodas = document.getElementById('chk-todas');
+  if (chkTodas) chkTodas.checked = h.length > 0 && sel.size === h.length;
+
+  // Atualiza resumo
+  const selCount  = sel.size;
+  const selEmails = h.filter(x=>sel.has(x.holding)).reduce((a,x)=>a+x.totalEmails,0);
+  const selCoord  = h.filter(x=>sel.has(x.holding)).reduce((a,x)=>a+x.coordenadores.length,0);
+  const resumo = document.getElementById('holdings-resumo-texto');
+  if (resumo) resumo.textContent = `${h.length} holdings · ${selCount} selecionadas · ${selEmails} emails · ${selCoord} coordenadores`;
+
+  // Atualiza botão enviar
+  const btn = document.getElementById('btn-enviar-email-massa');
+  if (btn) {
+    btn.disabled = selCount === 0;
+    btn.style.opacity = selCount > 0 ? '1' : '.4';
+    btn.textContent = selCount > 0 ? `📤 Enviar Email (${selCount})` : '📤 Enviar Email';
+  }
+}
+
+async function importarCoordenadores(input) {
+  if (!input.files?.[0]) return;
+  const file = input.files[0];
+  const fd = new FormData();
+  fd.append('arquivo', file);
+  try {
+    const r = await fetch('/api/coordenadores/importar', { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erro ao importar');
+    alert(`✓ Coordenadores importados!\n${data.totalHoldings} holdings · ${data.totalCoord} coordenadores`);
+    usuariosState.holdingsCarregado = false;
+    renderHoldings();
+  } catch (err) {
+    alert(`Erro: ${err.message}`);
+  }
+  input.value = '';
+}
+
+function conectarGmail(e) {
+  e.preventDefault();
+  window.open('/api/gmail/auth', '_blank', 'width=500,height=600');
+  setTimeout(() => { usuariosState.holdingsCarregado = false; renderHoldings(); }, 5000);
+}
+
+// ── Email chips input ────────────────────────────────────────────────────────
+function criarChipInput(containerId) {
+  const chips = [];
+  const container = document.getElementById(containerId);
+  if (!container) return chips;
+  const input = container.querySelector('input');
+  if (!input) return chips;
+
+  function addChip(val) {
+    val = val.trim().toLowerCase();
+    if (!val || !val.includes('@') || chips.includes(val)) return;
+    chips.push(val);
+    const chip = document.createElement('span');
+    chip.className = 'em-chip';
+    chip.innerHTML = `${escHtml(val)} <button type="button" onclick="this.parentElement.remove();chips.splice(chips.indexOf('${val}'),1)">×</button>`;
+    chip.querySelector('button').onclick = () => {
+      chips.splice(chips.indexOf(val), 1);
+      chip.remove();
+      _emAtualizarResumo();
+    };
+    container.insertBefore(chip, input);
+    input.value = '';
+    _emAtualizarResumo();
+  }
+
+  input.addEventListener('keydown', e => {
+    if (['Enter','Tab',',',';'].includes(e.key)) {
+      e.preventDefault();
+      addChip(input.value);
+    }
+  });
+  input.addEventListener('blur', () => addChip(input.value));
+  container.addEventListener('click', () => input.focus());
+
+  chips.getAll = () => chips.slice();
+  return chips;
+}
+
+let _emCcChips  = [];
+let _emCcoChips = [];
+let _emBodyMode = 'html'; // 'html' | 'preview'
+
+function abrirModalEmailMassa() {
+  const sel = usuariosState.holdingsSelecionadas;
+  if (!sel.size) return;
+
+  const selHoldings = usuariosState.holdings.filter(h => sel.has(h.holding));
+  const totalEmails = selHoldings.reduce((a,h)=>a+h.totalEmails,0);
+  const totalCoord  = selHoldings.reduce((a,h)=>a+h.coordenadores.length,0);
+
+  document.getElementById('em-modal-body').innerHTML = `
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:#64748b;font-weight:600">Tags disponíveis:</span>
+      <span class="em-chip" style="cursor:pointer;background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="emInsertTag('{{holding}}')" title="Clique para inserir no campo ativo">{{holding}}</span>
+    </div>
+    <div class="em-field">
+      <label>Assunto</label>
+      <input type="text" id="em-assunto" placeholder="Assunto do email… use {{holding}} para o nome da holding"
+        onfocus="emSetActiveField('assunto')">
+    </div>
+    <div class="em-field">
+      <label>Corpo do Email</label>
+      <div class="em-tabs">
+        <button class="em-tab active" id="em-tab-editor" onclick="emSetTab('editor')">Editor</button>
+        <button class="em-tab" id="em-tab-html" onclick="emSetTab('html')">HTML</button>
+      </div>
+      <div id="em-corpo-editor">
+        <div style="display:flex;gap:4px;padding:6px 8px;border:1px solid #d1d9e6;border-bottom:none;border-radius:8px 8px 0 0;background:#f8fafc;flex-wrap:wrap">
+          <button type="button" onclick="document.execCommand('bold')" title="Negrito" style="background:none;border:1px solid #d1d9e6;border-radius:4px;padding:2px 8px;cursor:pointer;font-weight:700;font-size:13px">B</button>
+          <button type="button" onclick="document.execCommand('italic')" title="Itálico" style="background:none;border:1px solid #d1d9e6;border-radius:4px;padding:2px 8px;cursor:pointer;font-style:italic;font-size:13px">I</button>
+          <button type="button" onclick="document.execCommand('underline')" title="Sublinhado" style="background:none;border:1px solid #d1d9e6;border-radius:4px;padding:2px 8px;cursor:pointer;text-decoration:underline;font-size:13px">U</button>
+          <span style="width:1px;background:#d1d9e6;margin:2px 4px"></span>
+          <button type="button" onclick="document.execCommand('insertUnorderedList')" title="Lista" style="background:none;border:1px solid #d1d9e6;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">• Lista</button>
+          <button type="button" onclick="document.execCommand('insertOrderedList')" title="Lista numerada" style="background:none;border:1px solid #d1d9e6;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:13px">1. Lista</button>
+          <span style="width:1px;background:#d1d9e6;margin:2px 4px"></span>
+          <button type="button" onclick="emLimparEditor()" title="Limpar" style="background:none;border:1px solid #d1d9e6;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px;color:#ef4444">✕ Limpar</button>
+        </div>
+        <div id="em-corpo"
+          contenteditable="true"
+          style="border:1px solid #d1d9e6;border-radius:0 0 8px 8px;padding:12px 12px 12px 28px;min-height:240px;height:300px;font-size:13px;font-family:inherit;outline:none;line-height:1.6;overflow-y:auto;resize:vertical;box-sizing:border-box"
+          onpaste="emHandlePaste(event)"
+          onfocus="emSetActiveField('corpo')"
+          placeholder="Cole ou digite o conteúdo do email aqui…"
+        ></div>
+      </div>
+      <div id="em-corpo-html-raw" style="display:none">
+        <textarea id="em-corpo-raw" rows="10" style="width:100%;box-sizing:border-box;border:1px solid #d1d9e6;border-radius:8px;padding:10px 12px;font-size:12px;font-family:monospace;resize:vertical" placeholder="HTML direto…" oninput="emSyncFromRaw()"></textarea>
+      </div>
+    </div>
+    <div class="em-field">
+      <label>CC — Cópia</label>
+      ${(() => {
+        const coordEmails = [...new Set(selHoldings.flatMap(h => (h.coordenadores||[]).map(c => c.email)))];
+        if (!coordEmails.length) return '';
+        return `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#1e40af">
+          <strong>Automático:</strong> coordenadores de vendas das holdings selecionadas serão adicionados em cópia.
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+            ${coordEmails.map(e=>`<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;padding:2px 8px;border-radius:10px">${escHtml(e)}</span>`).join('')}
+          </div>
+        </div>`;
+      })()}
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px">Adicionar emails avulsos (pressione Enter ou Tab)</div>
+      <div class="em-chip-input" id="em-cc-container"><input type="text" placeholder="email@exemplo.com"></div>
+    </div>
+    <div class="em-field">
+      <label>CCO — Cópia Oculta</label>
+      <div class="em-chip-input" id="em-cco-container"><input type="text" placeholder="email@exemplo.com"></div>
+    </div>
+    <div class="em-summary" id="em-resumo">
+      <span><strong>${sel.size}</strong> holdings selecionadas</span>
+      <span><strong>${totalEmails}</strong> destinatários</span>
+      <span><strong>${totalCoord}</strong> coordenadores em CC</span>
+      <span id="em-resumo-cc">+ <strong>0</strong> CC avulsos</span>
+      <span id="em-resumo-cco">+ <strong>0</strong> CCO avulsos</span>
+    </div>
+  `;
+
+  _emCcChips  = criarChipInput('em-cc-container');
+  _emCcoChips = criarChipInput('em-cco-container');
+
+  document.getElementById('em-btn-enviar').style.display = '';
+  document.getElementById('em-modal-footer').querySelector('.dp-btn-outline').style.display = '';
+  document.getElementById('email-massa-overlay').classList.add('open');
+}
+
+function emSetTab(tab) {
+  _emBodyMode = tab;
+  document.getElementById('em-tab-editor').classList.toggle('active', tab === 'editor');
+  document.getElementById('em-tab-html').classList.toggle('active', tab === 'html');
+  document.getElementById('em-corpo-editor').style.display      = tab === 'editor' ? '' : 'none';
+  document.getElementById('em-corpo-html-raw').style.display    = tab === 'html'   ? '' : 'none';
+  if (tab === 'html') {
+    // Sincroniza editor → raw
+    const raw = document.getElementById('em-corpo-raw');
+    if (raw) raw.value = document.getElementById('em-corpo')?.innerHTML || '';
+  } else if (tab === 'editor') {
+    // Sincroniza raw → editor
+    const raw = document.getElementById('em-corpo-raw');
+    if (raw && raw.value) {
+      const editor = document.getElementById('em-corpo');
+      if (editor) editor.innerHTML = raw.value;
+    }
+  }
+}
+
+let _emActiveField = 'corpo'; // 'assunto' | 'corpo'
+let _emSavedRange  = null;
+
+function emSetActiveField(field) {
+  _emActiveField = field;
+  if (field === 'corpo') {
+    // salva seleção atual no editor para restaurar ao inserir tag
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount) _emSavedRange = sel.getRangeAt(0).cloneRange();
+  }
+}
+
+function emInsertTag(tag) {
+  if (_emActiveField === 'assunto') {
+    const input = document.getElementById('em-assunto');
+    if (!input) return;
+    const s = input.selectionStart, e = input.selectionEnd;
+    input.value = input.value.slice(0, s) + tag + input.value.slice(e);
+    input.selectionStart = input.selectionEnd = s + tag.length;
+    input.focus();
+  } else {
+    const editor = document.getElementById('em-corpo');
+    if (!editor) return;
+    editor.focus();
+    const sel = window.getSelection();
+    if (_emSavedRange) {
+      sel.removeAllRanges();
+      sel.addRange(_emSavedRange);
+    }
+    document.execCommand('insertText', false, tag);
+    _emSavedRange = null;
+  }
+}
+
+function emSyncFromRaw() {
+  const raw    = document.getElementById('em-corpo-raw');
+  const editor = document.getElementById('em-corpo');
+  if (raw && editor) editor.innerHTML = raw.value;
+}
+
+function emLimparEditor() {
+  const editor = document.getElementById('em-corpo');
+  const raw    = document.getElementById('em-corpo-raw');
+  if (editor) editor.innerHTML = '';
+  if (raw) raw.value = '';
+}
+
+function emHandlePaste(e) {
+  e.preventDefault();
+  // Prioriza HTML colado (preserva formatação do Word/Docs)
+  const html = e.clipboardData.getData('text/html');
+  const text = e.clipboardData.getData('text/plain');
+
+  if (html) {
+    // Limpa atributos desnecessários do Word/Outlook mas preserva estrutura
+    const clean = html
+      .replace(/<o:p[^>]*>.*?<\/o:p>/gi, '')
+      .replace(/mso-[^;'"]+[;'"]/gi, '')
+      .replace(/class="[^"]*Mso[^"]*"/gi, '')
+      .replace(/ style=""/gi, '')
+      .replace(/<\/?span(?:\s[^>]*)?>/gi, (m) => m.includes('color') || m.includes('font-weight') || m.includes('font-style') ? m : '')
+      .replace(/<span>/gi, '')
+      .replace(/<\/span>/gi, '');
+    document.execCommand('insertHTML', false, clean);
+  } else {
+    // Fallback: texto puro com quebras de linha convertidas
+    const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    document.execCommand('insertHTML', false, escaped);
+  }
+}
+
+function _emAtualizarResumo() {
+  const ccEl  = document.getElementById('em-resumo-cc');
+  const ccoEl = document.getElementById('em-resumo-cco');
+  if (ccEl)  ccEl.innerHTML  = `+ <strong>${_emCcChips.length}</strong> CC avulsos`;
+  if (ccoEl) ccoEl.innerHTML = `+ <strong>${_emCcoChips.length}</strong> CCO avulsos`;
+}
+
+function fecharModalEmailMassa() {
+  document.getElementById('email-massa-overlay').classList.remove('open');
+}
+
+async function iniciarEnvioEmails() {
+  const assunto = document.getElementById('em-assunto')?.value?.trim();
+  const corpo   = document.getElementById('em-corpo')?.innerHTML?.trim();
+  if (!assunto) { alert('Preencha o assunto.'); return; }
+  if (!corpo || corpo === '<br>')   { alert('Preencha o corpo do email.'); return; }
+
+  const sel = usuariosState.holdingsSelecionadas;
+  const holdingsData = usuariosState.holdings.filter(h => sel.has(h.holding));
+  const cc  = _emCcChips.slice();
+  const cco = _emCcoChips.slice();
+
+  // Muda o modal para painel de progresso
+  document.getElementById('em-btn-enviar').style.display = 'none';
+  document.getElementById('em-modal-footer').querySelector('.dp-btn-outline').style.display = 'none';
+  document.getElementById('em-modal-title').textContent = 'Enviando emails…';
+
+  const progressItems = holdingsData.map(h => ({
+    holding: h.holding,
+    totalEmails: h.totalEmails,
+    status: 'aguardando',
+  }));
+
+  function renderProgress(enviados, total) {
+    const pct = total > 0 ? Math.round((enviados/total)*100) : 0;
+    document.getElementById('em-modal-body').innerHTML = `
+      <div style="font-size:13px;color:#475569;margin-bottom:8px">
+        <strong>${enviados}</strong> / <strong>${total}</strong> holdings concluídas
+      </div>
+      <div class="em-progress-bar">
+        <div class="em-progress-bar-fill" style="width:${pct}%"></div>
+      </div>
+      <div class="em-progress-list">
+        ${progressItems.map(p => {
+          const cls = p.status === 'enviado' ? 'enviado' : p.status === 'erro' ? 'erro' : p.status === 'enviando' ? 'enviando' : '';
+          const icon = p.status === 'enviado' ? '✓' : p.status === 'erro' ? '✗' : p.status === 'enviando' ? '⟳' : '○';
+          const detail = p.status === 'enviado' ? ` · ${p.totalEmails} emails` : p.status === 'erro' ? ` · ${p.erro||'erro'}` : '';
+          return `<div class="em-progress-item ${cls}">
+            <span class="em-progress-icon">${icon}</span>
+            <span style="flex:1">${escHtml(p.holding)}</span>
+            <span style="font-size:11px;color:#64748b">${detail}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  renderProgress(0, holdingsData.length);
+
+  try {
+    const res = await fetch('/api/email-massa/enviar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ holdings: holdingsData, assunto, corpo, cc, cco }),
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let enviados = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        try {
+          const evt = JSON.parse(line.slice(5).trim());
+          if (evt.tipo === 'enviado' || evt.tipo === 'erro') {
+            const item = progressItems.find(p => p.holding === evt.holding);
+            if (item) {
+              item.status = evt.tipo === 'enviado' ? 'enviado' : 'erro';
+              if (evt.erro) item.erro = evt.erro;
+              enviados++;
+            }
+            renderProgress(enviados, holdingsData.length);
+          } else if (evt.tipo === 'iniciando') {
+            const item = progressItems.find(p => p.holding === evt.holding);
+            if (item) item.status = 'enviando';
+            renderProgress(enviados, holdingsData.length);
+          } else if (evt.tipo === 'concluido') {
+            document.getElementById('em-modal-title').textContent = 'Envio concluído!';
+            document.getElementById('em-modal-footer').innerHTML =
+              `<button class="dp-btn dp-btn-primary" onclick="fecharModalEmailMassa()">Fechar</button>`;
+          } else if (evt.tipo === 'erro_fatal') {
+            document.getElementById('em-modal-title').textContent = 'Erro no envio';
+            document.getElementById('em-modal-body').innerHTML +=
+              `<div style="color:#b91c1c;font-size:13px;margin-top:12px">⚠ ${escHtml(evt.erro)}</div>`;
+            document.getElementById('em-modal-footer').innerHTML =
+              `<button class="dp-btn dp-btn-outline" onclick="fecharModalEmailMassa()">Fechar</button>`;
+          }
+        } catch {}
+      }
+    }
+  } catch (err) {
+    document.getElementById('em-modal-body').innerHTML += `<div style="color:#b91c1c;margin-top:12px">Erro: ${escHtml(err.message)}</div>`;
+    document.getElementById('em-modal-footer').innerHTML = `<button class="dp-btn dp-btn-outline" onclick="fecharModalEmailMassa()">Fechar</button>`;
+  }
+}
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'email-massa-overlay') fecharModalEmailMassa();
+});
 
 function escHtml(str) {
   return (str || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

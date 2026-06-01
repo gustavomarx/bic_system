@@ -4978,24 +4978,9 @@ const batalhaState = {
   rows:         [],
   fileId:       null,
   loaded:       false,
-  diasSemana:   [0,1,2,3,4,5,6],
+  diasSemana:   [0,1,2,3,4,5,6], // 0=Dom … 6=Sáb; todos ativos por padrão
   searchDistrib: '',
-  checkFilter:  'todos', // 'todos' | 'marcados' | 'desmarcados'
 };
-
-function bnSetCheckFilter(filtro) {
-  batalhaState.checkFilter = filtro;
-  ['todos','marcados','desmarcados'].forEach(f => {
-    const btn = document.getElementById(`bn-filter-${f}`);
-    if (!btn) return;
-    const ativo = f === filtro;
-    btn.style.background = ativo ? 'var(--bic-orange)' : '#fff';
-    btn.style.color      = ativo ? '#fff' : '#6b7280';
-    btn.style.border     = ativo ? 'none' : '1px solid #d1d5db';
-    btn.style.borderLeft = f === 'todos' || ativo ? '' : 'none';
-  });
-  batalhaRenderGrid();
-}
 
 function bnGetChecks() {
   try { return JSON.parse(localStorage.getItem('bn_checks') || '{}'); } catch { return {}; }
@@ -5175,19 +5160,13 @@ function batalhaRenderGrid() {
     idx[key] = (idx[key] || 0) + Number(r.VENDA_VALOR || 0);
   });
 
-  const countLabel = `${partnersVisiveis2.length}${partnersVisiveis2.length < partners.length ? ` de ${partners.length}` : ''} distribuidora${partners.length !== 1 ? 's' : ''}`;
+  const countLabel = bnQ
+    ? `${partnersVisiveis.length} de ${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`
+    : `${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`;
   status.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">${countLabel}</span>`;
 
   const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const checks = bnGetChecks();
-
-  // Filtro por status de check
-  const checkFiltro = batalhaState.checkFilter || 'todos';
-  const partnersVisiveis2 = checkFiltro === 'marcados'
-    ? partnersVisiveis.filter(p => checks[p])
-    : checkFiltro === 'desmarcados'
-      ? partnersVisiveis.filter(p => !checks[p])
-      : partnersVisiveis;
 
   const thead = `<thead><tr>
     <th class="bn-th-partner">Distribuidora</th>
@@ -5198,7 +5177,7 @@ function batalhaRenderGrid() {
     <th class="bn-th-check">✓</th>
   </tr></thead>`;
 
-  const tbody = '<tbody>' + partnersVisiveis2.map(p => {
+  const tbody = '<tbody>' + partnersVisiveis.map(p => {
     const cells = dias.map(d => {
       const key = p + '||' + d;
       if (!(key in idx)) return `<td class="bn-venda-nil">—</td>`;
@@ -5336,11 +5315,6 @@ function renderBatalha() {
         <span id="bn-file-info" class="bn-file-info"></span>
         <select id="bn-hist-sel" onchange="batalhaCarregarHistorico(this.value)" style="display:none;font-size:11px;padding:3px 6px;border:1px solid var(--bic-border);border-radius:5px;background:var(--card-bg);color:var(--text-muted);cursor:pointer;max-width:220px"></select>
         <button onclick="batalhaAbrirHistorico()" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 6px;opacity:.55" title="Carregar arquivo histórico do Drive">🕓 histórico</button>
-        <div style="display:flex;gap:4px">
-          <button id="bn-filter-todos" onclick="bnSetCheckFilter('todos')" style="padding:6px 10px;font-size:12px;background:var(--bic-orange);color:#fff;border:none;border-radius:6px 0 0 6px;cursor:pointer;font-weight:600">Todos</button>
-          <button id="bn-filter-marcados" onclick="bnSetCheckFilter('marcados')" style="padding:6px 10px;font-size:12px;background:#fff;color:#6b7280;border:1px solid #d1d5db;border-left:none;cursor:pointer">✓ Marcados</button>
-          <button id="bn-filter-desmarcados" onclick="bnSetCheckFilter('desmarcados')" style="padding:6px 10px;font-size:12px;background:#fff;color:#6b7280;border:1px solid #d1d5db;border-left:none;border-radius:0 6px 6px 0;cursor:pointer">☐ Desmarcados</button>
-        </div>
         <button onclick="batalhaDesmarcarTodos()" style="padding:6px 12px;font-size:12px;background:#fff;color:#6b7280;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;white-space:nowrap">☐ Desmarcar todos</button>
         <button id="bn-export-btn" onclick="batalhaExportarCSV()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;white-space:nowrap">⬇ Exportar CSV</button>
       </div>

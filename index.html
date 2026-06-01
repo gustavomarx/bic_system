@@ -1893,6 +1893,10 @@
     .bn-table td.bn-venda-neg { background: #fee2e2; color: #991b1b; }
     .bn-table td.bn-venda-nil { color: var(--text-muted); text-align: center; }
     .bn-table tr:hover td { filter: brightness(.97); }
+    .bn-th-check { width:48px; text-align:center; position:sticky; right:0; background:#f8f9fb; border-left:1px solid #e5e7eb; }
+    .bn-td-check { text-align:center; position:sticky; right:0; background:#fff; border-left:1px solid #e5e7eb; }
+    .bn-table tr:hover .bn-td-check { background:#f9fafb; }
+    .bn-check { width:18px; height:18px; accent-color:#16a34a; cursor:pointer; }
     .bn-dow-row {
       display: flex;
       align-items: center;
@@ -4978,6 +4982,22 @@ const batalhaState = {
   searchDistrib: '',
 };
 
+function bnGetChecks() {
+  try { return JSON.parse(localStorage.getItem('bn_checks') || '{}'); } catch { return {}; }
+}
+
+function batalhaToggleCheck(partner, checked) {
+  const checks = bnGetChecks();
+  if (checked) checks[partner] = true;
+  else delete checks[partner];
+  localStorage.setItem('bn_checks', JSON.stringify(checks));
+}
+
+function batalhaDesmarcarTodos() {
+  localStorage.removeItem('bn_checks');
+  batalhaRenderGrid();
+}
+
 function batalhaFmtBRL(v) {
   return Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
@@ -5146,12 +5166,15 @@ function batalhaRenderGrid() {
   status.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">${countLabel}</span>`;
 
   const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const checks = bnGetChecks();
+
   const thead = `<thead><tr>
     <th class="bn-th-partner">Distribuidora</th>
     ${dias.map(d => {
       const dow = DIAS_SEMANA[new Date(Number(y), Number(mo)-1, d).getDay()];
       return `<th>${d}<br><span style="font-weight:400;font-size:10px;opacity:.7">${dow}</span></th>`;
     }).join('')}
+    <th class="bn-th-check">✓</th>
   </tr></thead>`;
 
   const tbody = '<tbody>' + partnersVisiveis.map(p => {
@@ -5162,7 +5185,13 @@ function batalhaRenderGrid() {
       const cls = v > 0 ? 'bn-venda-pos' : v < 0 ? 'bn-venda-neg' : 'bn-venda-nil';
       return `<td class="${cls}" title="${batalhaFmtBRL(v)}">${v === 0 ? '—' : batalhaFmtBRL(v)}</td>`;
     }).join('');
-    return `<tr><td class="bn-td-partner" title="${p}">${p}</td>${cells}</tr>`;
+    const pEsc = p.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const checked = checks[p] ? 'checked' : '';
+    const checkTd = `<td class="bn-td-check" onclick="event.stopPropagation()">
+      <input type="checkbox" class="bn-check" ${checked}
+        onchange="batalhaToggleCheck('${pEsc}', this.checked)">
+    </td>`;
+    return `<tr><td class="bn-td-partner" title="${p}">${p}</td>${cells}${checkTd}</tr>`;
   }).join('') + '</tbody>';
 
   wrap.innerHTML = `<table class="bn-table">${thead}${tbody}</table>`;
@@ -5286,6 +5315,7 @@ function renderBatalha() {
         <span id="bn-file-info" class="bn-file-info"></span>
         <select id="bn-hist-sel" onchange="batalhaCarregarHistorico(this.value)" style="display:none;font-size:11px;padding:3px 6px;border:1px solid var(--bic-border);border-radius:5px;background:var(--card-bg);color:var(--text-muted);cursor:pointer;max-width:220px"></select>
         <button onclick="batalhaAbrirHistorico()" style="background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 6px;opacity:.55" title="Carregar arquivo histórico do Drive">🕓 histórico</button>
+        <button onclick="batalhaDesmarcarTodos()" style="padding:6px 12px;font-size:12px;background:#fff;color:#6b7280;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;white-space:nowrap">☐ Desmarcar todos</button>
         <button id="bn-export-btn" onclick="batalhaExportarCSV()" style="margin-left:auto;padding:6px 14px;font-size:12px;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;white-space:nowrap">⬇ Exportar CSV</button>
       </div>
       <div class="bn-dow-row">

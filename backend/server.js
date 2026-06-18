@@ -65,7 +65,8 @@ app.post('/api/login', async (req, res) => {
     const name = decoded.name || email.split('@')[0];
     const isAdmin = isAdminEmail(email);
     const modules = decoded.modules ?? null; // null = full access
-    const token = jwt.sign({ email, name, isAdmin, modules }, JWT_SECRET, { expiresIn: '7d' });
+    const tenants = decoded.tenants ?? ['bic']; // default BIC para usuários existentes
+    const token = jwt.sign({ email, name, isAdmin, modules, tenants }, JWT_SECRET, { expiresIn: '7d' });
     res
       .cookie('token', token, {
         httpOnly: true,
@@ -73,7 +74,7 @@ app.post('/api/login', async (req, res) => {
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       })
-      .json({ ok: true, name, isAdmin, modules });
+      .json({ ok: true, name, isAdmin, modules, tenants });
   } catch (err) {
     console.error('Login error:', err.message);
     res.status(401).json({ error: 'Credenciais inválidas' });
@@ -87,7 +88,7 @@ app.post('/api/logout', (req, res) => {
 
 // GET /api/me
 app.get('/api/me', requireAuth, (req, res) => {
-  res.json({ email: req.user.email, name: req.user.name, isAdmin: !!req.user.isAdmin, modules: req.user.modules ?? null });
+  res.json({ email: req.user.email, name: req.user.name, isAdmin: !!req.user.isAdmin, modules: req.user.modules ?? null, tenants: req.user.tenants ?? ['bic'] });
 });
 
 // PATCH /api/me — atualiza nome e/ou email do usuário autenticado
@@ -103,7 +104,7 @@ app.patch('/api/me', requireAuth, async (req, res) => {
     const newEmail = email || req.user.email;
     const newName  = name  !== undefined ? name : req.user.name;
     const token = jwt.sign(
-      { email: newEmail, name: newName, isAdmin: req.user.isAdmin, modules: req.user.modules ?? null },
+      { email: newEmail, name: newName, isAdmin: req.user.isAdmin, modules: req.user.modules ?? null, tenants: req.user.tenants ?? ['bic'] },
       JWT_SECRET, { expiresIn: '7d' }
     );
     res.cookie('token', token, {
@@ -157,6 +158,7 @@ app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
       lastLogin:  u.metadata.lastSignInTime || null,
       isAdmin:    isAdminEmail(u.email),
       modules:    u.customClaims?.modules ?? null,  // null = full access
+      tenants:    u.customClaims?.tenants ?? ['bic'],
     }));
     res.json({ users });
   } catch (err) {
@@ -204,14 +206,16 @@ app.delete('/api/admin/users/:uid', requireAuth, requireAdmin, async (req, res) 
   }
 });
 
-// PATCH /api/admin/users/:uid/modules — define módulos permitidos via custom claims
+// PATCH /api/admin/users/:uid/modules — define módulos e/ou tenants permitidos via custom claims
 app.patch('/api/admin/users/:uid/modules', requireAuth, requireAdmin, async (req, res) => {
-  const { modules } = req.body || {};
-  // modules: array of strings (module keys) or null (full access)
+  const { modules, tenants } = req.body || {};
   try {
-    await getFirebaseAdmin().auth().setCustomUserClaims(req.params.uid, {
-      modules: Array.isArray(modules) ? modules : null,
-    });
+    const user = await getFirebaseAdmin().auth().getUser(req.params.uid);
+    const existing = user.customClaims || {};
+    const newClaims = { ...existing };
+    if ('modules' in req.body) newClaims.modules = Array.isArray(modules) ? modules : null;
+    if ('tenants' in req.body) newClaims.tenants = Array.isArray(tenants) && tenants.length ? tenants : ['bic'];
+    await getFirebaseAdmin().auth().setCustomUserClaims(req.params.uid, newClaims);
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -253,6 +257,29 @@ function getDriveClient(readOnly = true) {
 
   const auth = new google.auth.GoogleAuth(authConfig);
   return google.drive({ version: 'v3', auth });
+}
+
+// ─── Tenant folder IDs ────────────────────────────────────────────────────────
+function getTenantFolders(tenant) {
+  if (tenant === 'mdias') {
+    return {
+      comparativo: process.env.MDIAS_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.MDIAS_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.MDIAS_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
+  if (tenant === 'marilan') {
+    return {
+      comparativo: process.env.MARILAN_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.MARILAN_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.MARILAN_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
+  return {
+    comparativo: process.env.GOOGLE_DRIVE_FOLDER_ID,
+    batalha:     process.env.GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+    historico:   process.env.GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+  };
 }
 
 // ─── Normalização de colunas ──────────────────────────────────────────────────
@@ -299,7 +326,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/arquivos', async (req, res) => {
   try {
     const drive = getDriveClient();
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    const folderId = getTenantFolders(req.query.tenant || 'bic').comparativo;
 
     const response = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
@@ -348,9 +375,10 @@ app.get('/api/arquivo', async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
 
+    const noHolding = ['mdias', 'marilan'].includes(req.query.tenant || 'bic');
     const rows = rawData
       .map(normalizeRow)
-      .filter(r => r.holding && r.vendaValor !== null);
+      .filter(r => noHolding ? (r.customer && r.vendaValor !== null) : (r.holding && r.vendaValor !== null));
 
     res.json(rows);
   } catch (err) {
@@ -984,8 +1012,8 @@ app.post('/api/depara-upload', express.raw({ type: '*/*', limit: '20mb' }), asyn
 
 // GET /api/historico-arquivos — lista historico_DD-MM-YYYY.xlsx (mais recente primeiro)
 app.get('/api/historico-arquivos', async (req, res) => {
-  const folderId = process.env.GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
-  if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_HISTORICO_FOLDER_ID não configurado' });
+  const folderId = getTenantFolders(req.query.tenant || 'bic').historico;
+  if (!folderId) return res.status(500).json({ error: 'HISTORICO folder não configurado para este tenant' });
   try {
     const drive = getDriveClient(true);
     const listResp = await drive.files.list({
@@ -1012,8 +1040,8 @@ app.get('/api/historico-arquivos', async (req, res) => {
 
 // GET /api/historico-dados?fileId= — baixa e parseia arquivo de histórico de vendas
 app.get('/api/historico-dados', async (req, res) => {
-  const folderId = process.env.GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
-  if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_HISTORICO_FOLDER_ID não configurado' });
+  const folderId = getTenantFolders(req.query.tenant || 'bic').historico;
+  if (!folderId) return res.status(500).json({ error: 'HISTORICO folder não configurado para este tenant' });
   try {
     const drive = getDriveClient(true);
     let fileId = req.query.fileId;
@@ -1108,8 +1136,8 @@ app.get('/api/usuarios-dados', async (req, res) => {
 app.get('/api/batalha-naval-arquivos', async (req, res) => {
   try {
     const drive    = getDriveClient(true);
-    const folderId = process.env.GOOGLE_DRIVE_BATALHA_FOLDER_ID;
-    if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado' });
+    const folderId = getTenantFolders(req.query.tenant || 'bic').batalha;
+    if (!folderId) return res.status(500).json({ error: 'BATALHA folder não configurado para este tenant' });
 
     const listResp = await drive.files.list({
       q:                         `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
@@ -1130,8 +1158,8 @@ app.get('/api/batalha-naval-arquivos', async (req, res) => {
 app.get('/api/batalha-naval-arquivo', async (req, res) => {
   try {
     const drive    = getDriveClient(true);
-    const folderId = process.env.GOOGLE_DRIVE_BATALHA_FOLDER_ID;
-    if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado' });
+    const folderId = getTenantFolders(req.query.tenant || 'bic').batalha;
+    if (!folderId) return res.status(500).json({ error: 'BATALHA folder não configurado para este tenant' });
 
     const listResp = await drive.files.list({
       q:                         `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
@@ -1278,6 +1306,9 @@ async function getAuthenticatedGmailClient(req) {
 
 // GET /api/gmail/auth — inicia fluxo OAuth2 (abre consent screen)
 app.get('/api/gmail/auth', requireAuth, requireAdmin, (req, res) => {
+  if (!process.env.GMAIL_CLIENT_ID || !process.env.GMAIL_CLIENT_SECRET) {
+    return res.status(500).send('<p>❌ GMAIL_CLIENT_ID ou GMAIL_CLIENT_SECRET não configurados no .env</p>');
+  }
   const oauth2Client = getGmailOAuth2Client(getRedirectUri(req));
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',

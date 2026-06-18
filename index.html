@@ -34,6 +34,20 @@
       overflow: hidden;
     }
 
+    .tenant-selector-wrap { position: relative; }
+    .tenant-selector { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); transition: background .15s; user-select: none; }
+    .tenant-selector:hover { background: rgba(255,255,255,0.09); }
+    .tenant-selector.single { cursor: default; pointer-events: none; }
+    .tenant-chevron { font-size: 9px; color: rgba(255,255,255,0.35); margin-left: auto; }
+    .tenant-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #252540; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; overflow: hidden; z-index: 200; display: none; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    .tenant-dropdown.open { display: block; }
+    .tenant-option { padding: 9px 12px; font-size: 12px; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background .1s; }
+    .tenant-option:hover { background: rgba(255,255,255,0.08); }
+    .tenant-option.active { color: #fff; font-weight: 600; background: rgba(244,121,32,.12); }
+    .tenant-option .bic-badge { font-size: 9px; padding: 1px 5px; }
+    .perm-tenants-grid { display: flex; gap: 8px; margin-top: 4px; }
+    .perm-tenant-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2d3748; cursor: pointer; }
+
     /* ── Sidebar ─────────────────────────────────────────────── */
     #sidebar {
       width: var(--sidebar-w);
@@ -1982,9 +1996,15 @@
 <!-- ═══════════════════════════════════════════════════════════ SIDEBAR -->
 <aside id="sidebar">
   <div class="sidebar-logo">
-    <div class="bic-badge">BIC</div>
-    <div class="portal-name">Portal Sellout</div>
-    <div class="portal-sub">Dados de distribuidores</div>
+    <div class="tenant-selector-wrap" id="tenant-selector-wrap">
+      <div class="tenant-selector" id="tenant-selector">
+        <div class="bic-badge" id="tenant-badge">BIC</div>
+        <div class="portal-name" id="tenant-label">Portal Sellout</div>
+        <span class="tenant-chevron" id="tenant-chevron" style="display:none">▼</span>
+      </div>
+      <div class="tenant-dropdown" id="tenant-dropdown"></div>
+    </div>
+    <div class="portal-sub" id="portal-sub">Dados de distribuidores</div>
   </div>
 
   <div class="sidebar-update">
@@ -2211,6 +2231,10 @@
       </div>
     </div>
     <div class="perm-modules-grid" id="perm-modules-grid"></div>
+    <div style="margin-top:16px">
+      <div style="font-size:11px;font-weight:600;color:#4a5568;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Tenants (clientes)</div>
+      <div class="perm-tenants-grid" id="perm-tenants-grid"></div>
+    </div>
     <div id="perm-modal-error"></div>
     <div class="admin-modal-actions">
       <button type="button" class="btn-cancel" id="perm-modal-cancel">Cancelar</button>
@@ -2284,13 +2308,13 @@ let state = {
 //  API
 // ═══════════════════════════════════════════════════════════════════════
 async function fetchFiles() {
-  const r = await fetch(`${API}/api/arquivos`);
+  const r = await fetch(`${API}/api/arquivos?tenant=${currentTenant}`);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
 async function fetchFile(fileId) {
-  const r = await fetch(`${API}/api/arquivo?fileId=${encodeURIComponent(fileId)}`);
+  const r = await fetch(`${API}/api/arquivo?fileId=${encodeURIComponent(fileId)}&tenant=${currentTenant}`);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -2305,7 +2329,7 @@ function groupByMonthHolding(rows) {
   const map = {};
   for (const row of rows) {
     const mes = String(row.anoMes || '').trim();
-    const h   = (row.holding  || '').trim();
+    const h   = (row.holding || row.customer || '').trim(); // MDias não tem holding
     if (!mes || !h) continue;
 
     if (!map[mes]) map[mes] = {};
@@ -2465,7 +2489,7 @@ function renderComparativo() {
         <label>Arquivo atual</label>
         <select id="sel-curr">${fOpts}</select>
       </div>
-      <div class="holding-filter-wrap">
+      <div class="holding-filter-wrap" id="holding-filter-wrap" style="${['mdias','marilan'].includes(currentTenant) ? 'display:none' : ''}">
         <label>Filtrar por holding</label>
         <div class="holding-filter-row">
           <input type="text" id="holding-filter" class="holding-filter-input" placeholder="Buscar holding…" list="holdings-datalist" autocomplete="off">
@@ -4097,12 +4121,12 @@ const historicoState = {
 async function preCarregarHistorico() {
   if (historicoState.loaded) return;
   try {
-    const listResp = await fetch('/api/historico-arquivos');
+    const listResp = await fetch(`/api/historico-arquivos?tenant=${currentTenant}`);
     if (!listResp.ok) return;
     const files = await listResp.json();
     if (!files.length) return;
     const latest = files[0];
-    const dataResp = await fetch(`/api/historico-dados?fileId=${latest.id}`);
+    const dataResp = await fetch(`/api/historico-dados?fileId=${latest.id}&tenant=${currentTenant}`);
     if (!dataResp.ok) return;
     const { rows } = await dataResp.json();
     historicoState.rows     = rows || [];
@@ -5041,10 +5065,11 @@ function batalhaPopularSelects() {
 function batalhaExportarCSV() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
-  if (!mes || !holding) return;
+  const noHolding = ['mdias', 'marilan'].includes(currentTenant);
+  if (!mes || (!holding && !noHolding)) return;
 
   const rowsFilt = batalhaState.rows.filter(r =>
-    (holding === '__todas__' || r.HOLDING === holding) && r.VENDA_DATA && r.VENDA_DATA.slice(0,7) === mes
+    (noHolding || holding === '__todas__' || r.HOLDING === holding) && r.VENDA_DATA && r.VENDA_DATA.slice(0,7) === mes
   );
 
   const allPartnersSet = {};
@@ -5114,10 +5139,11 @@ function batalhaExportarCSV() {
 function batalhaRenderGrid() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
+  const noHolding = ['mdias', 'marilan'].includes(currentTenant);
   const status  = document.getElementById('bn-status');
   const wrap    = document.getElementById('bn-grid-wrap');
 
-  if (!mes || !holding) {
+  if (!mes || (!holding && !noHolding)) {
     status.textContent = 'Selecione uma holding e um mês para visualizar.';
     wrap.innerHTML = '';
     return;
@@ -5125,13 +5151,13 @@ function batalhaRenderGrid() {
 
   // Dados de vendas do mês selecionado
   const rowsFilt = batalhaState.rows.filter(r =>
-    (holding === '__todas__' || r.HOLDING === holding) && r.VENDA_DATA && r.VENDA_DATA.slice(0,7) === mes
+    (noHolding || holding === '__todas__' || r.HOLDING === holding) && r.VENDA_DATA && r.VENDA_DATA.slice(0,7) === mes
   );
 
   // Lista COMPLETA de distribuidoras da holding (todos os meses) — inclui sem venda no mês
   const allPartnersSet = {};
   batalhaState.rows.forEach(r => {
-    if (r.PARTNER_NAME && (holding === '__todas__' || r.HOLDING === holding))
+    if (r.PARTNER_NAME && (noHolding || holding === '__todas__' || r.HOLDING === holding))
       allPartnersSet[r.PARTNER_NAME] = true;
   });
   const partners = Object.keys(allPartnersSet).sort();
@@ -5243,7 +5269,7 @@ async function batalhaAbrirHistorico() {
   sel.style.display = 'inline-block';
 
   try {
-    const resp  = await fetch('/api/batalha-naval-arquivos');
+    const resp  = await fetch(`/api/batalha-naval-arquivos?tenant=${currentTenant}`);
     const data  = await resp.json();
     const files = data.files || [];
 
@@ -5274,7 +5300,7 @@ async function batalhaCarregarHistorico(fileId) {
   if (status) status.textContent = 'Baixando dados…';
 
   try {
-    const resp = await fetch(`/api/batalha-naval-dados?fileId=${fileId}`);
+    const resp = await fetch(`/api/batalha-naval-dados?fileId=${fileId}&tenant=${currentTenant}`);
     const data = await resp.json();
     const nome = sel.options[sel.selectedIndex]?.text || fileId;
 
@@ -5291,13 +5317,16 @@ async function batalhaCarregarHistorico(fileId) {
 }
 
 async function batalhaCarregar() {
+  const tenantAtCall = currentTenant;
   const status   = document.getElementById('bn-status');
   const fileInfo = document.getElementById('bn-file-info');
   if (status) status.textContent = 'Carregando arquivo do Drive…';
 
   try {
-    const arqResp = await fetch('/api/batalha-naval-arquivo');
+    const arqResp = await fetch(`/api/batalha-naval-arquivo?tenant=${tenantAtCall}`);
     const arq     = await arqResp.json();
+
+    if (tenantAtCall !== currentTenant) return; // tenant mudou enquanto carregava
 
     if (!arq.fileId) {
       if (status) status.textContent = 'Nenhum arquivo encontrado no Drive. Aguarde a próxima atualização do monitoramento.';
@@ -5311,8 +5340,10 @@ async function batalhaCarregar() {
     }
 
     if (status) status.textContent = 'Baixando dados…';
-    const dadosResp = await fetch(`/api/batalha-naval-dados?fileId=${arq.fileId}`);
+    const dadosResp = await fetch(`/api/batalha-naval-dados?fileId=${arq.fileId}&tenant=${tenantAtCall}`);
     const dados     = await dadosResp.json();
+
+    if (tenantAtCall !== currentTenant) return; // tenant mudou enquanto baixava dados
 
     batalhaState.rows   = dados.rows || [];
     batalhaState.loaded = true;
@@ -5330,7 +5361,7 @@ function renderBatalha() {
   area.innerHTML = `
     <div>
       <div class="bn-toolbar">
-        <div class="bn-toolbar-group">
+        <div class="bn-toolbar-group" id="bn-holding-group" style="${['mdias','marilan'].includes(currentTenant) ? 'display:none' : ''}">
           <label class="bn-label">Holding</label>
           <select id="bn-holding-sel" class="bn-select"><option value="">— selecione —</option></select>
         </div>
@@ -5532,7 +5563,7 @@ async function histRefresh() {
 async function carregarHistoricoVendas() {
   try {
     // 1. Lista arquivos para pegar o mais recente
-    const listResp = await fetch('/api/historico-arquivos');
+    const listResp = await fetch(`/api/historico-arquivos?tenant=${currentTenant}`);
     if (!listResp.ok) throw new Error(await listResp.text());
     const files = await listResp.json();
 
@@ -5548,7 +5579,7 @@ async function carregarHistoricoVendas() {
     if (badgeEl) badgeEl.textContent = `Arquivo: ${latest.name}${latest.dateFormatted ? ' · ' + latest.dateFormatted : ''}`;
 
     // 2. Baixa e parseia
-    const dataResp = await fetch(`/api/historico-dados?fileId=${latest.id}`);
+    const dataResp = await fetch(`/api/historico-dados?fileId=${latest.id}&tenant=${currentTenant}`);
     if (!dataResp.ok) throw new Error(await dataResp.text());
     const { rows } = await dataResp.json();
 
@@ -6586,6 +6617,87 @@ function escHtml(str) {
 //  AUTH — inicialização e controle de sessão
 // ═══════════════════════════════════════════════════════════════════════
 
+// ─── Multitenant ──────────────────────────────────────────────────────────────
+let currentTenant = 'bic';
+
+const TENANT_CONFIG = {
+  bic:     { label: 'BIC',     badge: 'BIC', subtitle: 'Portal Sellout', modules: ['comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','usuarios','ranking','evolucao'] },
+  mdias:   { label: 'M Dias',  badge: 'MD',  subtitle: 'M Dias Branco',  modules: ['comparativo','batalha','historico'] },
+  marilan: { label: 'Marilan', badge: 'MRL', subtitle: 'Marilan',        modules: ['comparativo','batalha','historico'] },
+};
+
+function applyTenantNav() {
+  const tenantMods = TENANT_CONFIG[currentTenant]?.modules || [];
+  document.querySelectorAll('.nav-item[data-module]').forEach(item => {
+    const mod = item.dataset.module;
+    if (mod === 'admin-users') return;
+    // Verificar se módulo existe no tenant atual
+    const inTenant = tenantMods.includes(mod);
+    // Verificar permissão do usuário (null = acesso total)
+    const hasPermission = !_currentUser || _currentUser.isAdmin || !Array.isArray(_currentUser.modules) || _currentUser.modules.includes(mod);
+    item.style.display = (inTenant && hasPermission) ? '' : 'none';
+  });
+}
+
+function switchTenant(tenant) {
+  if (!TENANT_CONFIG[tenant] || tenant === currentTenant) {
+    document.getElementById('tenant-dropdown').classList.remove('open');
+    return;
+  }
+  currentTenant = tenant;
+
+  // Reset tenant-specific states
+  state.files = [];
+  state.currFile = null;
+  state.prevFile = null;
+  state.comparison = null;
+  batalhaState.loaded = false;
+  batalhaState.rows = [];
+  batalhaState.fileId = null;
+  historicoState.loaded = false;
+  historicoState.rows = [];
+  historicoState.fileDate = '';
+
+  // Update badge and label
+  const cfg = TENANT_CONFIG[tenant];
+  document.getElementById('tenant-badge').textContent = cfg.badge;
+  document.getElementById('tenant-label').textContent = cfg.subtitle;
+  document.getElementById('portal-sub').textContent = cfg.label === 'BIC' ? 'Dados de distribuidores' : cfg.subtitle;
+
+  // Rebuild dropdown options
+  _buildTenantDropdown(_currentUser?.tenants ?? ['bic']);
+
+  // Close dropdown
+  document.getElementById('tenant-dropdown').classList.remove('open');
+
+  // Re-filter nav
+  applyTenantNav();
+
+  // Load files for new tenant and navigate to comparativo
+  fetchFiles().then(files => {
+    state.files = files;
+    const badge = document.getElementById('last-update-badge');
+    if (badge) badge.textContent = files.length ? files[0].dateFormatted : 'Sem arquivos';
+    navigateTo('comparativo');
+  }).catch(() => {
+    navigateTo('comparativo');
+  });
+}
+
+function _buildTenantDropdown(userTenants) {
+  const dropdown = document.getElementById('tenant-dropdown');
+  if (!dropdown) return;
+  dropdown.innerHTML = userTenants.map(t => {
+    const cfg = TENANT_CONFIG[t];
+    if (!cfg) return '';
+    const active = t === currentTenant ? ' active' : '';
+    return `<div class="tenant-option${active}" onclick="switchTenant('${t}')">
+      <div class="bic-badge">${cfg.badge}</div>
+      <span>${cfg.label}</span>
+    </div>`;
+  }).join('');
+}
+
 let _currentUser = null;
 
 async function initAuth() {
@@ -6606,14 +6718,33 @@ async function initAuth() {
       document.getElementById('admin-nav-item').style.display = '';
     }
 
-    // Filtra módulos do nav com base nas permissões do usuário
-    if (!_currentUser.isAdmin && Array.isArray(_currentUser.modules)) {
-      document.querySelectorAll('.nav-item[data-module]').forEach(item => {
-        const mod = item.dataset.module;
-        if (mod === 'admin-users') return;
-        if (!_currentUser.modules.includes(mod)) item.style.display = 'none';
+    // Define tenant inicial com base nos tenants do usuário
+    const userTenants = _currentUser.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser.tenants ?? ['bic']);
+    currentTenant = userTenants[0] || 'bic';
+
+    // Configura seletor de tenant
+    const cfg = TENANT_CONFIG[currentTenant] || TENANT_CONFIG.bic;
+    document.getElementById('tenant-badge').textContent = cfg.badge;
+    document.getElementById('tenant-label').textContent = cfg.subtitle;
+    document.getElementById('portal-sub').textContent = currentTenant === 'bic' ? 'Dados de distribuidores' : cfg.subtitle;
+
+    if (userTenants.length > 1) {
+      document.getElementById('tenant-chevron').style.display = '';
+      _buildTenantDropdown(userTenants);
+      document.getElementById('tenant-selector').addEventListener('click', () => {
+        document.getElementById('tenant-dropdown').classList.toggle('open');
       });
+      document.addEventListener('click', e => {
+        if (!document.getElementById('tenant-selector-wrap')?.contains(e.target)) {
+          document.getElementById('tenant-dropdown')?.classList.remove('open');
+        }
+      });
+    } else {
+      document.getElementById('tenant-selector').classList.add('single');
     }
+
+    // Filtra módulos do nav com base em tenant + permissões
+    applyTenantNav();
 
     // Revela nav após filtrar (sem flash de módulos não permitidos)
     document.getElementById('sidebar-nav').style.visibility = '';
@@ -6799,7 +6930,7 @@ function renderAdminTable(users) {
             <td style="font-size:12px;color:#7a8ba8">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
             <td style="font-size:12px;color:#7a8ba8">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('pt-BR') : 'Nunca'}</td>
             <td style="white-space:nowrap">
-              ${!u.isAdmin ? `<button class="admin-action perm" data-uid="${escHtml(u.uid)}" data-email="${escHtml(u.email)}" data-name="${escHtml(u.name)}" data-modules='${JSON.stringify(u.modules)}' title="Permissões">🔑 Módulos</button>` : ''}
+              ${!u.isAdmin ? `<button class="admin-action perm" data-uid="${escHtml(u.uid)}" data-email="${escHtml(u.email)}" data-name="${escHtml(u.name)}" data-modules='${JSON.stringify(u.modules)}' data-tenants='${JSON.stringify(u.tenants || ['bic'])}' title="Permissões">🔑 Módulos</button>` : ''}
               <button class="admin-action tog" data-uid="${escHtml(u.uid)}" data-disabled="${u.disabled}" title="${u.disabled ? 'Ativar' : 'Desativar'}">
                 ${u.disabled ? '✅ Ativar' : '⏸ Desativar'}
               </button>
@@ -6836,7 +6967,9 @@ function renderAdminTable(users) {
       try {
         const raw = btn.dataset.modules;
         const modules = (raw && raw !== 'undefined') ? JSON.parse(raw) : null;
-        openPermModal(btn.dataset.uid, btn.dataset.email, btn.dataset.name, modules);
+        const rawT = btn.dataset.tenants;
+        const tenants = (rawT && rawT !== 'undefined') ? JSON.parse(rawT) : ['bic'];
+        openPermModal(btn.dataset.uid, btn.dataset.email, btn.dataset.name, modules, tenants);
       } catch(err) {
         console.error('[perm-btn] erro ao abrir modal:', err);
         alert('Erro ao abrir permissões: ' + err.message);
@@ -6876,7 +7009,7 @@ const ALL_MODULES = [
   { key: 'evolucao',      label: 'Evolução Histórica' },
 ];
 
-function openPermModal(uid, email, name, modules) {
+function openPermModal(uid, email, name, modules, tenants) {
   const overlay = document.getElementById('perm-modal-overlay');
   overlay.querySelector('#perm-modal-title').textContent = 'Permissões de acesso';
   overlay.querySelector('#perm-modal-user-label').textContent = `${name || email} — ${email}`;
@@ -6892,6 +7025,14 @@ function openPermModal(uid, email, name, modules) {
     <label class="perm-module-item">
       <input type="checkbox" name="module" value="${m.key}" ${(allChecked || (modules || []).includes(m.key)) ? 'checked' : ''} />
       <span style="font-size:12px;color:#2d3748">${m.label}</span>
+    </label>`).join('');
+
+  const tenantGrid = overlay.querySelector('#perm-tenants-grid');
+  const userTenants = Array.isArray(tenants) && tenants.length ? tenants : ['bic'];
+  tenantGrid.innerHTML = Object.entries(TENANT_CONFIG).map(([key, cfg]) => `
+    <label class="perm-tenant-item">
+      <input type="checkbox" name="tenant" value="${key}" ${userTenants.includes(key) ? 'checked' : ''} />
+      <span>${cfg.label}</span>
     </label>`).join('');
 
   overlay.classList.add('open');
@@ -6917,6 +7058,8 @@ document.getElementById('perm-modal-save').addEventListener('click', async () =>
   const checked = [...document.querySelectorAll('#perm-modules-grid input[type=checkbox]:checked')].map(c => c.value);
   // null = acesso total (todos marcados), senão array dos marcados
   const modules = checked.length === ALL_MODULES.length ? null : checked;
+  const checkedTenants = [...document.querySelectorAll('#perm-tenants-grid input[type=checkbox]:checked')].map(c => c.value);
+  const tenants = checkedTenants.length ? checkedTenants : ['bic'];
 
   saveBtn.disabled = true;
   saveBtn.textContent = 'Salvando…';
@@ -6925,7 +7068,7 @@ document.getElementById('perm-modal-save').addEventListener('click', async () =>
   const res = await fetch(`/api/admin/users/${uid}/modules`, {
     method: 'PATCH', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ modules }),
+    body: JSON.stringify({ modules, tenants }),
   });
   const data = await res.json();
   if (res.ok) {

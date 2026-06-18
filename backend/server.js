@@ -296,6 +296,48 @@ function getTenantFolders(tenant) {
       historico:   process.env.CICOPAL_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
     };
   }
+  if (tenant === 'fini') {
+    return {
+      comparativo: process.env.FINI_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.FINI_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.FINI_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
+  if (tenant === 'fruki') {
+    return {
+      comparativo: process.env.FRUKI_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.FRUKI_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.FRUKI_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
+  if (tenant === 'gallo') {
+    return {
+      comparativo: process.env.GALLO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.GALLO_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.GALLO_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
+  if (tenant === 'gtex') {
+    return {
+      comparativo: process.env.GTEX_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.GTEX_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.GTEX_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
+  if (tenant === 'mdiassaud') {
+    return {
+      comparativo: process.env.MDIASSAUD_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.MDIASSAUD_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.MDIASSAUD_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
+  if (tenant === 'kibon') {
+    return {
+      comparativo: process.env.KIBON_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.KIBON_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.KIBON_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
   return {
     comparativo: process.env.GOOGLE_DRIVE_FOLDER_ID,
     batalha:     process.env.GOOGLE_DRIVE_BATALHA_FOLDER_ID,
@@ -308,7 +350,7 @@ const COL_MAP = {
   holding: ['holding', 'HOLDING', 'Holding'],
   customer: ['customer', 'partner_name', 'PARTNER_NAME', 'PartnerName', 'partner name', 'distribuidor'],
   anoMes: ['anomes', 'ANOMES', 'AnoMes', 'ano_mes', 'ANO_MES', 'anoMes'],
-  vendaValor: ['venda_valor', 'VENDA_VALOR', 'VendaValor', 'valor', 'Valor', 'VALOR'],
+  vendaValor: ['venda_valor', 'VENDA_VALOR', 'venda_valor_bruto', 'VENDA_VALOR_BRUTO', 'VendaValor', 'valor', 'Valor', 'VALOR'],
   cnpj: ['cnpj_customer', 'CNPJ_CUSTOMER', 'cnpj', 'CNPJ', 'Cnpj'],
 };
 
@@ -396,7 +438,7 @@ app.get('/api/arquivo', async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
 
-    const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal'].includes(req.query.tenant || 'bic');
+    const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon'].includes(req.query.tenant || 'bic');
     const rows = rawData
       .map(normalizeRow)
       .filter(r => noHolding ? (r.customer && r.vendaValor !== null) : (r.holding && r.vendaValor !== null));
@@ -1096,7 +1138,7 @@ app.get('/api/historico-dados', async (req, res) => {
       partnerName: String(r['PARTNER_NAME'] || r['partner_name'] || r['PARTNER NAME'] || ''),
       cnpj:        String(r['CNPJ']         || r['cnpj']         || r['CNPJ_CUSTOMER'] || ''),
       anoMes:      String(r['ANO_MES']      || r['ano_mes']      || r['ANO_MES_FIX'] || ''),
-      valor:       Number(r['VENDA_VALOR']  || r['venda_valor']  || 0),
+      valor:       Number(r['VENDA_VALOR_BRUTO'] || r['venda_valor_bruto'] || r['VENDA_VALOR'] || r['venda_valor'] || 0),
     })).filter(r => r.partnerName && r.anoMes);
 
     res.json({ rows, fileId });

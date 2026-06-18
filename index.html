@@ -2489,7 +2489,7 @@ function renderComparativo() {
         <label>Arquivo atual</label>
         <select id="sel-curr">${fOpts}</select>
       </div>
-      <div class="holding-filter-wrap" id="holding-filter-wrap" style="${['mdias','marilan'].includes(currentTenant) ? 'display:none' : ''}">
+      <div class="holding-filter-wrap" id="holding-filter-wrap" style="${['mdias','marilan','asa'].includes(currentTenant) ? 'display:none' : ''}">
         <label>Filtrar por holding</label>
         <div class="holding-filter-row">
           <input type="text" id="holding-filter" class="holding-filter-input" placeholder="Buscar holding…" list="holdings-datalist" autocomplete="off">
@@ -5065,7 +5065,7 @@ function batalhaPopularSelects() {
 function batalhaExportarCSV() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
-  const noHolding = ['mdias', 'marilan'].includes(currentTenant);
+  const noHolding = ['mdias', 'marilan', 'asa'].includes(currentTenant);
   if (!mes || (!holding && !noHolding)) return;
 
   const rowsFilt = batalhaState.rows.filter(r =>
@@ -5139,7 +5139,7 @@ function batalhaExportarCSV() {
 function batalhaRenderGrid() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
-  const noHolding = ['mdias', 'marilan'].includes(currentTenant);
+  const noHolding = ['mdias', 'marilan', 'asa'].includes(currentTenant);
   const status  = document.getElementById('bn-status');
   const wrap    = document.getElementById('bn-grid-wrap');
 
@@ -5361,7 +5361,7 @@ function renderBatalha() {
   area.innerHTML = `
     <div>
       <div class="bn-toolbar">
-        <div class="bn-toolbar-group" id="bn-holding-group" style="${['mdias','marilan'].includes(currentTenant) ? 'display:none' : ''}">
+        <div class="bn-toolbar-group" id="bn-holding-group" style="${['mdias','marilan','asa'].includes(currentTenant) ? 'display:none' : ''}">
           <label class="bn-label">Holding</label>
           <select id="bn-holding-sel" class="bn-select"><option value="">— selecione —</option></select>
         </div>
@@ -6624,6 +6624,7 @@ const TENANT_CONFIG = {
   bic:     { label: 'BIC',     badge: 'BIC', subtitle: 'Portal Sellout', modules: ['comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','usuarios','ranking','evolucao'] },
   mdias:   { label: 'M Dias',  badge: 'MD',  subtitle: 'M Dias Branco',  modules: ['comparativo','batalha','historico'] },
   marilan: { label: 'Marilan', badge: 'MRL', subtitle: 'Marilan',        modules: ['comparativo','batalha','historico'] },
+  asa:     { label: 'Asa',     badge: 'ASA', subtitle: 'Asa',            modules: ['comparativo','batalha','historico'] },
 };
 
 function applyTenantNav() {

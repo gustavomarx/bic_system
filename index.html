@@ -6665,7 +6665,8 @@ function switchTenant(tenant) {
   document.getElementById('portal-sub').textContent = cfg.label === 'BIC' ? 'Dados de distribuidores' : cfg.subtitle;
 
   // Rebuild dropdown options
-  _buildTenantDropdown(_currentUser?.tenants ?? ['bic']);
+  const _userTenants = _currentUser?.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser?.tenants ?? ['bic']);
+  _buildTenantDropdown(_userTenants);
 
   // Close dropdown
   document.getElementById('tenant-dropdown').classList.remove('open');

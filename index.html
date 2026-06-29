@@ -5074,7 +5074,7 @@ function batalhaExportarCSV() {
 
   const allPartnersSet = {};
   batalhaState.rows.forEach(r => {
-    if (r.PARTNER_NAME && (holding === '__todas__' || r.HOLDING === holding))
+    if (r.PARTNER_NAME && (noHolding || holding === '__todas__' || r.HOLDING === holding))
       allPartnersSet[r.PARTNER_NAME] = true;
   });
   const allPartners = Object.keys(allPartnersSet).sort();
@@ -5103,9 +5103,9 @@ function batalhaExportarCSV() {
 
   const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const nomeMes = `${MESES_PT[Number(mo)-1]} ${y}`;
-  const holdingLabel = holding === '__todas__' ? 'Todas as Holdings' : holding;
+  const holdingLabel = noHolding ? '' : (holding === '__todas__' ? 'Todas as Holdings' : holding);
 
-  const meta    = `${q('Batalha Naval')}${sep}${q(holdingLabel)}${sep}${q(nomeMes)}`;
+  const meta    = [q('Batalha Naval'), ...(holdingLabel ? [q(holdingLabel)] : []), q(nomeMes)].join(sep);
   const header  = [q('Distribuidora'), ...dias.map(d => {
     const dow = DIAS_SEMANA[new Date(Number(y), Number(mo)-1, d).getDay()];
     return q(`${d}/${mo} ${dow}`);

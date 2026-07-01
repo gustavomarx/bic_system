@@ -1911,6 +1911,26 @@
     .bn-td-check { text-align:center; position:sticky; right:0; background:#fff; border-left:1px solid #e5e7eb; }
     .bn-table tr:hover .bn-td-check { background:#f9fafb; }
     .bn-check { width:18px; height:18px; accent-color:#16a34a; cursor:pointer; }
+    .bn-table th.bn-th-total {
+      position: sticky;
+      left: 260px;
+      z-index: 5;
+      text-align: right;
+      min-width: 130px;
+      background: #f0fdf4;
+      border-right: 2px solid #bbf7d0;
+    }
+    .bn-table td.bn-td-total {
+      position: sticky;
+      left: 260px;
+      z-index: 1;
+      background: #f0fdf4;
+      text-align: right;
+      font-weight: 600;
+      border-right: 2px solid #bbf7d0;
+      min-width: 130px;
+    }
+    .bn-table tr:hover .bn-td-total { filter: brightness(.97); }
     .bn-dow-row {
       display: flex;
       align-items: center;
@@ -5194,6 +5214,29 @@ function batalhaRenderGrid() {
     idx[key] = (idx[key] || 0) + Number(r.VENDA_VALOR_BRUTO || r.VENDA_VALOR || 0);
   });
 
+  // Total do mês selecionado por parceiro
+  const totalMes = {};
+  rowsFilt.forEach(r => {
+    const val = Number(r.VENDA_VALOR_BRUTO || r.VENDA_VALOR || 0);
+    totalMes[r.PARTNER_NAME] = (totalMes[r.PARTNER_NAME] || 0) + val;
+  });
+
+  // Total do mês anterior por parceiro
+  const prevMoNum = Number(mo) - 1;
+  const prevYNum  = prevMoNum < 1 ? Number(y) - 1 : Number(y);
+  const prevMoNorm = prevMoNum < 1 ? 12 : prevMoNum;
+  const prevMesStr = `${prevYNum}-${String(prevMoNorm).padStart(2, '0')}`;
+  const totalAnterior = {};
+  batalhaState.rows
+    .filter(r =>
+      (noHolding || holding === '__todas__' || r.HOLDING === holding) &&
+      r.VENDA_DATA && r.VENDA_DATA.slice(0,7) === prevMesStr
+    )
+    .forEach(r => {
+      const val = Number(r.VENDA_VALOR_BRUTO || r.VENDA_VALOR || 0);
+      totalAnterior[r.PARTNER_NAME] = (totalAnterior[r.PARTNER_NAME] || 0) + val;
+    });
+
   const countLabel = bnQ
     ? `${partnersVisiveis.length} de ${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`
     : `${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`;
@@ -5220,6 +5263,12 @@ function batalhaRenderGrid() {
       const va = checks[a] ? 1 : 0, vb = checks[b] ? 1 : 0;
       return asc ? va - vb : vb - va;
     });
+  } else if (sc === 'total') {
+    sorted.sort((a, b) => {
+      const va = totalMes[a] ?? -Infinity;
+      const vb = totalMes[b] ?? -Infinity;
+      return asc ? va - vb : vb - va;
+    });
   } else if (typeof sc === 'number') {
     sorted.sort((a, b) => {
       const va = idx[a + '||' + sc] ?? -Infinity;
@@ -5230,6 +5279,7 @@ function batalhaRenderGrid() {
 
   const thead = `<thead><tr>
     <th class="bn-th-partner" style="${thStyle}" onclick="bnSort('partner')">Distribuidora${sIcon('partner')}</th>
+    <th class="bn-th-total" style="${thStyle}" onclick="bnSort('total')">Total${sIcon('total')}<br><span style="font-weight:400;font-size:10px;opacity:.7">vs mês ant.</span></th>
     ${dias.map(d => {
       const dow = DIAS_SEMANA[new Date(Number(y), Number(mo)-1, d).getDay()];
       return `<th style="${thStyle}" onclick="bnSort(${d})">${d}<br><span style="font-weight:400;font-size:10px;opacity:.7">${dow}</span>${sIcon(d)}</th>`;
@@ -5245,13 +5295,29 @@ function batalhaRenderGrid() {
       const cls = v > 0 ? 'bn-venda-pos' : v < 0 ? 'bn-venda-neg' : 'bn-venda-nil';
       return `<td class="${cls}" title="${batalhaFmtBRL(v)}">${v === 0 ? '—' : batalhaFmtBRL(v)}</td>`;
     }).join('');
+
+    // Célula de total do mês + badge % vs mês anterior
+    const totalVal = totalMes[p] || 0;
+    const prevVal  = totalAnterior[p] || 0;
+    let varBadge = '';
+    if (prevVal !== 0) {
+      const pct    = ((totalVal - prevVal) / Math.abs(prevVal)) * 100;
+      const pctStr = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+      const pctClr = pct >= 0 ? '#166534' : '#991b1b';
+      const pctBg  = pct >= 0 ? '#dcfce7' : '#fee2e2';
+      varBadge = ` <span style="font-size:10px;font-weight:500;background:${pctBg};color:${pctClr};padding:1px 5px;border-radius:3px">${pctStr}</span>`;
+    } else if (totalVal > 0) {
+      varBadge = ` <span style="font-size:10px;font-weight:500;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px">novo</span>`;
+    }
+    const totalTd = `<td class="bn-td-total" title="${batalhaFmtBRL(totalVal)}">${totalVal === 0 ? '—' : batalhaFmtBRL(totalVal)}${varBadge}</td>`;
+
     const pEsc = p.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const checked = checks[p] ? 'checked' : '';
     const checkTd = `<td class="bn-td-check" onclick="event.stopPropagation()">
       <input type="checkbox" class="bn-check" ${checked}
         onchange="batalhaToggleCheck('${pEsc}', this.checked)">
     </td>`;
-    return `<tr><td class="bn-td-partner" title="${p}">${p}</td>${cells}${checkTd}</tr>`;
+    return `<tr><td class="bn-td-partner" title="${p}">${p}</td>${totalTd}${cells}${checkTd}</tr>`;
   }).join('') + '</tbody>';
 
   wrap.innerHTML = `<table class="bn-table">${thead}${tbody}</table>`;

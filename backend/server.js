@@ -410,7 +410,7 @@ app.get('/api/arquivos', async (req, res) => {
           dateFormatted: date ? date.formatted : 'Data desconhecida',
         };
       })
-      .filter(f => f.date !== null)
+      .filter(f => f.date !== null && !/historico/i.test(f.name))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     res.json(files);

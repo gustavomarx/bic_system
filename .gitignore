@@ -4,3 +4,4 @@ backend/credentials/
 *.xlsx
 *.xls
 .DS_Store
+.env.vercel

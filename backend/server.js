@@ -296,6 +296,13 @@ function getTenantFolders(tenant) {
       historico:   process.env.CICOPAL_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
     };
   }
+  if (tenant === 'pepsico') {
+    return {
+      comparativo: process.env.PEPSICO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.PEPSICO_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.PEPSICO_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+    };
+  }
   if (tenant === 'fini') {
     return {
       comparativo: process.env.FINI_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
@@ -438,7 +445,7 @@ app.get('/api/arquivo', async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
 
-    const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon'].includes(req.query.tenant || 'bic');
+    const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'pepsico'].includes(req.query.tenant || 'bic');
     const rows = rawData
       .map(normalizeRow)
       .filter(r => noHolding ? (r.customer && r.vendaValor !== null) : (r.holding && r.vendaValor !== null));

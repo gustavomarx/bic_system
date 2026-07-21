@@ -2503,7 +2503,7 @@ function renderComparativo() {
         <label>Arquivo atual</label>
         <select id="sel-curr">${fOpts}</select>
       </div>
-      <div class="holding-filter-wrap" id="holding-filter-wrap" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
+      <div class="holding-filter-wrap" id="holding-filter-wrap" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
         <label>Filtrar por holding</label>
         <div class="holding-filter-row">
           <input type="text" id="holding-filter" class="holding-filter-input" placeholder="Buscar holding…" list="holdings-datalist" autocomplete="off">
@@ -5079,7 +5079,7 @@ function batalhaPopularSelects() {
 function batalhaExportarCSV() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
-  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'pepsico'].includes(currentTenant);
+  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'peccin', 'pepsico'].includes(currentTenant);
   if (!mes || (!holding && !noHolding)) return;
 
   const rowsFilt = batalhaState.rows.filter(r =>
@@ -5153,7 +5153,7 @@ function batalhaExportarCSV() {
 function batalhaRenderGrid() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
-  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'pepsico'].includes(currentTenant);
+  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'peccin', 'pepsico'].includes(currentTenant);
   const status  = document.getElementById('bn-status');
   const wrap    = document.getElementById('bn-grid-wrap');
 
@@ -5421,7 +5421,7 @@ function renderBatalha() {
   area.innerHTML = `
     <div>
       <div class="bn-toolbar">
-        <div class="bn-toolbar-group" id="bn-holding-group" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
+        <div class="bn-toolbar-group" id="bn-holding-group" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
           <label class="bn-label">Holding</label>
           <select id="bn-holding-sel" class="bn-select"><option value="">— selecione —</option></select>
         </div>
@@ -6690,6 +6690,7 @@ const TENANT_CONFIG = {
   gallo:     { label: 'Gallo',            badge: 'GAL', subtitle: 'Gallo',           modules: ['comparativo','batalha','historico'] },
   gtex:      { label: 'Gtex',             badge: 'GTX', subtitle: 'Gtex',            modules: ['comparativo','batalha','historico'] },
   kibon:     { label: 'Kibon',            badge: 'KBN', subtitle: 'Kibon',           modules: ['comparativo','batalha','historico'] },
+  peccin:    { label: 'Peccin',           badge: 'PCC', subtitle: 'Peccin',          modules: ['comparativo','batalha','historico'] },
   pepsico:   { label: 'Pepsico',          badge: 'PEP', subtitle: 'Pepsico',         modules: ['comparativo','batalha','historico'] },
   mdias:     { label: 'M Dias',           badge: 'MD',  subtitle: 'M Dias Branco',   modules: ['comparativo','batalha','historico'] },
   mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS', subtitle: 'M Dias Saudáveis',modules: ['comparativo','batalha','historico'] },

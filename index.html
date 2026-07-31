@@ -2555,6 +2555,15 @@ function renderComparativo() {
         </div>
         <span class="holding-filter-hint" id="holding-filter-hint"></span>
       </div>
+      <div class="holding-filter-wrap" id="customer-filter-wrap" style="${!['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
+        <label>Filtrar por cliente</label>
+        <div class="holding-filter-row">
+          <input type="text" id="customer-filter" class="holding-filter-input" placeholder="Buscar cliente…" list="customers-datalist" autocomplete="off">
+          <datalist id="customers-datalist"></datalist>
+          <button class="btn-clear-filter" id="btn-clear-customer-filter" title="Limpar filtro">✕</button>
+        </div>
+        <span class="holding-filter-hint" id="customer-filter-hint"></span>
+      </div>
       <button class="btn-compare" id="btn-compare">Comparar</button>
     </div>
     <div id="result-area"></div>
@@ -2595,6 +2604,31 @@ function renderComparativo() {
     filterHint.textContent = '';
     if (state.comparison) renderResult(state.comparison);
   });
+
+  // ── Filtro de cliente (tenants não-BIC) ──
+  const customerFilterInput = document.getElementById('customer-filter');
+  const clearCustomerBtn    = document.getElementById('btn-clear-customer-filter');
+  const customerFilterHint  = document.getElementById('customer-filter-hint');
+
+  if (customerFilterInput) {
+    customerFilterInput.addEventListener('input', () => {
+      const q = customerFilterInput.value.trim();
+      customerFilterInput.classList.toggle('active', q.length > 0);
+      clearCustomerBtn.classList.toggle('visible', q.length > 0);
+      if (!state.comparison) return;
+      const filtered = applyCustomerFilter(state.comparison, q);
+      renderResult(filtered);
+      updateCustomerFilterHint(customerFilterHint, q, filtered);
+    });
+
+    clearCustomerBtn.addEventListener('click', () => {
+      customerFilterInput.value = '';
+      customerFilterInput.classList.remove('active');
+      clearCustomerBtn.classList.remove('visible');
+      customerFilterHint.textContent = '';
+      if (state.comparison) renderResult(state.comparison);
+    });
+  }
 
   // Executa comparativo automaticamente com os arquivos mais recentes
   runComparison();
@@ -2654,12 +2688,26 @@ async function runComparison() {
       dl.innerHTML = allH.map(h => `<option value="${h}">`).join('');
     }
 
+    // Popula datalist com todos os clientes únicos (tenants não-BIC)
+    const dlC = document.getElementById('customers-datalist');
+    if (dlC) {
+      const allC = [...new Set(result.monthRows.flatMap(m => m.holdings.flatMap(h => h.customers.map(c => c.name))))].sort();
+      dlC.innerHTML = allC.map(c => `<option value="${c}">`).join('');
+    }
+
     // Re-aplica filtro ativo (se o usuário já havia filtrado)
     const filterInput = document.getElementById('holding-filter');
     const activeQuery = filterInput ? filterInput.value.trim() : '';
-    const toRender = activeQuery ? applyHoldingFilter(result, activeQuery) : result;
+    const customerFilterInput = document.getElementById('customer-filter');
+    const activeCustomerQuery = customerFilterInput ? customerFilterInput.value.trim() : '';
+    const toRender = activeQuery
+      ? applyHoldingFilter(result, activeQuery)
+      : activeCustomerQuery
+        ? applyCustomerFilter(result, activeCustomerQuery)
+        : result;
     renderResult(toRender);
     if (activeQuery) updateFilterHint(document.getElementById('holding-filter-hint'), activeQuery, toRender);
+    if (activeCustomerQuery) updateCustomerFilterHint(document.getElementById('customer-filter-hint'), activeCustomerQuery, toRender);
   } catch (e) {
     clearInterval(cmpTimer);
     resultArea.innerHTML = `<div class="error-banner">Erro ao comparar: ${e.message}</div>`;
@@ -2703,6 +2751,53 @@ function applyHoldingFilter(r, query) {
   const anomalyCount = anomalies.gone.length + anomalies.newH.length + anomalies.monthsRemoved.length;
 
   return { ...r, monthRows: filteredMonths, totalPrev, totalCurr, totalVarAbs, totalVarPct, holdingsDown, anomalyCount, anomalies };
+}
+
+function applyCustomerFilter(r, query) {
+  if (!query) return r;
+  const q = query.toLowerCase();
+  let totalPrev = 0, totalCurr = 0;
+  const filteredMonths = [];
+
+  for (const mRow of r.monthRows) {
+    const holdings = [];
+    for (const hRow of mRow.holdings) {
+      const customers = hRow.customers.filter(c => (c.name || '').toLowerCase().includes(q));
+      if (!customers.length) continue;
+      const hPrev = customers.reduce((s, c) => s + c.prev, 0);
+      const hCurr = customers.reduce((s, c) => s + c.curr, 0);
+      const hVarAbs = hCurr - hPrev;
+      const hVarPct = hPrev !== 0 ? (hVarAbs / hPrev) * 100 : null;
+      const hStatus = hVarAbs > 0 ? 'up' : hVarAbs < 0 ? 'down' : 'equal';
+      holdings.push({ ...hRow, customers, prev: hPrev, curr: hCurr, varAbs: hVarAbs, varPct: hVarPct, status: hStatus });
+    }
+    if (!holdings.length) continue;
+    const mPrev = holdings.reduce((s, h) => s + h.prev, 0);
+    const mCurr = holdings.reduce((s, h) => s + h.curr, 0);
+    const varAbs = mCurr - mPrev;
+    const varPct = mPrev !== 0 ? (varAbs / mPrev) * 100 : null;
+    const status = varAbs > 0 ? 'up' : varAbs < 0 ? 'down' : 'equal';
+    totalPrev += mPrev;
+    totalCurr += mCurr;
+    filteredMonths.push({ ...mRow, holdings, prev: mPrev, curr: mCurr, varAbs, varPct, status });
+  }
+
+  const totalVarAbs = totalCurr - totalPrev;
+  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / totalPrev) * 100 : null;
+  const holdingsDown = [...new Set(
+    filteredMonths.flatMap(m => m.holdings.filter(h => h.status === 'down').map(h => h.holding))
+  )].length;
+  const anomalies = { gone: [], newH: [], monthsRemoved: [] };
+
+  return { ...r, monthRows: filteredMonths, totalPrev, totalCurr, totalVarAbs, totalVarPct, holdingsDown, anomalyCount: 0, anomalies };
+}
+
+function updateCustomerFilterHint(el, q, filtered) {
+  if (!el) return;
+  if (!q) { el.textContent = ''; el.style.color = 'var(--text-muted)'; return; }
+  const count = [...new Set(filtered.monthRows.flatMap(m => m.holdings.flatMap(h => h.customers.map(c => c.name))))].length;
+  if (count === 0) { el.textContent = 'Nenhum cliente encontrado.'; el.style.color = 'var(--red)'; }
+  else { el.textContent = `${count} cliente(s) encontrado(s)`; el.style.color = 'var(--text-muted)'; }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -5337,7 +5432,7 @@ function batalhaRenderGrid() {
     parcsFiltrados = parcsFiltrados.filter(p => alertasMap[p].maxMidGap >= batalhaState.filtroGap);
   }
   if (batalhaState.filtroAtraso !== null) {
-    parcsFiltrados = parcsFiltrados.filter(p => alertasMap[p].atraso >= batalhaState.filtroAtraso);
+    parcsFiltrados = parcsFiltrados.filter(p => !alertasMap[p].noSale && alertasMap[p].atraso >= batalhaState.filtroAtraso);
   }
   if (batalhaState.filtroSemVendas) {
     parcsFiltrados = parcsFiltrados.filter(p => alertasMap[p].noSale);

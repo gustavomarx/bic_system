@@ -1504,6 +1504,70 @@ app.get('/api/coordenadores', requireAuth, async (req, res) => {
   }
 });
 
+// ─── Validação Mensal ─────────────────────────────────────────────────────────
+
+// POST /api/validacao-mensal/importar — parseia CSV/XLSX e retorna os dados (sem persistência)
+app.post('/api/validacao-mensal/importar', requireAuth, requireAdmin, uploadMemory.single('arquivo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
+
+    const referencia = String(req.body?.referencia || '').trim();
+    const fileName   = req.file.originalname.toLowerCase();
+    let rows = [];
+
+    if (fileName.endsWith('.csv')) {
+      const text  = req.file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (!lines.length) return res.status(400).json({ error: 'Arquivo vazio' });
+      const delim = lines[0].includes(';') ? ';' : ',';
+      const headers = lines[0].split(delim).map(h => h.trim().replace(/^"|"$/g, ''));
+      for (let i = 1; i < lines.length; i++) {
+        const vals = lines[i].split(delim).map(v => v.trim().replace(/^"|"$/g, ''));
+        if (vals.every(v => !v)) continue;
+        const row = {};
+        headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+        rows.push(row);
+      }
+    } else {
+      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    }
+
+    if (!rows.length) return res.status(400).json({ error: 'Planilha vazia' });
+
+    const colKeys     = Object.keys(rows[0]);
+    const holdingCol  = colKeys.find(k => /^holding$/i.test(k.trim())) || colKeys.find(k => /holding/i.test(k));
+    const customerCol = colKeys.find(k => /^customer$/i.test(k.trim())) || colKeys.find(k => /customer/i.test(k));
+    const tipoCol     = colKeys.find(k => /tipo.*(opera|op)/i.test(k)) || colKeys.find(k => /^tipo$/i.test(k.trim()));
+    const valorCol    = colKeys.find(k => /venda.*(valor|value)/i.test(k)) || colKeys.find(k => /^valor$/i.test(k.trim()));
+
+    if (!holdingCol || !customerCol || !tipoCol || !valorCol) {
+      return res.status(400).json({
+        error: 'Colunas não identificadas. Esperado: HOLDING, Customer, Tipo de Operação, Venda Valor',
+        colunas_encontradas: colKeys,
+      });
+    }
+
+    const linhas = rows
+      .filter(r => String(r[holdingCol] || '').trim())
+      .map(r => ({
+        holding:      String(r[holdingCol]  || '').trim(),
+        customer:     String(r[customerCol] || '').trim(),
+        tipoOperacao: String(r[tipoCol]     || '').trim().toUpperCase(),
+        vendaValor:   String(r[valorCol]    || '').trim(),
+      }));
+
+    const totalHoldings = new Set(linhas.map(l => l.holding)).size;
+
+    // Retorna os dados diretamente — frontend guarda em memória e passa no envio
+    res.json({ ok: true, linhas, totalLinhas: linhas.length, totalHoldings, referencia });
+  } catch (err) {
+    console.error('Erro /api/validacao-mensal/importar:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Email em Massa ───────────────────────────────────────────────────────────
 
 function normalizeStr(str) {
@@ -1634,6 +1698,103 @@ app.get('/api/email-massa/holdings', requireAuth, async (req, res) => {
   }
 });
 
+// Parseia valor para número — detecta formato BR (1.234,56) vs EN (-859.59)
+function parseBRLNum(str) {
+  const s = String(str).trim();
+  if (s.startsWith('(') && s.endsWith(')')) return -parseBRLNum(s.slice(1,-1));
+  const isNeg = s.startsWith('-');
+  // Remove R$ e sinal
+  let clean = s.replace(/^-?\s*R\$\s*/,'').replace(/^-/,'').trim();
+  if (!clean) return 0;
+
+  // Detecta formato:
+  // Tem vírgula E ponto → BR: 1.234,56 → remove pontos, vírgula vira ponto
+  // Só vírgula         → BR decimal: 1234,56 → vírgula vira ponto
+  // Só ponto           → EN decimal: 859.59  → usa como está
+  if (clean.includes(',') && clean.includes('.')) {
+    clean = clean.replace(/\./g, '').replace(',', '.');
+  } else if (clean.includes(',')) {
+    clean = clean.replace(',', '.');
+  }
+  // se só ponto: não mexe
+
+  const num = parseFloat(clean);
+  if (isNaN(num)) return 0;
+  return isNeg ? -Math.abs(num) : num;
+}
+
+// Formata número como moeda BRL — negativos com sinal de menos
+function formatBRL(str) {
+  const s = String(str).trim();
+  if (!s) return s;
+  const num = parseBRLNum(s);
+  const fmt = Math.abs(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return num < 0 ? `- R$ ${fmt}` : `R$ ${fmt}`;
+}
+
+// Label legível para tipo de operação
+function tipoLabel(tipo) {
+  const map = { VENDA:'Venda', DEVOLUCAO:'Devolução', DEVOLUÇÃO:'Devolução',
+                TRANSFERENCIA:'Transferência', TRANSFERÊNCIA:'Transferência',
+                BONIFICACAO:'Bonificação', BONIFICAÇÃO:'Bonificação', OUTROS:'Outros' };
+  return map[String(tipo).toUpperCase().trim()] || tipo;
+}
+
+// Gera a tabela HTML de fechamento para uma holding específica
+function buildValidacaoTable(linhas, holdingName, referencia) {
+  const rows = linhas.filter(l => l.holding === holdingName);
+  if (!rows.length) return '';
+
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const customers = [...new Set(rows.map(l => l.customer))];
+  let html = '';
+  let altBg = false;
+
+  for (const cust of customers) {
+    const custRows = rows.filter(r => r.customer === cust);
+    const bg = altBg ? '#f8fafc' : '#ffffff';
+    custRows.forEach((row, i) => {
+      const valorFmt = formatBRL(row.vendaValor);
+      const isNeg    = valorFmt.startsWith('(') || valorFmt.startsWith('-');
+      const color    = isNeg ? '#dc2626' : '#166534';
+      const custCell = i === 0
+        ? `<td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg};font-weight:500;vertical-align:top">${esc(cust)}</td>`
+        : `<td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg};color:#cbd5e1"></td>`;
+      html += `<tr>
+        ${custCell}
+        <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg}">${esc(tipoLabel(row.tipoOperacao))}</td>
+        <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg};text-align:right;color:${color};font-weight:600">${esc(valorFmt)}</td>
+      </tr>`;
+    });
+    altBg = !altBg;
+  }
+
+  // Total líquido
+  const total    = rows.reduce((sum, r) => sum + parseBRLNum(r.vendaValor), 0);
+  const totalFmt = Math.abs(total).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalStr = total < 0 ? `- R$ ${totalFmt}` : `R$ ${totalFmt}`;
+  const totalColor = total < 0 ? '#dc2626' : '#166534';
+  const totalRow = `<tr style="background:#f1f5f9">
+    <td colspan="2" style="padding:10px 12px;border:1px solid #e2e8f0;font-size:12px;font-weight:700;color:#1e293b">Total Líquido</td>
+    <td style="padding:10px 12px;border:1px solid #e2e8f0;font-size:13px;font-weight:700;text-align:right;color:${totalColor}">${esc(totalStr)}</td>
+  </tr>`;
+
+  const refLabel = referencia ? ` — ${esc(referencia)}` : '';
+  return `
+<h3 style="color:#003B70;margin-top:30px;margin-bottom:8px">📊 Dados de Fechamento${refLabel}</h3>
+<p style="font-size:13px;color:#555555;margin-bottom:12px">Abaixo estão os valores do seu fechamento mensal. Utilize-os como base para sua validação no Sellers BI:</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px 0">
+  <thead>
+    <tr style="background:#003B70">
+      <th style="padding:10px 12px;text-align:left;border:1px solid #002855;color:#ffffff;font-size:12px;font-weight:600">Customer</th>
+      <th style="padding:10px 12px;text-align:left;border:1px solid #002855;color:#ffffff;font-size:12px;font-weight:600">Tipo de Operação</th>
+      <th style="padding:10px 12px;text-align:right;border:1px solid #002855;color:#ffffff;font-size:12px;font-weight:600">Venda Valor</th>
+    </tr>
+  </thead>
+  <tbody>${html}${totalRow}</tbody>
+</table>`;
+}
+
 function buildEmailRaw({ to, cc, bcc, subject, html }) {
   const lines = [
     `To: ${to}`,
@@ -1650,7 +1811,7 @@ function buildEmailRaw({ to, cc, bcc, subject, html }) {
 
 // POST /api/email-massa/enviar — SSE, 1 email por holding
 app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) => {
-  const { holdings, assunto, corpo, cc = [], cco = [] } = req.body || {};
+  const { holdings, assunto, corpo, cc = [], cco = [], validacaoLinhas = [], validacaoReferencia = '', prazo = '' } = req.body || {};
   if (!holdings?.length)  return res.status(400).json({ error: 'Nenhuma holding selecionada' });
   if (!assunto?.trim())   return res.status(400).json({ error: 'Assunto obrigatório' });
   if (!corpo?.trim())     return res.status(400).json({ error: 'Corpo obrigatório' });
@@ -1677,10 +1838,21 @@ app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) 
         const ccList  = [...(h.coordenadores || []).map(c => c.email), ...cc].filter(Boolean);
         const bccList = [...cco].filter(Boolean);
 
-        // Substitui {{holding}} pelo nome real da holding
-        const holdingNome = h.holding;
-        const assuntoFinal = assunto.replace(/\{\{holding\}\}/gi, holdingNome);
-        const corpoFinal   = corpo.replace(/\{\{holding\}\}/gi, holdingNome);
+        const holdingNome  = h.holding;
+        const assuntoFinal = assunto.replace(/\{\{holding\}\}/gi, holdingNome)
+                                    .replace(/\{\{referencia\}\}/gi, validacaoReferencia)
+                                    .replace(/\{\{prazo\}\}/gi, prazo);
+        let corpoFinal     = corpo.replace(/\{\{holding\}\}/gi, holdingNome)
+                                  .replace(/\{\{referencia\}\}/gi, validacaoReferencia)
+                                  .replace(/\{\{prazo\}\}/gi, prazo);
+
+        // Injeta tabela de dados de fechamento — dados chegam direto do frontend
+        if (validacaoLinhas.length) {
+          const tabelaHtml = buildValidacaoTable(validacaoLinhas, holdingNome, validacaoReferencia);
+          corpoFinal = corpoFinal.replace(/\{\{tabela_validacao\}\}/g, tabelaHtml);
+        } else {
+          corpoFinal = corpoFinal.replace(/\{\{tabela_validacao\}\}/g, '');
+        }
 
         const raw = buildEmailRaw({
           to:      toList.join(', '),

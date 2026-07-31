@@ -1958,6 +1958,49 @@
     }
     .bn-dow-chip:hover { opacity: .8; }
 
+    /* ── Batalha Naval — Alertas de Gap / Atraso ─────────────────────────── */
+    .bn-table tr.bn-row-gap td                       { background: #fefce8 !important; }
+    .bn-table tr.bn-row-gap td.bn-td-partner,
+    .bn-table tr.bn-row-gap td.bn-td-total           { background: #fef9c3 !important; }
+    .bn-table tr.bn-row-gap td.bn-td-check           { background: #fef9c3 !important; }
+    .bn-table tr.bn-row-atraso td                    { background: #fff1f2 !important; }
+    .bn-table tr.bn-row-atraso td.bn-td-partner,
+    .bn-table tr.bn-row-atraso td.bn-td-total        { background: #ffe4e6 !important; }
+    .bn-table tr.bn-row-atraso td.bn-td-check        { background: #ffe4e6 !important; }
+    .bn-table td.bn-cell-gap    { background: #fde047 !important; color: #713f12 !important; font-weight: 600; }
+    .bn-table td.bn-cell-atraso { background: #fca5a5 !important; color: #7f1d1d !important; font-weight: 600; }
+    .bn-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 24px 0;
+      flex-wrap: wrap;
+    }
+    .bn-filter-sep { width: 1px; height: 14px; background: var(--bic-border); margin: 0 4px; align-self: center; }
+    .bn-filter-chip {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid;
+      cursor: pointer;
+      user-select: none;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .bn-filter-chip.gap-chip    { border-color: #fde047; background: #fff; color: #854d0e; }
+    .bn-filter-chip.gap-chip.active    { background: #fef08a; border-color: #ca8a04; color: #713f12; }
+    .bn-filter-chip.atraso-chip { border-color: #fca5a5; background: #fff; color: #991b1b; }
+    .bn-filter-chip.atraso-chip.active { background: #fecaca; border-color: #ef4444; color: #7f1d1d; }
+    .bn-filter-chip.nosale-chip { border-color: #d1d5db; background: #fff; color: #6b7280; }
+    .bn-filter-chip.nosale-chip.active { background: #e5e7eb; border-color: #9ca3af; color: #374151; }
+    .bn-filter-chip.hide-alerts-chip { border-color: #d1d5db; background: #fff; color: #9ca3af; font-style: italic; }
+    .bn-filter-chip.hide-alerts-chip.active { background: #f3f4f6; border-color: #6b7280; color: #374151; }
+    .bn-filter-chip:hover { opacity: .8; }
+    .bn-table tr.bn-row-nosale td                    { background: #f3f4f6 !important; color: #9ca3af !important; }
+    .bn-table tr.bn-row-nosale td.bn-td-partner      { background: #e5e7eb !important; color: #6b7280 !important; }
+    .bn-table tr.bn-row-nosale td.bn-td-total        { background: #e5e7eb !important; }
+    .bn-table tr.bn-row-nosale td.bn-td-check        { background: #e5e7eb !important; }
+
     /* ── Email em Massa ──────────────────────────────────────── */
     #email-massa-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:300; align-items:center; justify-content:center; }
     #email-massa-overlay.open { display:flex; }
@@ -5020,6 +5063,10 @@ const batalhaState = {
   searchDistrib: '',
   sortCol:      null,  // null | 'partner' | 'check' | número do dia (1–31)
   sortAsc:      true,
+  filtroGap:      null,  // null = sem filtro | número = min dias consecutivos sem venda (mid-month)
+  filtroAtraso:   null,  // null = sem filtro | número = min dias de atraso (trailing)
+  filtroSemVendas: false, // true = mostrar apenas orgs sem nenhuma venda no mês
+  ocultarAlertas:  false, // true = ocultar cores de alerta (mantém filtros ativos)
 };
 
 function bnSort(col) {
@@ -5150,6 +5197,52 @@ function batalhaExportarCSV() {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Calcula os alertas de gap e atraso para um parceiro.
+ * @param {string} p          - nome do parceiro
+ * @param {Object} idx        - mapa "parceiro||dia" → valor
+ * @param {number} diasNoMes  - total de dias do mês
+ * @param {number} todayDay   - dia de referência (hoje ou último dia do mês)
+ * @returns {{ midGaps, maxMidGap, atraso, atrasoStart, atrasoEnd, lastSaleDay, noSale }}
+ */
+function bnComputeAlertas(p, idx, diasNoMes, todayDay) {
+  // Dias com venda real (valor > 0) dentro do mês até todayDay
+  const saleDays = new Set();
+  for (let d = 1; d <= todayDay; d++) {
+    const key = p + '||' + d;
+    if ((key in idx) && idx[key] > 0) saleDays.add(d);
+  }
+
+  const noSale = saleDays.size === 0;
+
+  // Gaps no meio do mês (encerrados — houve venda depois)
+  const midGaps = [];
+  let gapStart = null;
+  let lastSaleDay = 0;
+
+  for (let d = 1; d <= todayDay; d++) {
+    if (saleDays.has(d)) {
+      if (gapStart !== null) {
+        midGaps.push({ start: gapStart, end: d - 1 });
+      }
+      gapStart = null;
+      lastSaleDay = d;
+    } else {
+      if (gapStart === null) gapStart = d;
+    }
+  }
+  // O gap "aberto" no final é o atraso — não entra em midGaps
+
+  const maxMidGap = midGaps.reduce((mx, g) => Math.max(mx, g.end - g.start + 1), 0);
+
+  // Atraso: dias consecutivos sem venda no final do período
+  const atraso = noSale ? todayDay : (lastSaleDay > 0 ? todayDay - lastSaleDay : todayDay);
+  const atrasoStart = noSale ? 1 : lastSaleDay + 1;
+  const atrasoEnd   = todayDay;
+
+  return { midGaps, maxMidGap, atraso, atrasoStart, atrasoEnd, lastSaleDay, noSale };
+}
+
 function batalhaRenderGrid() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
@@ -5197,6 +5290,9 @@ function batalhaRenderGrid() {
 
   const [y, mo] = mes.split('-');
   const diasNoMes = new Date(Number(y), Number(mo), 0).getDate();
+  const _hoje = new Date();
+  const _mesAtual = `${_hoje.getFullYear()}-${String(_hoje.getMonth()+1).padStart(2,'0')}`;
+  const todayDay = mes === _mesAtual ? _hoje.getDate() : diasNoMes;
   const dias = Array.from({ length: diasNoMes }, (_, i) => i + 1)
     .filter(d => batalhaState.diasSemana.includes(new Date(Number(y), Number(mo)-1, d).getDay()));
 
@@ -5231,9 +5327,28 @@ function batalhaRenderGrid() {
       totalAnterior[r.PARTNER_NAME] = (totalAnterior[r.PARTNER_NAME] || 0) + val;
     });
 
-  const countLabel = bnQ
-    ? `${partnersVisiveis.length} de ${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`
-    : `${partners.length} distribuidora${partners.length !== 1 ? 's' : ''}`;
+  // ── Alertas por parceiro ───────────────────────────────────────────────
+  const alertasMap = {};
+  partnersVisiveis.forEach(p => { alertasMap[p] = bnComputeAlertas(p, idx, diasNoMes, todayDay); });
+
+  // ── Filtro gap / atraso ────────────────────────────────────────────────
+  let parcsFiltrados = partnersVisiveis;
+  if (batalhaState.filtroGap !== null) {
+    parcsFiltrados = parcsFiltrados.filter(p => alertasMap[p].maxMidGap >= batalhaState.filtroGap);
+  }
+  if (batalhaState.filtroAtraso !== null) {
+    parcsFiltrados = parcsFiltrados.filter(p => alertasMap[p].atraso >= batalhaState.filtroAtraso);
+  }
+  if (batalhaState.filtroSemVendas) {
+    parcsFiltrados = parcsFiltrados.filter(p => alertasMap[p].noSale);
+  }
+
+  const _totalLabel = partners.length;
+  const _visLabel   = parcsFiltrados.length;
+  const _hasFilter  = bnQ || batalhaState.filtroGap !== null || batalhaState.filtroAtraso !== null || batalhaState.filtroSemVendas;
+  const countLabel  = _hasFilter
+    ? `${_visLabel} de ${_totalLabel} distribuidora${_totalLabel !== 1 ? 's' : ''}`
+    : `${_totalLabel} distribuidora${_totalLabel !== 1 ? 's' : ''}`;
   status.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">${countLabel}</span>`;
 
   const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -5249,7 +5364,7 @@ function batalhaRenderGrid() {
   };
   const thStyle = 'cursor:pointer;user-select:none';
 
-  let sorted = partnersVisiveis.slice();
+  let sorted = parcsFiltrados.slice();
   if (sc === 'partner') {
     sorted.sort((a, b) => asc ? a.localeCompare(b, 'pt-BR') : b.localeCompare(a, 'pt-BR'));
   } else if (sc === 'check') {
@@ -5281,20 +5396,52 @@ function batalhaRenderGrid() {
     <th class="bn-th-check" style="${thStyle}" onclick="bnSort('check')">✓${sIcon('check')}</th>
   </tr></thead>`;
 
+  const BN_GAP_MIN = 4; // dias consecutivos mínimos para ativar alerta visual
+
   const tbody = '<tbody>' + sorted.map(p => {
+    const alertas = alertasMap[p];
+    const noSale  = alertas.noSale;
+    const hasGap  = !noSale && alertas.maxMidGap >= BN_GAP_MIN;
+    const hasAtraso = !noSale && alertas.atraso >= BN_GAP_MIN;
+    const _hideAlerts = batalhaState.ocultarAlertas;
+    const rowCls = _hideAlerts ? ''
+                 : noSale   ? ' class="bn-row-nosale"'
+                 : hasAtraso ? ' class="bn-row-atraso"'
+                 : hasGap   ? ' class="bn-row-gap"'
+                 : '';
+
+    // Conjuntos de dias a destacar nas células
+    const gapDays = new Set();
+    if (!_hideAlerts && !noSale) {
+      alertas.midGaps.forEach(g => {
+        if (g.end - g.start + 1 >= BN_GAP_MIN) {
+          for (let d = g.start; d <= g.end; d++) gapDays.add(d);
+        }
+      });
+    }
+    const atrasoDays = new Set();
+    if (!_hideAlerts && !noSale && alertas.atraso >= BN_GAP_MIN) {
+      for (let d = alertas.atrasoStart; d <= alertas.atrasoEnd; d++) atrasoDays.add(d);
+    }
+
     const cells = dias.map(d => {
       const key = p + '||' + d;
-      if (!(key in idx)) return `<td class="bn-venda-nil">—</td>`;
+      let extra = '';
+      if (atrasoDays.has(d)) extra = ' bn-cell-atraso';
+      else if (gapDays.has(d)) extra = ' bn-cell-gap';
+      if (!(key in idx)) return `<td class="bn-venda-nil${extra}">—</td>`;
       const v = idx[key];
       const cls = v > 0 ? 'bn-venda-pos' : v < 0 ? 'bn-venda-neg' : 'bn-venda-nil';
-      return `<td class="${cls}" title="${batalhaFmtBRL(v)}">${v === 0 ? '—' : batalhaFmtBRL(v)}</td>`;
+      return `<td class="${cls}${extra}" title="${batalhaFmtBRL(v)}">${v === 0 ? '—' : batalhaFmtBRL(v)}</td>`;
     }).join('');
 
     // Célula de total do mês + badge % vs mês anterior
     const totalVal = totalMes[p] || 0;
     const prevVal  = totalAnterior[p] || 0;
     let varBadge = '';
-    if (prevVal !== 0) {
+    if (noSale) {
+      varBadge = ` <span style="font-size:10px;font-weight:500;background:#e5e7eb;color:#6b7280;padding:1px 5px;border-radius:3px">sem vendas</span>`;
+    } else if (prevVal !== 0) {
       const pct    = ((totalVal - prevVal) / Math.abs(prevVal)) * 100;
       const pctStr = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
       const pctClr = pct >= 0 ? '#166534' : '#991b1b';
@@ -5311,7 +5458,7 @@ function batalhaRenderGrid() {
       <input type="checkbox" class="bn-check" ${checked}
         onchange="batalhaToggleCheck('${pEsc}', this.checked)">
     </td>`;
-    return `<tr><td class="bn-td-partner" title="${p}">${p}</td>${totalTd}${cells}${checkTd}</tr>`;
+    return `<tr${rowCls}><td class="bn-td-partner" title="${p}">${p}</td>${totalTd}${cells}${checkTd}</tr>`;
   }).join('') + '</tbody>';
 
   wrap.innerHTML = `<table class="bn-table">${thead}${tbody}</table>`;
@@ -5449,6 +5596,17 @@ function renderBatalha() {
           `<span class="bn-dow-chip active" data-dow="${i}">${d}</span>`
         ).join('')}
       </div>
+      <div class="bn-filter-row">
+        <span class="bn-dow-label" style="color:#854d0e">Gap</span>
+        <span class="bn-filter-chip gap-chip" data-gap="4">4d</span>
+        <span class="bn-filter-sep"></span>
+        <span class="bn-dow-label" style="color:#991b1b">Atraso</span>
+        <span class="bn-filter-chip atraso-chip" data-atraso="4">&gt;3d</span>
+        <span class="bn-filter-sep"></span>
+        <span class="bn-filter-chip nosale-chip">sem vendas</span>
+        <span class="bn-filter-sep"></span>
+        <span class="bn-filter-chip hide-alerts-chip" title="Ocultar cores de alerta temporariamente">sem cores</span>
+      </div>
       <div id="bn-status" class="bn-status">Carregando…</div>
       <div id="bn-grid-wrap" class="bn-grid-wrap"></div>
     </div>
@@ -5495,6 +5653,54 @@ function renderBatalha() {
       batalhaRenderGrid();
     });
   });
+
+  // Chips de Gap (seleção única — clica de novo para desmarcar)
+  document.querySelectorAll('.bn-filter-chip.gap-chip').forEach(chip => {
+    const val = Number(chip.dataset.gap);
+    if (batalhaState.filtroGap === val) chip.classList.add('active');
+    chip.addEventListener('click', () => {
+      const isActive = batalhaState.filtroGap === val;
+      batalhaState.filtroGap = isActive ? null : val;
+      document.querySelectorAll('.bn-filter-chip.gap-chip').forEach(c => c.classList.remove('active'));
+      if (!isActive) chip.classList.add('active');
+      batalhaRenderGrid();
+    });
+  });
+
+  // Chips de Atraso (seleção única — clica de novo para desmarcar)
+  document.querySelectorAll('.bn-filter-chip.atraso-chip').forEach(chip => {
+    const val = Number(chip.dataset.atraso);
+    if (batalhaState.filtroAtraso === val) chip.classList.add('active');
+    chip.addEventListener('click', () => {
+      const isActive = batalhaState.filtroAtraso === val;
+      batalhaState.filtroAtraso = isActive ? null : val;
+      document.querySelectorAll('.bn-filter-chip.atraso-chip').forEach(c => c.classList.remove('active'));
+      if (!isActive) chip.classList.add('active');
+      batalhaRenderGrid();
+    });
+  });
+
+  // Chip Sem Vendas (toggle)
+  const nosaleChip = document.querySelector('.bn-filter-chip.nosale-chip');
+  if (nosaleChip) {
+    if (batalhaState.filtroSemVendas) nosaleChip.classList.add('active');
+    nosaleChip.addEventListener('click', () => {
+      batalhaState.filtroSemVendas = !batalhaState.filtroSemVendas;
+      nosaleChip.classList.toggle('active', batalhaState.filtroSemVendas);
+      batalhaRenderGrid();
+    });
+  }
+
+  // Chip Sem Cores (toggle — oculta alertas visuais sem afetar filtros)
+  const hideAlertsChip = document.querySelector('.bn-filter-chip.hide-alerts-chip');
+  if (hideAlertsChip) {
+    if (batalhaState.ocultarAlertas) hideAlertsChip.classList.add('active');
+    hideAlertsChip.addEventListener('click', () => {
+      batalhaState.ocultarAlertas = !batalhaState.ocultarAlertas;
+      hideAlertsChip.classList.toggle('active', batalhaState.ocultarAlertas);
+      batalhaRenderGrid();
+    });
+  }
 
   if (batalhaState.loaded) {
     batalhaPopularSelects();
@@ -5871,6 +6077,7 @@ const usuariosState = {
   holdingsSelecionadas: new Set(),
   gmailConectado: false,
   gmailEmail: '',
+  validacaoMensal: null,
 };
 
 function renderUsuarios() {
@@ -6128,6 +6335,8 @@ async function renderHoldings() {
   ]);
   usuariosState.gmailConectado = gData.connected;
   usuariosState.gmailEmail     = gData.email || '';
+  // validacaoMensal mantida em memória — não persiste entre sessões
+  const validData = usuariosState.validacaoMensal || {};
 
   let coordStatus = '';
   if (coordData.importadoEm) {
@@ -6137,6 +6346,16 @@ async function renderHoldings() {
   } else {
     coordStatus = `<span style="color:#92400e;font-size:12px">⚠ Nenhum coordenador importado</span>`;
   }
+
+  let validStatusHtml = '';
+  if (validData.importadoEm) {
+    const dv = new Date(validData.importadoEm).toLocaleDateString('pt-BR');
+    const refLabel = validData.referencia ? ` · ${escHtml(validData.referencia)}` : '';
+    validStatusHtml = `<span style="color:#0369a1;font-size:12px">📊 Validação: ${validData.totalLinhas} linhas · ${validData.totalHoldings} holdings${refLabel} (${dv})</span>`;
+  } else {
+    validStatusHtml = `<span style="color:#9ca3af;font-size:12px">— Sem validação importada</span>`;
+  }
+  const validStatus = `<span id="valid-status-badge">${validStatusHtml}</span>`;
 
   // Carrega holdings
   try {
@@ -6167,11 +6386,16 @@ async function renderHoldings() {
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span id="holdings-resumo-texto" style="font-size:12px;color:#5a6a7e"></span>
         ${coordStatus}
+        ${validStatus}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px">
           📥 Importar Coordenadores
           <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarCoordenadores(this)">
+        </label>
+        <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px" title="Importa CSV/XLSX com colunas HOLDING, Customer, Tipo de Operação, Venda Valor">
+          📊 Validação Mensal
+          <input type="file" accept=".csv,.xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarValidacaoMensal(this)">
         </label>
         <button class="dp-btn dp-btn-outline" onclick="usuariosState.holdingsCarregado=false;renderHoldings()">↻ Recarregar</button>
         <button class="dp-btn dp-btn-primary" id="btn-enviar-email-massa" onclick="abrirModalEmailMassa()" disabled style="opacity:.4">📤 Enviar Email</button>
@@ -6330,6 +6554,67 @@ async function importarCoordenadores(input) {
   input.value = '';
 }
 
+async function importarValidacaoMensal(input) {
+  if (!input.files?.[0]) return;
+  const file = input.files[0];
+  const referencia = prompt('Mês de referência (ex: Junho/2026):', '') ?? '';
+  const fd = new FormData();
+  fd.append('arquivo', file);
+  fd.append('referencia', referencia);
+  try {
+    const r = await fetch('/api/validacao-mensal/importar', { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erro ao importar');
+    // Guarda em memória — sem banco
+    usuariosState.validacaoMensal = {
+      linhas:        data.linhas        || [],
+      referencia:    data.referencia    || '',
+      totalLinhas:   data.totalLinhas   || 0,
+      totalHoldings: data.totalHoldings || 0,
+      importadoEm:   new Date().toISOString(),
+    };
+    _emPrazoEditado = null; // reseta prazo ao importar nova validação
+    alert(`✓ Validação importada!\n${data.totalLinhas} linhas · ${data.totalHoldings} holdings${data.referencia ? ' · ' + data.referencia : ''}`);
+    // Atualiza status sem recarregar holdings
+    _atualizarStatusValidacao();
+  } catch (err) {
+    alert(`Erro: ${err.message}`);
+  }
+  input.value = '';
+}
+
+function _atualizarStatusValidacao() {
+  const vd = usuariosState.validacaoMensal;
+  const el = document.getElementById('valid-status-badge');
+  if (!el) return;
+  if (vd?.importadoEm) {
+    const d = new Date(vd.importadoEm).toLocaleDateString('pt-BR');
+    const ref = vd.referencia ? ` · ${escHtml(vd.referencia)}` : '';
+    el.innerHTML = `<span style="color:#0369a1;font-size:12px">📊 Validação: ${vd.totalLinhas} linhas · ${vd.totalHoldings} holdings${ref} (${d})</span>`;
+  } else {
+    el.innerHTML = `<span style="color:#9ca3af;font-size:12px">— Sem validação importada</span>`;
+  }
+}
+
+// Calcula prazo padrão: "01/MM+1/AAAA até 06/MM+1/AAAA" a partir da referência "Julho/2026"
+function computePrazoDefault(referencia) {
+  if (!referencia) return '';
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const parts  = referencia.toLowerCase().split('/');
+  if (parts.length !== 2) return '';
+  const mesStr = parts[0].trim();
+  const ano    = parseInt(parts[1].trim());
+  if (isNaN(ano)) return '';
+  let mesIdx = parseInt(mesStr);
+  if (isNaN(mesIdx)) mesIdx = meses.findIndex(m => mesStr.startsWith(m.slice(0,3)));
+  else mesIdx -= 1; // 1-based → 0-based
+  if (mesIdx < 0 || mesIdx > 11) return '';
+  const next = new Date(ano, mesIdx + 1, 1); // 1º do mês seguinte
+  const nm   = String(next.getMonth() + 1).padStart(2,'0');
+  const ny   = next.getFullYear();
+  return `01/${nm}/${ny} até 06/${nm}/${ny}`;
+}
+
 function conectarGmail(e) {
   e.preventDefault();
   window.open('/api/gmail/auth', '_blank', 'width=500,height=600');
@@ -6377,6 +6662,7 @@ function criarChipInput(containerId) {
 let _emCcChips  = [];
 let _emCcoChips = [];
 let _emBodyMode = 'html'; // 'html' | 'preview'
+let _emPrazoEditado = null; // persiste o prazo editado pelo usuário entre aberturas do modal
 
 function abrirModalEmailMassa() {
   const sel = usuariosState.holdingsSelecionadas;
@@ -6389,7 +6675,14 @@ function abrirModalEmailMassa() {
   document.getElementById('em-modal-body').innerHTML = `
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:11px;color:#64748b;font-weight:600">Tags disponíveis:</span>
-      <span class="em-chip" style="cursor:pointer;background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="emInsertTag('{{holding}}')" title="Clique para inserir no campo ativo">{{holding}}</span>
+      <span class="em-chip" style="cursor:pointer;background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="emInsertTag('{{holding}}')" title="Nome da holding">{{holding}}</span>
+      <span class="em-chip" style="cursor:pointer;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe" onclick="emInsertTag('{{tabela_validacao}}')" title="Tabela de dados de fechamento por holding (requer validação importada)">{{tabela_validacao}}</span>
+      <span class="em-chip" style="cursor:pointer;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0" onclick="emInsertTag('{{referencia}}')" title="Mês de referência da validação importada">{{referencia}}</span>
+      <span class="em-chip" style="cursor:pointer;background:#fdf4ff;color:#7e22ce;border:1px solid #e9d5ff" onclick="emInsertTag('{{prazo}}')" title="Prazo configurado no campo abaixo">{{prazo}}</span>
+      ${usuariosState.validacaoMensal?.importadoEm
+        ? `<button type="button" class="dp-btn dp-btn-outline" style="font-size:11px;padding:3px 10px" onclick="emUsarTemplateValidacao()" title="Preenche com o template padrão de Validação Mensal incluindo a tabela de dados">📋 Template Validação Mensal</button>`
+        : `<span style="font-size:11px;color:#9ca3af" title="Importe a Validação Mensal primeiro">📋 Template Validação (sem dados)</span>`
+      }
     </div>
     <div class="em-field">
       <label>Assunto</label>
@@ -6424,6 +6717,15 @@ function abrirModalEmailMassa() {
       <div id="em-corpo-html-raw" style="display:none">
         <textarea id="em-corpo-raw" rows="10" style="width:100%;box-sizing:border-box;border:1px solid #d1d9e6;border-radius:8px;padding:10px 12px;font-size:12px;font-family:monospace;resize:vertical" placeholder="HTML direto…" oninput="emSyncFromRaw()"></textarea>
       </div>
+    </div>
+    <div class="em-field">
+      <label>Prazo de Validação <span style="font-size:11px;color:#9ca3af;font-weight:400">(usado na tag {{prazo}} do template)</span></label>
+      <input type="text" id="em-prazo"
+        value="${_emPrazoEditado !== null ? _emPrazoEditado : computePrazoDefault(usuariosState.validacaoMensal?.referencia || '')}"
+        placeholder="ex: 01/08/2026 até 06/08/2026"
+        style="width:100%;box-sizing:border-box;border:1px solid #d1d9e6;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit"
+        onfocus="emSetActiveField('assunto')"
+        oninput="_emPrazoEditado = this.value">
     </div>
     <div class="em-field">
       <label>CC — Cópia</label>
@@ -6528,6 +6830,116 @@ function emLimparEditor() {
   if (raw) raw.value = '';
 }
 
+function emUsarTemplateValidacao() {
+  const vd     = usuariosState.validacaoMensal;
+  const mesRef = vd?.referencia || '';
+  const template = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><title>Validação de Fechamento — {{referencia}}</title></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;color:#333333;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:30px 0;">
+<tr><td align="center">
+<table width="700" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #dddddd;">
+<tr>
+  <td style="background:#003B70;padding:25px;color:#ffffff;text-align:center;">
+    <h2 style="margin:0;">Validação de Fechamento (Opt-in Mensal)</h2>
+    <p style="margin:8px 0 0;font-size:16px;">Referência: {{referencia}}</p>
+  </td>
+</tr>
+<tr>
+<td style="padding:30px;">
+<p>Prezado(a) Parceiro(a) <strong>{{holding}}</strong>,</p>
+<p>Segue abaixo o resumo dos valores do mês de <strong>{{referencia}}</strong> para que você possa conferir com seu controle interno antes de realizar a validação na plataforma.</p>
+
+{{tabela_validacao}}
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:25px 0;background:#FFF7E8;border-left:5px solid #F39C12;">
+  <tr><td style="padding:18px;"><strong>📅 Prazo para realização da validação:</strong><br><br><b>{{prazo}}</b></td></tr>
+</table>
+<p>Sua confirmação é fundamental para a continuidade do processo e para o cumprimento dos cronogramas estabelecidos junto à indústria. Recomendamos que a validação seja realizada o quanto antes, evitando possíveis contratempos próximos ao encerramento do prazo.</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:25px 0;background:#FFF4F4;border-left:5px solid #E74C3C;">
+  <tr><td style="padding:18px;"><strong>⚠️ Ainda não possui acesso?</strong><br><br>Caso ainda não possua usuário cadastrado na Plataforma Sellers para realização do Opt-in, entre em contato pelo e-mail <a href="mailto:is@sellers.com.br">is@sellers.com.br</a> para criação do acesso.</td></tr>
+</table>
+<h3 style="margin-top:35px;">🎥 Vídeo Tutorial</h3>
+<p>Caso tenha dúvidas sobre o processo, assista ao vídeo abaixo:</p>
+<table cellpadding="0" cellspacing="0" align="center" style="margin:25px auto;">
+  <tr><td bgcolor="#FF0000" style="border-radius:5px;"><a href="https://www.youtube.com/watch?v=SZY7mDC8-KA" target="_blank" style="display:inline-block;padding:14px 28px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">▶ Assistir ao Vídeo Tutorial</a></td></tr>
+</table>
+<hr style="margin:35px 0;border:none;border-top:1px solid #dddddd;">
+<h3>PASSO 1 – Verificar os dados no Sellers BI</h3>
+<ol>
+  <li>Acesse a Plataforma Sellers: <a href="https://forsellers.app/">https://forsellers.app/</a></li>
+  <li>Acesse <strong>Relatórios → Sellers BI</strong> e clique em <strong>Acessar Sellers BI</strong>.</li>
+  <li>Localize o painel correspondente ao tipo de validação desejado (Vendas/Sell-out ou Estoque).</li>
+  <li>Selecione o período de <strong>{{referencia}}</strong>.</li>
+</ol>
+<p><strong>Para Vendas:</strong></p>
+<ul><li>Verifique se o valor de <strong>Total em Valor</strong> apresentado no BI está consistente com os dados do controle interno da distribuidora.</li></ul>
+<p><strong>Para Estoque:</strong></p>
+<ul><li>Verifique os indicadores de estoque em <strong>Quantidade, Peso e Valor</strong>, posicionando o cursor sobre a data para visualizar os detalhes.</li></ul>
+<hr>
+<h3>PASSO 2 – Iniciar a Validação</h3>
+<ol>
+  <li>Acesse a Plataforma Sellers: <a href="https://forsellers.app/">https://forsellers.app/</a></li>
+  <li>No menu lateral clique em <strong>Integrações → Validação de Dados</strong>.</li>
+  <li>Clique em <strong>+ Nova Validação</strong>.</li>
+</ol>
+<hr>
+<h3>PASSO 3 – Configurar a Validação</h3>
+<ul>
+  <li>Selecione o que será validado: <strong>Vendas</strong> ou <strong>Estoque</strong>.</li>
+  <li>Selecione o parceiro: <strong>BIC</strong>.</li>
+  <li>Selecione o mês de referência: <strong>{{referencia}}</strong>.</li>
+</ul>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;background:#FFF8E5;border-left:5px solid #F1C40F;">
+  <tr><td style="padding:16px;"><strong>⚠️ Atenção</strong><br><br>Certifique-se de selecionar o mesmo período previamente analisado no Sellers BI.</td></tr>
+</table>
+<hr>
+<h3>PASSO 4 – Registrar o Resultado</h3>
+<p><strong>✅ Se os dados estiverem de acordo:</strong></p>
+<ul><li>Mantenha marcada a opção <strong>"Em conformidade"</strong>.</li><li>Clique em <strong>Salvar</strong>.</li></ul>
+<p><strong>❌ Se os dados não estiverem de acordo:</strong></p>
+<ul>
+  <li>Desmarque a opção <strong>"Em conformidade"</strong>.</li>
+  <li>Descreva a divergência encontrada.</li>
+  <li>Anexe relatório, planilha ou qualquer evidência contendo os valores corretos.</li>
+  <li>Clique em <strong>Salvar</strong>.</li>
+</ul>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;background:#FFF4F4;border-left:5px solid #E74C3C;">
+  <tr><td style="padding:16px;"><strong>⚠️ Importante</strong><br><br>O envio do anexo é obrigatório quando houver divergências.</td></tr>
+</table>
+<hr>
+<p><strong>Obs.:</strong> Caso já tenha realizado a validação, desconsidere este comunicado.</p>
+<p>Em caso de dúvidas, nossa equipe permanece à disposição pelo e-mail <a href="mailto:is@sellers.com.br">is@sellers.com.br</a>.</p>
+<p>Agradecemos sua colaboração e contamos com a conclusão da validação dentro do prazo informado.</p>
+</td>
+</tr>
+<tr>
+  <td style="background:#003B70;padding:20px;text-align:center;color:#ffffff;font-size:13px;">
+    Sellers Tecnologia • Plataforma Sellers
+  </td>
+</tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  // Injeta no campo HTML e troca para aba HTML
+  // Ordem correta: emSetTab('html') PRIMEIRO, depois sobrescreve o raw
+  // (emSetTab copia editor→raw; se fizermos ao contrário o raw é sobrescrito)
+  emSetTab('html');
+  const raw = document.getElementById('em-corpo-raw');
+  if (raw) raw.value = template;
+
+  // Preenche assunto se vazio
+  const assuntoEl = document.getElementById('em-assunto');
+  if (assuntoEl && !assuntoEl.value.trim()) {
+    assuntoEl.value = `Validação de Fechamento — {{holding}}${mesRef ? ' — ' + mesRef : ''}`;
+  }
+}
+
 function emHandlePaste(e) {
   e.preventDefault();
   // Prioriza HTML colado (preserva formatação do Word/Docs)
@@ -6565,14 +6977,18 @@ function fecharModalEmailMassa() {
 
 async function iniciarEnvioEmails() {
   const assunto = document.getElementById('em-assunto')?.value?.trim();
-  const corpo   = document.getElementById('em-corpo')?.innerHTML?.trim();
+  // Em modo HTML lê do textarea raw (evita re-serialização do browser que pode alterar as tags)
+  const corpo = _emBodyMode === 'html'
+    ? document.getElementById('em-corpo-raw')?.value?.trim()
+    : document.getElementById('em-corpo')?.innerHTML?.trim();
   if (!assunto) { alert('Preencha o assunto.'); return; }
-  if (!corpo || corpo === '<br>')   { alert('Preencha o corpo do email.'); return; }
+  if (!corpo || corpo === '<br>') { alert('Preencha o corpo do email.'); return; }
 
   const sel = usuariosState.holdingsSelecionadas;
   const holdingsData = usuariosState.holdings.filter(h => sel.has(h.holding));
   const cc  = _emCcChips.slice();
   const cco = _emCcoChips.slice();
+  const vd  = usuariosState.validacaoMensal;
 
   // Muda o modal para painel de progresso
   document.getElementById('em-btn-enviar').style.display = 'none';
@@ -6615,7 +7031,17 @@ async function iniciarEnvioEmails() {
     const res = await fetch('/api/email-massa/enviar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ holdings: holdingsData, assunto, corpo, cc, cco }),
+      body: JSON.stringify({
+        holdings:            holdingsData,
+        assunto,
+        corpo,
+        cc,
+        cco,
+        validacaoLinhas:     vd?.linhas     || [],
+        validacaoReferencia: vd?.referencia || '',
+        prazo:               document.getElementById('em-prazo')?.value?.trim()
+                             || computePrazoDefault(vd?.referencia || '') || '',
+      }),
     });
 
     const reader = res.body.getReader();

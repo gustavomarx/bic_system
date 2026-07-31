@@ -45,6 +45,8 @@
     .tenant-option:hover { background: rgba(255,255,255,0.08); }
     .tenant-option.active { color: #fff; font-weight: 600; background: rgba(244,121,32,.12); }
     .tenant-option .bic-badge { font-size: 9px; padding: 1px 5px; }
+    .tenant-option-separator { height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0; pointer-events: none; }
+    .tenant-option.vg-option .bic-badge { background: #374151; }
     .perm-tenants-grid { display: flex; gap: 8px; margin-top: 4px; }
     .perm-tenant-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2d3748; cursor: pointer; }
 
@@ -2154,11 +2156,6 @@
 
   <nav class="sidebar-nav" id="sidebar-nav" style="visibility:hidden">
     <div class="nav-section-label">Módulos</div>
-
-    <div class="nav-item" data-module="dashboard">
-      <span class="nav-icon">🏠</span>
-      Visão Geral
-    </div>
 
     <div class="nav-item active" data-module="comparativo">
       <span class="nav-icon">📊</span>
@@ -7547,20 +7544,20 @@ function escHtml(str) {
 let currentTenant = 'bic';
 
 const TENANT_CONFIG = {
-  asa:       { label: 'Asa',              badge: 'ASA', subtitle: 'Asa',             modules: ['dashboard','comparativo','batalha','historico'] },
-  bic:       { label: 'BIC',              badge: 'BIC', subtitle: 'Portal Sellout',  modules: ['dashboard','comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','usuarios','ranking','evolucao'] },
-  bombril:   { label: 'Bombril',          badge: 'BOM', subtitle: 'Bombril',         modules: ['dashboard','comparativo','batalha','historico'] },
-  cicopal:   { label: 'Cicopal',          badge: 'CIC', subtitle: 'Cicopal',         modules: ['dashboard','comparativo','batalha','historico'] },
-  fini:      { label: 'Fini',             badge: 'FIN', subtitle: 'Fini',            modules: ['dashboard','comparativo','batalha','historico'] },
-  fruki:     { label: 'Fruki',            badge: 'FRK', subtitle: 'Fruki',           modules: ['dashboard','comparativo','batalha','historico'] },
-  gallo:     { label: 'Gallo',            badge: 'GAL', subtitle: 'Gallo',           modules: ['dashboard','comparativo','batalha','historico'] },
-  gtex:      { label: 'Gtex',             badge: 'GTX', subtitle: 'Gtex',            modules: ['dashboard','comparativo','batalha','historico'] },
-  kibon:     { label: 'Kibon',            badge: 'KBN', subtitle: 'Kibon',           modules: ['dashboard','comparativo','batalha','historico'] },
-  peccin:    { label: 'Peccin',           badge: 'PCC', subtitle: 'Peccin',          modules: ['dashboard','comparativo','batalha','historico'] },
-  pepsico:   { label: 'Pepsico',          badge: 'PEP', subtitle: 'Pepsico',         modules: ['dashboard','comparativo','batalha','historico'] },
-  mdias:     { label: 'M Dias',           badge: 'MD',  subtitle: 'M Dias Branco',   modules: ['dashboard','comparativo','batalha','historico'] },
-  mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS', subtitle: 'M Dias Saudáveis',modules: ['dashboard','comparativo','batalha','historico'] },
-  marilan:   { label: 'Marilan',          badge: 'MRL', subtitle: 'Marilan',         modules: ['dashboard','comparativo','batalha','historico'] },
+  asa:       { label: 'Asa',              badge: 'ASA', subtitle: 'Asa',              modules: ['comparativo','batalha','historico'] },
+  bic:       { label: 'BIC',              badge: 'BIC', subtitle: 'Portal Sellout',   modules: ['comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','usuarios','ranking','evolucao'] },
+  bombril:   { label: 'Bombril',          badge: 'BOM', subtitle: 'Bombril',          modules: ['comparativo','batalha','historico'] },
+  cicopal:   { label: 'Cicopal',          badge: 'CIC', subtitle: 'Cicopal',          modules: ['comparativo','batalha','historico'] },
+  fini:      { label: 'Fini',             badge: 'FIN', subtitle: 'Fini',             modules: ['comparativo','batalha','historico'] },
+  fruki:     { label: 'Fruki',            badge: 'FRK', subtitle: 'Fruki',            modules: ['comparativo','batalha','historico'] },
+  gallo:     { label: 'Gallo',            badge: 'GAL', subtitle: 'Gallo',            modules: ['comparativo','batalha','historico'] },
+  gtex:      { label: 'Gtex',             badge: 'GTX', subtitle: 'Gtex',             modules: ['comparativo','batalha','historico'] },
+  kibon:     { label: 'Kibon',            badge: 'KBN', subtitle: 'Kibon',            modules: ['comparativo','batalha','historico'] },
+  peccin:    { label: 'Peccin',           badge: 'PCC', subtitle: 'Peccin',           modules: ['comparativo','batalha','historico'] },
+  pepsico:   { label: 'Pepsico',          badge: 'PEP', subtitle: 'Pepsico',          modules: ['comparativo','batalha','historico'] },
+  mdias:     { label: 'M Dias',           badge: 'MD',  subtitle: 'M Dias Branco',    modules: ['comparativo','batalha','historico'] },
+  mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS', subtitle: 'M Dias Saudáveis', modules: ['comparativo','batalha','historico'] },
+  marilan:   { label: 'Marilan',          badge: 'MRL', subtitle: 'Marilan',          modules: ['comparativo','batalha','historico'] },
 };
 
 function applyTenantNav() {
@@ -7577,11 +7574,34 @@ function applyTenantNav() {
 }
 
 function switchTenant(tenant) {
-  if (!TENANT_CONFIG[tenant] || tenant === currentTenant) {
+  if (tenant !== 'dashboard' && !TENANT_CONFIG[tenant]) {
+    document.getElementById('tenant-dropdown').classList.remove('open');
+    return;
+  }
+  if (tenant === currentTenant) {
     document.getElementById('tenant-dropdown').classList.remove('open');
     return;
   }
   currentTenant = tenant;
+
+  const _userTenants = _currentUser?.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser?.tenants ?? ['bic']);
+  _buildTenantDropdown(_userTenants);
+  document.getElementById('tenant-dropdown').classList.remove('open');
+
+  if (tenant === 'dashboard') {
+    document.getElementById('tenant-badge').textContent = 'VG';
+    document.getElementById('tenant-label').textContent = 'Visão Geral';
+    document.getElementById('portal-sub').textContent = 'Todas as indústrias';
+    document.getElementById('sidebar-nav').style.visibility = 'hidden';
+    document.querySelector('.sidebar-update').style.display = 'none';
+    window.location.hash = 'dashboard';
+    renderDashboard();
+    return;
+  }
+
+  // Indústria — restaura sidebar
+  document.getElementById('sidebar-nav').style.visibility = '';
+  document.querySelector('.sidebar-update').style.display = '';
 
   // Reset tenant-specific states
   state.files = [];
@@ -7601,13 +7621,6 @@ function switchTenant(tenant) {
   document.getElementById('tenant-label').textContent = cfg.subtitle;
   document.getElementById('portal-sub').textContent = cfg.label === 'BIC' ? 'Dados de distribuidores' : cfg.subtitle;
 
-  // Rebuild dropdown options
-  const _userTenants = _currentUser?.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser?.tenants ?? ['bic']);
-  _buildTenantDropdown(_userTenants);
-
-  // Close dropdown
-  document.getElementById('tenant-dropdown').classList.remove('open');
-
   // Re-filter nav
   applyTenantNav();
 
@@ -7625,15 +7638,21 @@ function switchTenant(tenant) {
 function _buildTenantDropdown(userTenants) {
   const dropdown = document.getElementById('tenant-dropdown');
   if (!dropdown) return;
-  dropdown.innerHTML = userTenants.map(t => {
+  const dashActive = currentTenant === 'dashboard' ? ' active' : '';
+  const industryHtml = userTenants.filter(t => TENANT_CONFIG[t]).map(t => {
     const cfg = TENANT_CONFIG[t];
-    if (!cfg) return '';
     const active = t === currentTenant ? ' active' : '';
     return `<div class="tenant-option${active}" onclick="switchTenant('${t}')">
       <div class="bic-badge">${cfg.badge}</div>
       <span>${cfg.label}</span>
     </div>`;
   }).join('');
+  dropdown.innerHTML =
+    `<div class="tenant-option vg-option${dashActive}" onclick="switchTenant('dashboard')">
+      <div class="bic-badge">VG</div>
+      <span>Visão Geral</span>
+    </div>
+    <div class="tenant-option-separator"></div>` + industryHtml;
 }
 
 let _currentUser = null;
@@ -7656,44 +7675,38 @@ async function initAuth() {
       document.getElementById('admin-nav-item').style.display = '';
     }
 
-    // Define tenant inicial com base nos tenants do usuário
+    // Começa sempre no dashboard (visão geral cross-tenant)
     const userTenants = _currentUser.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser.tenants ?? ['bic']);
-    currentTenant = userTenants[0] || 'bic';
+    currentTenant = 'dashboard';
 
-    // Configura seletor de tenant
-    const cfg = TENANT_CONFIG[currentTenant] || TENANT_CONFIG.bic;
-    document.getElementById('tenant-badge').textContent = cfg.badge;
-    document.getElementById('tenant-label').textContent = cfg.subtitle;
-    document.getElementById('portal-sub').textContent = currentTenant === 'bic' ? 'Dados de distribuidores' : cfg.subtitle;
+    // Configura seletor para dashboard
+    document.getElementById('tenant-badge').textContent = 'VG';
+    document.getElementById('tenant-label').textContent = 'Visão Geral';
+    document.getElementById('portal-sub').textContent = 'Todas as indústrias';
 
-    if (userTenants.length > 1) {
-      document.getElementById('tenant-chevron').style.display = '';
-      _buildTenantDropdown(userTenants);
-      document.getElementById('tenant-selector').addEventListener('click', () => {
-        document.getElementById('tenant-dropdown').classList.toggle('open');
-      });
-      document.addEventListener('click', e => {
-        if (!document.getElementById('tenant-selector-wrap')?.contains(e.target)) {
-          document.getElementById('tenant-dropdown')?.classList.remove('open');
-        }
-      });
-    } else {
-      document.getElementById('tenant-selector').classList.add('single');
-    }
+    // Chevron sempre visível (dashboard + indústrias)
+    document.getElementById('tenant-chevron').style.display = '';
+    _buildTenantDropdown(userTenants);
+    document.getElementById('tenant-selector').addEventListener('click', () => {
+      document.getElementById('tenant-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+      if (!document.getElementById('tenant-selector-wrap')?.contains(e.target)) {
+        document.getElementById('tenant-dropdown')?.classList.remove('open');
+      }
+    });
 
-    // Filtra módulos do nav com base em tenant + permissões
-    applyTenantNav();
-
-    // Revela nav após filtrar (sem flash de módulos não permitidos)
-    document.getElementById('sidebar-nav').style.visibility = '';
+    // No dashboard: oculta sidebar-update e sidebar-nav
+    document.querySelector('.sidebar-update').style.display = 'none';
+    // sidebar-nav permanece hidden (já está por padrão)
 
     // Restaura módulos que não dependem de init() (ex: admin-users)
     const hashMod = window.location.hash.replace('#', '');
     if (hashMod === 'admin-users' && _currentUser.isAdmin) {
       navigateTo('admin-users');
     } else {
-      // Inicia carregamento de dados após confirmar permissões
-      init();
+      // Inicia no dashboard cross-tenant
+      renderDashboard();
     }
   } catch {
     window.location.href = '/login';

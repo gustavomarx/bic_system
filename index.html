@@ -2046,6 +2046,89 @@
     #em-corpo li { margin:2px 0; }
     #em-corpo p { margin:4px 0; }
 
+    /* ── Dashboard ───────────────────────────────────────────── */
+    .dash-wrap { padding: 24px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; height: 100%; }
+    .dash-section { background: #fff; border: 1px solid var(--bic-border); border-radius: 12px; overflow: hidden; }
+    .dash-section-header { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--bic-border); background: #fafafa; }
+    .dash-section-title { font-size: 14px; font-weight: 600; color: var(--text-main); }
+    .dash-section-sub { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+    .dash-summary-bar { display: flex; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--bic-border); flex-wrap: wrap; }
+    .dash-summary-pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; border: 1px solid; }
+    .dash-summary-pill.red   { background: #fff1f2; border-color: #fca5a5; color: #991b1b; }
+    .dash-summary-pill.yellow{ background: #fefce8; border-color: #fde047; color: #854d0e; }
+    .dash-summary-pill.gray  { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+    .dash-summary-pill.green { background: #f0fdf4; border-color: #86efac; color: #166534; }
+
+    /* Section 1 — Comparativo cards */
+    .dash-comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 16px 20px; }
+    .dash-comp-card { border: 1px solid var(--bic-border); border-radius: 10px; padding: 14px; cursor: pointer; transition: box-shadow .15s; position: relative; }
+    .dash-comp-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .dash-comp-card.status-ok     { border-left: 3px solid #16a34a; }
+    .dash-comp-card.status-warn   { border-left: 3px solid #d97706; }
+    .dash-comp-card.status-crit   { border-left: 3px solid #dc2626; }
+    .dash-comp-card.status-gray   { border-left: 3px solid #9ca3af; opacity: .7; }
+    .dash-comp-badge { display: inline-block; background: var(--bic-dark); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 6px; letter-spacing: .5px; }
+    .dash-comp-count { font-size: 24px; font-weight: 700; line-height: 1; margin-bottom: 2px; }
+    .dash-comp-count.ok   { color: #16a34a; }
+    .dash-comp-count.warn { color: #d97706; }
+    .dash-comp-count.crit { color: #dc2626; }
+    .dash-comp-label { font-size: 11px; color: var(--text-muted); }
+    .dash-comp-dates { font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+    .dash-comp-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bic-border); font-size: 11px; }
+    .dash-comp-card.expanded .dash-comp-detail { display: block; }
+    .dash-comp-detail-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .dash-comp-detail-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+    .dash-comp-detail-tag.gone { background: #f3e8ff; color: #7c3aed; }
+    .dash-comp-detail-tag.new  { background: #fef3c7; color: #92400e; }
+    .dash-comp-detail-tag.rem  { background: #fee2e2; color: #991b1b; }
+    .dash-comp-names { margin-top: 4px; color: var(--text-muted); line-height: 1.5; }
+
+    /* Section 2 — Batalha Naval table */
+    .dash-bn-wrap { padding: 0; }
+    .dash-bn-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .dash-bn-table th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fafafa; text-transform: uppercase; letter-spacing: .4px; }
+    .dash-bn-table td { padding: 10px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    .dash-bn-table tr:last-child td { border-bottom: none; }
+    .dash-bn-table tr:hover td { background: #fafafa; }
+    .dash-bn-num { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 600; padding: 3px 8px; border-radius: 6px; transition: background .1s; border: 1px solid transparent; }
+    .dash-bn-num:hover { filter: brightness(.92); }
+    .dash-bn-num.gap     { background: #fef9c3; color: #854d0e; border-color: #fde047; }
+    .dash-bn-num.atraso  { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .dash-bn-num.nosale  { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
+    .dash-bn-num.zero    { color: var(--text-muted); cursor: default; font-weight: 400; }
+    .dash-bn-dropdown { display: none; margin-top: 6px; background: #fff; border: 1px solid var(--bic-border); border-radius: 8px; padding: 8px 0; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,.08); min-width: 220px; }
+    .dash-bn-dropdown.open { display: block; }
+    .dash-bn-dropdown-item { padding: 5px 12px; font-size: 12px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dash-bn-dropdown-item:hover { background: #f3f4f6; }
+    .dash-bn-dropdown-empty { padding: 8px 12px; font-size: 12px; color: var(--text-muted); font-style: italic; }
+    .dash-bn-total { font-size: 12px; color: var(--text-muted); }
+
+    /* Section 3 — Histórico */
+    .dash-hist-wrap { padding: 16px 20px; }
+    .dash-hist-tenant { border: 1px solid var(--bic-border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+    .dash-hist-tenant:last-child { margin-bottom: 0; }
+    .dash-hist-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; background: #fafafa; transition: background .1s; user-select: none; }
+    .dash-hist-header:hover { background: #f3f4f6; }
+    .dash-hist-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--bic-dark); color: #fff; letter-spacing: .5px; }
+    .dash-hist-count { margin-left: auto; font-size: 12px; font-weight: 600; color: #dc2626; }
+    .dash-hist-arrow { font-size: 11px; color: var(--text-muted); transition: transform .2s; }
+    .dash-hist-tenant.open .dash-hist-arrow { transform: rotate(90deg); }
+    .dash-hist-body { display: none; padding: 8px 14px 12px; border-top: 1px solid var(--bic-border); }
+    .dash-hist-tenant.open .dash-hist-body { display: block; }
+    .dash-hist-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
+    .dash-hist-item { font-size: 12px; padding: 4px 0; color: var(--text-main); border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 6px; }
+    .dash-hist-item:last-child { border-bottom: none; }
+    .dash-hist-item::before { content: '•'; color: #dc2626; font-size: 14px; line-height: 1; }
+    .dash-hist-empty { font-size: 12px; color: var(--green); font-style: italic; }
+    .dash-hist-error { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+    /* Refresh bar */
+    .dash-refresh-bar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--bic-border); background: #fafafa; }
+    .dash-ts { font-size: 12px; color: var(--text-muted); }
+    .dash-refresh-btn { font-size: 12px; padding: 4px 12px; border: 1px solid var(--bic-border); background: #fff; border-radius: 6px; cursor: pointer; }
+    .dash-refresh-btn:hover { background: #f3f4f6; }
+    .dash-loading { display: flex; align-items: center; gap: 10px; padding: 40px; justify-content: center; color: var(--text-muted); font-size: 14px; }
+
   </style>
 </head>
 <body>
@@ -2071,6 +2154,11 @@
 
   <nav class="sidebar-nav" id="sidebar-nav" style="visibility:hidden">
     <div class="nav-section-label">Módulos</div>
+
+    <div class="nav-item" data-module="dashboard">
+      <span class="nav-icon">🏠</span>
+      Visão Geral
+    </div>
 
     <div class="nav-item active" data-module="comparativo">
       <span class="nav-icon">📊</span>
@@ -2518,6 +2606,260 @@ function compare(prevRows, currRows) {
   const anomalyCount = anomalies.gone.length + anomalies.newH.length + anomalies.monthsRemoved.length;
 
   return { monthRows, totalPrev, totalCurr, totalVarAbs, totalVarPct, holdingsDown, anomalyCount, anomalies };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  DASHBOARD — Visão Geral
+// ═══════════════════════════════════════════════════════════════════════
+
+const TENANT_META = {
+  bic:       { label: 'BIC',              badge: 'BIC' },
+  asa:       { label: 'Asa',              badge: 'ASA' },
+  bombril:   { label: 'Bombril',          badge: 'BOM' },
+  cicopal:   { label: 'Cicopal',          badge: 'CIC' },
+  fini:      { label: 'Fini',             badge: 'FIN' },
+  fruki:     { label: 'Fruki',            badge: 'FRK' },
+  gallo:     { label: 'Gallo',            badge: 'GAL' },
+  gtex:      { label: 'Gtex',             badge: 'GTX' },
+  kibon:     { label: 'Kibon',            badge: 'KBN' },
+  peccin:    { label: 'Peccin',           badge: 'PCC' },
+  pepsico:   { label: 'Pepsico',          badge: 'PEP' },
+  mdias:     { label: 'M Dias',           badge: 'MD'  },
+  mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS' },
+  marilan:   { label: 'Marilan',          badge: 'MRL' },
+};
+const DASH_TENANT_ORDER = ['bic','asa','bombril','cicopal','fini','fruki','gallo','gtex','kibon','peccin','pepsico','mdias','mdiassaud','marilan'];
+
+let _dashData = null;
+
+function renderDashboard() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `<div class="dash-wrap" id="dash-wrap">
+    <div class="dash-loading">⏳ Carregando dados de todas as indústrias…</div>
+  </div>`;
+  _loadDashboard(false);
+}
+
+async function _loadDashboard(force) {
+  const wrap = document.getElementById('dash-wrap');
+  if (!wrap) return;
+  try {
+    const r = await fetch(`/api/dashboard${force ? '?force=1' : ''}`);
+    if (!r.ok) throw new Error(await r.text());
+    _dashData = await r.json();
+    _renderDashContent(wrap);
+  } catch (e) {
+    wrap.innerHTML = `<div class="dash-loading" style="color:var(--red)">Erro ao carregar dashboard: ${e.message}</div>`;
+  }
+}
+
+function _renderDashContent(wrap) {
+  const { data, ts } = _dashData;
+  const tsLabel = ts ? new Date(ts).toLocaleString('pt-BR', { timeStyle: 'short', dateStyle: 'short' }) : '—';
+
+  // Global summary counts
+  let totalAnomalias = 0, totalGaps = 0, totalAtrasos = 0, totalSemVendas = 0;
+  for (const t of DASH_TENANT_ORDER) {
+    const d = data[t];
+    if (!d) continue;
+    if (d.comparativo && !d.comparativo.error) totalAnomalias += d.comparativo.anomalyCount || 0;
+    if (d.batalha && !d.batalha.error) {
+      totalGaps      += d.batalha.gaps      || 0;
+      totalAtrasos   += d.batalha.atrasos   || 0;
+      totalSemVendas += d.batalha.semVendas || 0;
+    }
+  }
+
+  wrap.innerHTML = `
+    <!-- Refresh bar -->
+    <div class="dash-section">
+      <div class="dash-refresh-bar">
+        <span class="dash-ts">Atualizado: ${tsLabel}</span>
+        <button class="dash-refresh-btn" onclick="_loadDashboard(true)">↻ Forçar atualização</button>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="dash-summary-pill ${totalAnomalias > 0 ? 'red' : 'green'}">⚠ ${totalAnomalias} anomalia${totalAnomalias !== 1 ? 's' : ''}</span>
+          <span class="dash-summary-pill ${totalGaps > 0 ? 'yellow' : 'green'}">📅 ${totalGaps} gap${totalGaps !== 1 ? 's' : ''}</span>
+          <span class="dash-summary-pill ${totalAtrasos > 0 ? 'red' : 'green'}">🕐 ${totalAtrasos} atraso${totalAtrasos !== 1 ? 's' : ''}</span>
+          <span class="dash-summary-pill gray">⬜ ${totalSemVendas} sem vendas</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: Comparativo -->
+    <div class="dash-section">
+      <div class="dash-section-header">
+        <span style="font-size:16px">📊</span>
+        <span class="dash-section-title">Comparativo de Sellout — Anomalias</span>
+        <span class="dash-section-sub">Últimos 2 arquivos por indústria · clique no card para expandir</span>
+      </div>
+      <div class="dash-comp-grid">
+        ${DASH_TENANT_ORDER.map(t => _renderCompCard(t, data[t]?.comparativo)).join('')}
+      </div>
+    </div>
+
+    <!-- Section 2: Batalha Naval -->
+    <div class="dash-section">
+      <div class="dash-section-header">
+        <span style="font-size:16px">🎯</span>
+        <span class="dash-section-title">Batalha Naval — Alertas do Mês</span>
+        <span class="dash-section-sub">Mês atual · clique nos números para ver distribuidoras</span>
+      </div>
+      <div class="dash-bn-wrap">
+        ${_renderBnTable(data)}
+      </div>
+    </div>
+
+    <!-- Section 3: Histórico -->
+    <div class="dash-section">
+      <div class="dash-section-header">
+        <span style="font-size:16px">📅</span>
+        <span class="dash-section-title">Distribuidoras sem Histórico 2024+</span>
+        <span class="dash-section-sub">Distribuidoras sem registros a partir de 2024 no histórico de vendas</span>
+      </div>
+      <div class="dash-hist-wrap">
+        ${DASH_TENANT_ORDER.map(t => _renderHistAccordion(t, data[t]?.historico)).join('')}
+      </div>
+    </div>
+  `;
+
+  // Bind comp card clicks
+  wrap.querySelectorAll('.dash-comp-card[data-tenant]').forEach(card => {
+    card.addEventListener('click', () => card.classList.toggle('expanded'));
+  });
+
+  // Bind BN number clicks
+  wrap.querySelectorAll('.dash-bn-num[data-list]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const dd = btn.nextElementSibling;
+      if (!dd || !dd.classList.contains('dash-bn-dropdown')) return;
+      // Close any other open dropdowns in same row
+      wrap.querySelectorAll('.dash-bn-dropdown.open').forEach(el => { if (el !== dd) el.classList.remove('open'); });
+      dd.classList.toggle('open');
+    });
+  });
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function dashClickOutside(e) {
+    if (!wrap.contains(e.target)) {
+      wrap.querySelectorAll('.dash-bn-dropdown.open').forEach(el => el.classList.remove('open'));
+      document.removeEventListener('click', dashClickOutside);
+    }
+  });
+
+  // Hist accordion toggles
+  wrap.querySelectorAll('.dash-hist-header').forEach(hdr => {
+    hdr.addEventListener('click', () => hdr.closest('.dash-hist-tenant').classList.toggle('open'));
+  });
+}
+
+function _renderCompCard(tenant, comp) {
+  const meta = TENANT_META[tenant] || { label: tenant, badge: tenant.toUpperCase() };
+  if (!comp) return `<div class="dash-comp-card status-gray"><span class="dash-comp-badge">${meta.badge}</span><div class="dash-comp-count" style="color:#9ca3af">—</div><div class="dash-comp-label">sem dados</div></div>`;
+
+  if (comp.error) return `<div class="dash-comp-card status-gray"><span class="dash-comp-badge">${meta.badge}</span><div class="dash-comp-count" style="color:#9ca3af;font-size:12px">erro</div><div class="dash-comp-label" title="${comp.error}">ver consola</div></div>`;
+
+  const n = comp.anomalyCount || 0;
+  const statusCls = n === 0 ? 'status-ok' : n <= 3 ? 'status-warn' : 'status-crit';
+  const countCls  = n === 0 ? 'ok' : n <= 3 ? 'warn' : 'crit';
+  const label     = n === 0 ? 'sem anomalias' : `anomalia${n !== 1 ? 's' : ''}`;
+  const datesLine = (comp.currDate && comp.prevDate) ? `${comp.prevDate} → ${comp.currDate}${comp.sameFile ? ' ⚠ mesmo arquivo' : ''}` : (comp.onlyOne ? 'apenas 1 arquivo' : comp.noFiles ? 'sem arquivos' : '');
+
+  const goneStr = comp.gone?.length ? comp.gone.slice(0,5).join(', ') + (comp.gone.length > 5 ? ` +${comp.gone.length - 5}` : '') : '';
+  const newStr  = comp.newH?.length  ? comp.newH.slice(0,5).join(', ')  + (comp.newH.length  > 5 ? ` +${comp.newH.length  - 5}` : '') : '';
+  const remStr  = comp.monthsRemoved?.length ? comp.monthsRemoved.map(m => m.mes).join(', ') : '';
+
+  const detailHtml = `
+    <div class="dash-comp-detail">
+      ${comp.gone?.length  ? `<div class="dash-comp-detail-row"><span class="dash-comp-detail-tag gone">Saíram (${comp.gone.length})</span></div><div class="dash-comp-names">${goneStr}</div>` : ''}
+      ${comp.newH?.length  ? `<div class="dash-comp-detail-row" style="margin-top:6px"><span class="dash-comp-detail-tag new">Novos (${comp.newH.length})</span></div><div class="dash-comp-names">${newStr}</div>`  : ''}
+      ${comp.monthsRemoved?.length ? `<div class="dash-comp-detail-row" style="margin-top:6px"><span class="dash-comp-detail-tag rem">Meses removidos (${comp.monthsRemoved.length})</span></div><div class="dash-comp-names">${remStr}</div>` : ''}
+      ${n === 0 ? '<div style="color:var(--green);font-size:11px">✓ Tudo certo</div>' : ''}
+    </div>`;
+
+  return `<div class="dash-comp-card ${statusCls}" data-tenant="${tenant}">
+    <span class="dash-comp-badge">${meta.badge}</span>
+    <div class="dash-comp-count ${countCls}">${n}</div>
+    <div class="dash-comp-label">${label}</div>
+    <div class="dash-comp-dates">${datesLine}</div>
+    ${detailHtml}
+  </div>`;
+}
+
+function _renderBnTable(data) {
+  const rows = DASH_TENANT_ORDER.map(t => {
+    const meta = TENANT_META[t] || { label: t, badge: t.toUpperCase() };
+    const bn = data[t]?.batalha;
+    if (!bn) return `<tr><td><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--bic-dark);color:#fff">${meta.badge}</span> ${meta.label}</td><td colspan="4" style="color:var(--text-muted);font-size:12px">sem dados</td></tr>`;
+    if (bn.error) return `<tr><td><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--bic-dark);color:#fff">${meta.badge}</span> ${meta.label}</td><td colspan="4" style="color:var(--text-muted);font-size:12px">erro</td></tr>`;
+
+    const mkNum = (val, cls, list, label) => {
+      if (!val) return `<span class="dash-bn-num zero">0</span>`;
+      const items = (list || []).map(n => `<div class="dash-bn-dropdown-item" title="${n}">${n}</div>`).join('') || `<div class="dash-bn-dropdown-empty">nenhuma</div>`;
+      return `<div style="position:relative;display:inline-block">
+        <span class="dash-bn-num ${cls}" data-list="${cls}">${val} <span style="font-size:10px">▾</span></span>
+        <div class="dash-bn-dropdown">
+          <div style="padding:6px 12px 4px;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">${label} — ${meta.label}</div>
+          ${items}
+        </div>
+      </div>`;
+    };
+
+    return `<tr>
+      <td><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--bic-dark);color:#fff">${meta.badge}</span> ${meta.label}</td>
+      <td><span class="dash-bn-total">${bn.total || 0}</span></td>
+      <td>${mkNum(bn.gaps,      'gap',    bn.gapsList,     'Gaps')}</td>
+      <td>${mkNum(bn.atrasos,   'atraso', bn.atrasosList,  'Atrasos')}</td>
+      <td>${mkNum(bn.semVendas, 'nosale', bn.semVendasList,'Sem vendas')}</td>
+    </tr>`;
+  }).join('');
+
+  return `<table class="dash-bn-table">
+    <thead>
+      <tr>
+        <th>Indústria</th>
+        <th>Total distrib.</th>
+        <th>Gaps (≥4d)</th>
+        <th>Atrasos (≥4d)</th>
+        <th>Sem vendas</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function _renderHistAccordion(tenant, hist) {
+  const meta = TENANT_META[tenant] || { label: tenant, badge: tenant.toUpperCase() };
+
+  let bodyContent = '';
+  let countLabel = '';
+
+  if (!hist) {
+    bodyContent = `<div class="dash-hist-error">Sem dados disponíveis.</div>`;
+    countLabel = '';
+  } else if (hist.error) {
+    bodyContent = `<div class="dash-hist-error">Erro: ${hist.error}</div>`;
+    countLabel = '';
+  } else if (!hist.sem2024 || hist.sem2024.length === 0) {
+    bodyContent = `<div class="dash-hist-empty">✓ Todas as distribuidoras têm histórico 2024+</div>`;
+    countLabel = '';
+  } else {
+    const count = hist.sem2024.length;
+    countLabel = `<span class="dash-hist-count">${count} sem histórico</span>`;
+    bodyContent = `<div class="dash-hist-list">
+      ${hist.sem2024.map(name => `<div class="dash-hist-item">${name}</div>`).join('')}
+    </div>`;
+  }
+
+  return `<div class="dash-hist-tenant">
+    <div class="dash-hist-header">
+      <span class="dash-hist-badge">${meta.badge}</span>
+      <span style="font-size:13px;font-weight:500">${meta.label}</span>
+      ${countLabel}
+      <span class="dash-hist-arrow">▶</span>
+    </div>
+    <div class="dash-hist-body">${bodyContent}</div>
+  </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -3205,7 +3547,10 @@ function navigateTo(mod) {
   document.getElementById('topbar-sub').textContent = '';
   window.location.hash = mod;
 
-  if (mod === 'comparativo') {
+  if (mod === 'dashboard') {
+    document.getElementById('topbar-title').textContent = 'Visão Geral';
+    renderDashboard();
+  } else if (mod === 'comparativo') {
     document.getElementById('topbar-title').textContent = 'Comparativo de Sellout';
     renderComparativo();
   } else if (mod === 'inatividade') {
@@ -5829,7 +6174,7 @@ async function init() {
     if (hashMod && hashMod !== 'comparativo') {
       navigateTo(hashMod);
     } else {
-      renderComparativo();
+      navigateTo('dashboard');
     }
   } catch (e) {
     document.getElementById('last-update-badge').textContent = 'Erro';
@@ -7202,20 +7547,20 @@ function escHtml(str) {
 let currentTenant = 'bic';
 
 const TENANT_CONFIG = {
-  asa:       { label: 'Asa',              badge: 'ASA', subtitle: 'Asa',             modules: ['comparativo','batalha','historico'] },
-  bic:       { label: 'BIC',              badge: 'BIC', subtitle: 'Portal Sellout',  modules: ['comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','usuarios','ranking','evolucao'] },
-  bombril:   { label: 'Bombril',          badge: 'BOM', subtitle: 'Bombril',         modules: ['comparativo','batalha','historico'] },
-  cicopal:   { label: 'Cicopal',          badge: 'CIC', subtitle: 'Cicopal',         modules: ['comparativo','batalha','historico'] },
-  fini:      { label: 'Fini',             badge: 'FIN', subtitle: 'Fini',            modules: ['comparativo','batalha','historico'] },
-  fruki:     { label: 'Fruki',            badge: 'FRK', subtitle: 'Fruki',           modules: ['comparativo','batalha','historico'] },
-  gallo:     { label: 'Gallo',            badge: 'GAL', subtitle: 'Gallo',           modules: ['comparativo','batalha','historico'] },
-  gtex:      { label: 'Gtex',             badge: 'GTX', subtitle: 'Gtex',            modules: ['comparativo','batalha','historico'] },
-  kibon:     { label: 'Kibon',            badge: 'KBN', subtitle: 'Kibon',           modules: ['comparativo','batalha','historico'] },
-  peccin:    { label: 'Peccin',           badge: 'PCC', subtitle: 'Peccin',          modules: ['comparativo','batalha','historico'] },
-  pepsico:   { label: 'Pepsico',          badge: 'PEP', subtitle: 'Pepsico',         modules: ['comparativo','batalha','historico'] },
-  mdias:     { label: 'M Dias',           badge: 'MD',  subtitle: 'M Dias Branco',   modules: ['comparativo','batalha','historico'] },
-  mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS', subtitle: 'M Dias Saudáveis',modules: ['comparativo','batalha','historico'] },
-  marilan:   { label: 'Marilan',          badge: 'MRL', subtitle: 'Marilan',         modules: ['comparativo','batalha','historico'] },
+  asa:       { label: 'Asa',              badge: 'ASA', subtitle: 'Asa',             modules: ['dashboard','comparativo','batalha','historico'] },
+  bic:       { label: 'BIC',              badge: 'BIC', subtitle: 'Portal Sellout',  modules: ['dashboard','comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','usuarios','ranking','evolucao'] },
+  bombril:   { label: 'Bombril',          badge: 'BOM', subtitle: 'Bombril',         modules: ['dashboard','comparativo','batalha','historico'] },
+  cicopal:   { label: 'Cicopal',          badge: 'CIC', subtitle: 'Cicopal',         modules: ['dashboard','comparativo','batalha','historico'] },
+  fini:      { label: 'Fini',             badge: 'FIN', subtitle: 'Fini',            modules: ['dashboard','comparativo','batalha','historico'] },
+  fruki:     { label: 'Fruki',            badge: 'FRK', subtitle: 'Fruki',           modules: ['dashboard','comparativo','batalha','historico'] },
+  gallo:     { label: 'Gallo',            badge: 'GAL', subtitle: 'Gallo',           modules: ['dashboard','comparativo','batalha','historico'] },
+  gtex:      { label: 'Gtex',             badge: 'GTX', subtitle: 'Gtex',            modules: ['dashboard','comparativo','batalha','historico'] },
+  kibon:     { label: 'Kibon',            badge: 'KBN', subtitle: 'Kibon',           modules: ['dashboard','comparativo','batalha','historico'] },
+  peccin:    { label: 'Peccin',           badge: 'PCC', subtitle: 'Peccin',          modules: ['dashboard','comparativo','batalha','historico'] },
+  pepsico:   { label: 'Pepsico',          badge: 'PEP', subtitle: 'Pepsico',         modules: ['dashboard','comparativo','batalha','historico'] },
+  mdias:     { label: 'M Dias',           badge: 'MD',  subtitle: 'M Dias Branco',   modules: ['dashboard','comparativo','batalha','historico'] },
+  mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS', subtitle: 'M Dias Saudáveis',modules: ['dashboard','comparativo','batalha','historico'] },
+  marilan:   { label: 'Marilan',          badge: 'MRL', subtitle: 'Marilan',         modules: ['dashboard','comparativo','batalha','historico'] },
 };
 
 function applyTenantNav() {

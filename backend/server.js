@@ -1879,6 +1879,247 @@ app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) 
   res.end();
 });
 
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+const DASHBOARD_TENANTS = ['bic','asa','bombril','cicopal','fini','fruki','gallo','gtex','kibon','peccin','pepsico','mdias','mdiassaud','marilan'];
+const DASHBOARD_NO_HOLDING = new Set(['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico']);
+
+// In-memory cache: evita múltiplas chamadas ao Drive em sequência rápida
+let _dashCache = null;
+let _dashCacheTs = 0;
+const DASH_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+async function dashDownloadParse(fileId, { sheetName = null, normalize = true } = {}) {
+  const drive = getDriveClient(true);
+  const resp = await drive.files.get(
+    { fileId, alt: 'media', supportsAllDrives: true },
+    { responseType: 'arraybuffer' }
+  );
+  const wb = XLSX.read(resp.data, { type: 'array' });
+  const ws = sheetName
+    ? (wb.Sheets[sheetName] || wb.Sheets[wb.SheetNames[0]])
+    : wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
+  return normalize ? raw.map(normalizeRow) : raw;
+}
+
+function dashCompareAnomalies(prevRows, currRows, noHolding) {
+  const keyFn = row => noHolding
+    ? (row.customer || '').trim()
+    : (row.holding || row.customer || '').trim();
+
+  const groupKeys = rows => {
+    const map = {};
+    for (const row of rows) {
+      const mes = String(row.anoMes || '').trim();
+      const k = keyFn(row);
+      if (!mes || !k) continue;
+      if (!map[mes]) map[mes] = new Set();
+      map[mes].add(k);
+    }
+    return map;
+  };
+
+  const prev = groupKeys(prevRows);
+  const curr = groupKeys(currRows);
+  const gone = new Set(), newH = new Set(), monthsRemoved = [];
+
+  for (const mes of Object.keys(prev)) {
+    if (!curr[mes]) {
+      monthsRemoved.push({ mes, count: prev[mes].size });
+    } else {
+      for (const k of prev[mes]) if (!curr[mes].has(k)) gone.add(k);
+      for (const k of curr[mes]) if (!prev[mes].has(k)) newH.add(k);
+    }
+  }
+  for (const mes of Object.keys(curr)) {
+    if (!prev[mes]) for (const k of curr[mes]) newH.add(k);
+  }
+
+  return {
+    gone: [...gone],
+    newH: [...newH],
+    monthsRemoved,
+    anomalyCount: gone.size + newH.size + monthsRemoved.length,
+  };
+}
+
+function dashBnAlerts(rows, todayDay, mesStr) {
+  const rowsFilt = rows.filter(r => r.VENDA_DATA && String(r.VENDA_DATA).slice(0, 7) === mesStr);
+  const idx = {};
+  const partners = new Set();
+  for (const r of rowsFilt) {
+    const name = r.PARTNER_NAME || '';
+    if (!name) continue;
+    partners.add(name);
+    const dia = Number(String(r.VENDA_DATA || '').slice(8, 10));
+    if (!dia) continue;
+    const key = name + '||' + dia;
+    idx[key] = (idx[key] || 0) + Number(r.VENDA_VALOR_BRUTO || r.VENDA_VALOR || 0);
+  }
+
+  const BN_GAP = 4;
+  const gapsList = [], atrasosList = [], semVendasList = [];
+
+  for (const p of partners) {
+    const saleDays = new Set();
+    for (let d = 1; d <= todayDay; d++) {
+      const key = p + '||' + d;
+      if ((key in idx) && idx[key] !== 0) saleDays.add(d);
+    }
+    const noSale = saleDays.size === 0;
+    if (noSale) { semVendasList.push(p); continue; }
+
+    let gapStart = null, lastSaleDay = 0;
+    let maxMidGap = 0;
+    for (let d = 1; d <= todayDay; d++) {
+      if (saleDays.has(d)) {
+        if (gapStart !== null) maxMidGap = Math.max(maxMidGap, d - gapStart);
+        gapStart = null;
+        lastSaleDay = d;
+      } else {
+        if (gapStart === null) gapStart = d;
+      }
+    }
+    const atraso = lastSaleDay > 0 ? todayDay - lastSaleDay : todayDay;
+    if (maxMidGap >= BN_GAP) gapsList.push(p);
+    if (atraso >= BN_GAP) atrasosList.push(p);
+  }
+
+  gapsList.sort(); atrasosList.sort(); semVendasList.sort();
+
+  return {
+    total: partners.size,
+    gaps: gapsList.length,
+    atrasos: atrasosList.length,
+    semVendas: semVendasList.length,
+    gapsList,
+    atrasosList,
+    semVendasList,
+  };
+}
+
+function dashHistoricoSem2024(rows) {
+  const byCustomer = {};
+  for (const row of rows) {
+    const name = (row.customer || row.holding || '').trim();
+    const anoMes = String(row.anoMes || '').trim().replace('-', '');
+    if (!name || !anoMes) continue;
+    if (!(name in byCustomer)) byCustomer[name] = false;
+    if (parseInt(anoMes.substring(0, 4)) >= 2024) byCustomer[name] = true;
+  }
+  return Object.entries(byCustomer)
+    .filter(([, has]) => !has)
+    .map(([name]) => name)
+    .sort();
+}
+
+async function dashLoadTenant(tenant) {
+  const noHolding = DASHBOARD_NO_HOLDING.has(tenant);
+  const folders = getTenantFolders(tenant);
+  const drive = getDriveClient(true);
+  const result = { comparativo: null, batalha: null, historico: null };
+
+  const listFiles = async (folderId, extra = '') => {
+    const r = await drive.files.list({
+      q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false${extra}`,
+      fields: 'files(id, name, createdTime)',
+      orderBy: 'name desc',
+      pageSize: 10,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+    });
+    return r.data.files || [];
+  };
+
+  // ── Comparativo ──
+  try {
+    const all = await listFiles(folders.comparativo);
+    const files = all
+      .filter(f => !/historico/i.test(f.name) && extractDateFromName(f.name))
+      .sort((a, b) => {
+        const da = extractDateFromName(a.name).iso;
+        const db = extractDateFromName(b.name).iso;
+        return db < da ? -1 : db > da ? 1 : 0;
+      });
+
+    if (files.length >= 2) {
+      const [curr, prev] = files;
+      const [currRows, prevRows] = await Promise.all([
+        dashDownloadParse(curr.id),
+        dashDownloadParse(prev.id),
+      ]);
+      result.comparativo = {
+        ...dashCompareAnomalies(prevRows, currRows, noHolding),
+        currDate: extractDateFromName(curr.name)?.formatted,
+        prevDate: extractDateFromName(prev.name)?.formatted,
+        sameFile: curr.id === prev.id,
+      };
+    } else if (files.length === 1) {
+      result.comparativo = { onlyOne: true, anomalyCount: 0, gone: [], newH: [], monthsRemoved: [] };
+    } else {
+      result.comparativo = { noFiles: true, anomalyCount: 0, gone: [], newH: [], monthsRemoved: [] };
+    }
+  } catch (e) {
+    result.comparativo = { error: e.message, anomalyCount: 0 };
+  }
+
+  // ── Batalha Naval ──
+  try {
+    if (!folders.batalha) throw new Error('Folder não configurado');
+    const files = await listFiles(folders.batalha);
+    if (!files.length) throw new Error('Sem arquivo');
+    const rows = await dashDownloadParse(files[0].id, { sheetName: 'Dados', normalize: false });
+    const hoje = new Date();
+    const mesStr = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+    result.batalha = {
+      ...dashBnAlerts(rows, hoje.getDate(), mesStr),
+      fileDate: files[0].createdTime
+        ? new Date(files[0].createdTime).toLocaleDateString('pt-BR')
+        : null,
+    };
+  } catch (e) {
+    result.batalha = { error: e.message };
+  }
+
+  // ── Histórico ──
+  try {
+    if (!folders.historico) throw new Error('Folder não configurado');
+    const files = await listFiles(folders.historico);
+    if (!files.length) throw new Error('Sem arquivo');
+    const rows = await dashDownloadParse(files[0].id, { sheetName: 'Histórico' });
+    result.historico = { sem2024: dashHistoricoSem2024(rows) };
+  } catch (e) {
+    result.historico = { error: e.message };
+  }
+
+  return result;
+}
+
+app.get('/api/dashboard', requireAuth, async (req, res) => {
+  const force = req.query.force === '1';
+  if (!force && _dashCache && (Date.now() - _dashCacheTs) < DASH_CACHE_TTL) {
+    return res.json(_dashCache);
+  }
+  try {
+    const settled = await Promise.allSettled(
+      DASHBOARD_TENANTS.map(t => dashLoadTenant(t))
+    );
+    const data = {};
+    settled.forEach((r, i) => {
+      data[DASHBOARD_TENANTS[i]] = r.status === 'fulfilled'
+        ? r.value
+        : { comparativo: { error: r.reason?.message, anomalyCount: 0 }, batalha: { error: r.reason?.message }, historico: { error: r.reason?.message } };
+    });
+    const payload = { data, ts: new Date().toISOString() };
+    _dashCache = payload;
+    _dashCacheTs = Date.now();
+    res.json(payload);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // SPA fallback — qualquer rota desconhecida serve o index.html (requer auth)
 app.get('*', (req, res) => {
   const token = req.cookies?.token;

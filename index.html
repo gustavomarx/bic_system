@@ -5206,11 +5206,11 @@ function batalhaExportarCSV() {
  * @returns {{ midGaps, maxMidGap, atraso, atrasoStart, atrasoEnd, lastSaleDay, noSale }}
  */
 function bnComputeAlertas(p, idx, diasNoMes, todayDay) {
-  // Dias com venda real (valor > 0) dentro do mês até todayDay
+  // Dias com movimentação (venda ou devolução — qualquer valor != 0) até todayDay
   const saleDays = new Set();
   for (let d = 1; d <= todayDay; d++) {
     const key = p + '||' + d;
-    if ((key in idx) && idx[key] > 0) saleDays.add(d);
+    if ((key in idx) && idx[key] !== 0) saleDays.add(d);
   }
 
   const noSale = saleDays.size === 0;

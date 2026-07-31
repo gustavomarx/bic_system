@@ -1945,17 +1945,20 @@ function dashCompareAnomalies(prevRows, currRows, noHolding) {
 }
 
 function dashBnAlerts(rows, todayDay, mesStr) {
-  const rowsFilt = rows.filter(r => r.VENDA_DATA && String(r.VENDA_DATA).slice(0, 7) === mesStr);
-  const idx = {};
+  // Partners: todos que aparecem no arquivo (qualquer mês) — sem vendas = sem linha no mês atual
   const partners = new Set();
-  for (const r of rowsFilt) {
+  const idx = {};
+  for (const r of rows) {
     const name = r.PARTNER_NAME || '';
     if (!name) continue;
     partners.add(name);
-    const dia = Number(String(r.VENDA_DATA || '').slice(8, 10));
-    if (!dia) continue;
-    const key = name + '||' + dia;
-    idx[key] = (idx[key] || 0) + Number(r.VENDA_VALOR_BRUTO || r.VENDA_VALOR || 0);
+    if (r.VENDA_DATA && String(r.VENDA_DATA).slice(0, 7) === mesStr) {
+      const dia = Number(String(r.VENDA_DATA).slice(8, 10));
+      if (dia) {
+        const key = name + '||' + dia;
+        idx[key] = (idx[key] || 0) + Number(r.VENDA_VALOR_BRUTO || r.VENDA_VALOR || 0);
+      }
+    }
   }
 
   const BN_GAP = 4;

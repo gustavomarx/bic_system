@@ -2074,70 +2074,72 @@
     .dash-section-title { font-size: 13px; font-weight: 600; color: var(--text-main); }
     .dash-section-sub { font-size: 11px; color: var(--text-muted); margin-left: auto; }
 
+    /* Scroll wrapper interno das seções */
+    .dash-scroll { overflow-y: auto; max-height: 360px; }
+
     /* Comparativo — table */
     .dash-comp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .dash-comp-table th { padding: 9px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fafafa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+    .dash-comp-table th { position: sticky; top: 0; z-index: 2; padding: 9px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fafafa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
     .dash-comp-table td { padding: 10px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     .dash-comp-table tr:last-child td { border-bottom: none; }
     .dash-comp-table tr.expandable { cursor: pointer; }
     .dash-comp-table tr.expandable:hover td { background: #fafafa; }
+    .dash-comp-table tr.row-ok td { opacity: .55; }
+    .dash-comp-table tr.row-ok:hover td { opacity: 1; }
     .dash-comp-table tr.detail-row td { padding: 0; background: #fafbfc; }
-    .dash-comp-detail-inner { padding: 10px 16px 12px 52px; display: flex; flex-wrap: wrap; gap: 16px; }
-    .dash-comp-detail-group { display: flex; flex-direction: column; gap: 4px; }
-    .dash-comp-detail-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); }
-    .dash-comp-detail-names { font-size: 12px; color: var(--text-main); line-height: 1.6; }
+    .dash-comp-detail-inner { padding: 10px 16px 12px 48px; display: flex; flex-wrap: wrap; gap: 20px; }
+    .dash-comp-detail-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
+    .dash-comp-detail-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+    .dash-comp-detail-names { font-size: 12px; color: var(--text-main); line-height: 1.8; }
     .dash-comp-ok   { color: #16a34a; font-weight: 600; }
     .dash-comp-warn { color: #d97706; font-weight: 700; }
     .dash-comp-crit { color: #dc2626; font-weight: 700; }
-    .dash-comp-gray { color: #9ca3af; }
-    .dash-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
-    .dash-status-dot.ok   { background: #16a34a; }
-    .dash-status-dot.warn { background: #d97706; }
-    .dash-status-dot.crit { background: #dc2626; }
-    .dash-status-dot.gray { background: #9ca3af; }
-    .dash-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 10px; }
+    .dash-comp-gray { color: #c4c9d4; }
+    .dash-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
     .dash-tag.gone { background: #f3e8ff; color: #7c3aed; }
     .dash-tag.newh { background: #fef3c7; color: #92400e; }
     .dash-tag.rem  { background: #fee2e2; color: #991b1b; }
-    .dash-dates { font-size: 11px; color: var(--text-muted); }
-    .dash-arrow { font-size: 10px; color: #9ca3af; transition: transform .2s; display: inline-block; }
+    .dash-dates { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .dash-arrow { font-size: 10px; color: #9ca3af; transition: transform .2s; display: inline-block; margin-left: 4px; }
     tr.detail-open .dash-arrow { transform: rotate(90deg); }
 
     /* Batalha Naval */
     .dash-bn-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .dash-bn-table th { padding: 9px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fafafa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+    .dash-bn-table th { position: sticky; top: 0; z-index: 2; padding: 9px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fafafa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
     .dash-bn-table td { padding: 10px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     .dash-bn-table tr:last-child td { border-bottom: none; }
     .dash-bn-table tr:hover td { background: #fafafa; }
-    .dash-bn-num { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; padding: 3px 10px; border-radius: 6px; border: 1px solid transparent; transition: filter .1s; }
+    .dash-bn-num { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 700; padding: 4px 12px; border-radius: 6px; border: 1px solid transparent; transition: filter .1s; font-size: 13px; }
     .dash-bn-num:hover { filter: brightness(.92); }
     .dash-bn-num.gap    { background: #fef9c3; color: #854d0e; border-color: #fde047; }
     .dash-bn-num.atraso { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
     .dash-bn-num.nosale { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
-    .dash-bn-num.zero   { color: #d1d5db; cursor: default; font-weight: 400; }
-    .dash-bn-dropdown { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 50; background: #fff; border: 1px solid var(--bic-border); border-radius: 8px; padding: 6px 0; max-height: 220px; overflow-y: auto; box-shadow: 0 6px 20px rgba(0,0,0,.1); min-width: 240px; }
+    .dash-bn-num.zero   { color: #d1d5db; cursor: default; font-weight: 400; font-size: 12px; }
+    .dash-bn-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 100; background: #fff; border: 1px solid var(--bic-border); border-radius: 10px; padding: 0; max-height: 280px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 280px; }
     .dash-bn-dropdown.open { display: block; }
-    .dash-bn-dd-header { padding: 5px 12px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); border-bottom: 1px solid #f3f4f6; }
-    .dash-bn-dd-item { padding: 6px 12px; font-size: 12px; color: var(--text-main); }
+    .dash-bn-dd-header { position: sticky; top: 0; padding: 10px 14px 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); border-bottom: 2px solid #f3f4f6; background: #fff; display: flex; align-items: center; justify-content: space-between; }
+    .dash-bn-dd-item { padding: 8px 14px; font-size: 13px; color: var(--text-main); border-bottom: 1px solid #f9fafb; line-height: 1.3; }
+    .dash-bn-dd-item:last-child { border-bottom: none; }
     .dash-bn-dd-item:hover { background: #f3f4f6; }
-    .dash-bn-dd-empty { padding: 8px 12px; font-size: 12px; color: var(--text-muted); font-style: italic; }
+    .dash-bn-dd-empty { padding: 12px 14px; font-size: 13px; color: var(--text-muted); font-style: italic; }
 
     /* Histórico */
     .dash-hist-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px; }
     .dash-hist-card { border: 1px solid var(--bic-border); border-radius: 8px; overflow: hidden; }
-    .dash-hist-hdr { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; background: #fafafa; user-select: none; transition: background .1s; }
+    .dash-hist-hdr { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; background: #fafafa; user-select: none; transition: background .1s; }
     .dash-hist-hdr:hover { background: #f3f4f6; }
     .dash-hist-hdr .bic-badge { font-size: 9px; }
-    .dash-hist-name { font-size: 12px; font-weight: 500; }
-    .dash-hist-cnt { margin-left: auto; font-size: 11px; font-weight: 700; color: #dc2626; background: #fee2e2; padding: 1px 7px; border-radius: 10px; }
-    .dash-hist-ok-cnt { margin-left: auto; font-size: 11px; color: #16a34a; }
+    .dash-hist-name { font-size: 13px; font-weight: 500; }
+    .dash-hist-cnt { margin-left: auto; font-size: 11px; font-weight: 700; color: #dc2626; background: #fee2e2; padding: 2px 8px; border-radius: 10px; }
+    .dash-hist-ok-cnt { margin-left: auto; font-size: 11px; color: #16a34a; font-weight: 600; }
     .dash-hist-chevron { font-size: 10px; color: #9ca3af; transition: transform .2s; }
     .dash-hist-card.open .dash-hist-chevron { transform: rotate(90deg); }
-    .dash-hist-body { display: none; border-top: 1px solid var(--bic-border); padding: 8px 12px; max-height: 200px; overflow-y: auto; }
+    .dash-hist-body { display: none; border-top: 1px solid var(--bic-border); padding: 6px 12px 10px; max-height: 220px; overflow-y: auto; }
     .dash-hist-card.open .dash-hist-body { display: block; }
-    .dash-hist-item { font-size: 12px; padding: 4px 0; color: var(--text-main); border-bottom: 1px solid #f3f4f6; }
+    .dash-hist-item { font-size: 12px; padding: 5px 0; color: var(--text-main); border-bottom: 1px solid #f3f4f6; display: flex; align-items: flex-start; gap: 6px; }
+    .dash-hist-item::before { content: '·'; color: #dc2626; font-size: 16px; line-height: 1.1; flex-shrink: 0; }
     .dash-hist-item:last-child { border-bottom: none; }
-    .dash-hist-all-ok { font-size: 12px; color: #16a34a; font-style: italic; padding: 4px 0; }
+    .dash-hist-all-ok { font-size: 12px; color: #16a34a; font-style: italic; padding: 6px 0; }
     .dash-hist-err { font-size: 12px; color: var(--text-muted); font-style: italic; }
 
   </style>
@@ -2707,19 +2709,27 @@ function _renderDashContent(wrap) {
       <div class="dash-section-header">
         <span>📊</span>
         <span class="dash-section-title">Comparativo de Sellout — Anomalias por Indústria</span>
-        <span class="dash-section-sub">Clique na linha para ver detalhes</span>
+        <span class="dash-section-sub">Ordenado por anomalias · clique na linha para ver os nomes</span>
       </div>
-      <table class="dash-comp-table">
-        <thead><tr>
-          <th>Indústria</th>
-          <th>Período comparado</th>
-          <th>Saíram</th>
-          <th>Entraram</th>
-          <th>Meses removidos</th>
-          <th>Status</th>
-        </tr></thead>
-        <tbody>${DASH_TENANT_ORDER.map(t => _renderCompRow(t, data[t]?.comparativo)).join('')}</tbody>
-      </table>
+      <div class="dash-scroll">
+        <table class="dash-comp-table">
+          <thead><tr>
+            <th>Indústria</th>
+            <th>Período</th>
+            <th>Saíram</th>
+            <th>Entraram</th>
+            <th>Meses removidos</th>
+            <th>Status</th>
+          </tr></thead>
+          <tbody>${[...DASH_TENANT_ORDER]
+            .sort((a,b) => {
+              const sa = data[a]?.comparativo?.anomalyCount || 0;
+              const sb = data[b]?.comparativo?.anomalyCount || 0;
+              return sb - sa;
+            })
+            .map(t => _renderCompRow(t, data[t]?.comparativo)).join('')}</tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Batalha Naval -->
@@ -2727,9 +2737,11 @@ function _renderDashContent(wrap) {
       <div class="dash-section-header">
         <span>🎯</span>
         <span class="dash-section-title">Batalha Naval — Alertas do Mês Atual</span>
-        <span class="dash-section-sub">Clique nos números para ver as distribuidoras</span>
+        <span class="dash-section-sub">Ordenado por alertas · clique nos números para ver as distribuidoras</span>
       </div>
-      ${_renderBnTable(data)}
+      <div class="dash-scroll">
+        ${_renderBnTable(data)}
+      </div>
     </div>
 
     <!-- Histórico -->
@@ -2737,10 +2749,18 @@ function _renderDashContent(wrap) {
       <div class="dash-section-header">
         <span>📅</span>
         <span class="dash-section-title">Distribuidoras sem Histórico 2024+</span>
-        <span class="dash-section-sub">Sem registros a partir de 2024 no histórico de vendas · clique para expandir</span>
+        <span class="dash-section-sub">Sem registros a partir de 2024 · clique no card para expandir</span>
       </div>
-      <div class="dash-hist-grid">
-        ${DASH_TENANT_ORDER.map(t => _renderHistCard(t, data[t]?.historico)).join('')}
+      <div class="dash-scroll" style="max-height:420px">
+        <div class="dash-hist-grid">
+          ${[...DASH_TENANT_ORDER]
+            .sort((a,b) => {
+              const sa = data[a]?.historico?.sem2024?.length || 0;
+              const sb = data[b]?.historico?.sem2024?.length || 0;
+              return sb - sa;
+            })
+            .map(t => _renderHistCard(t, data[t]?.historico)).join('')}
+        </div>
       </div>
     </div>
   `;
@@ -2801,8 +2821,9 @@ function _renderCompRow(tenant, comp) {
   const statusTxt = n === 0 ? '<span class="dash-comp-ok">✓ OK</span>' : `<span class="${nCls}">${n} anomalia${n !== 1 ? 's' : ''}</span>`;
   const hasDetail = goneN > 0 || newN > 0 || remN > 0;
 
-  const mainRow = `<tr class="${hasDetail ? 'expandable' : ''}" data-tenant="${tenant}">
-    <td>${_mkBadge(meta.badge)} ${meta.label} ${hasDetail ? `<span class="dash-arrow" style="margin-left:4px">▶</span>` : ''}</td>
+  const rowCls = [hasDetail ? 'expandable' : '', n === 0 ? 'row-ok' : ''].filter(Boolean).join(' ');
+  const mainRow = `<tr class="${rowCls}" data-tenant="${tenant}">
+    <td>${_mkBadge(meta.badge)} ${meta.label}${hasDetail ? `<span class="dash-arrow">▶</span>` : ''}</td>
     <td class="dash-dates">${periodo}</td>
     <td>${goneN > 0 ? `<span class="dash-tag gone">${goneN} saíram</span>` : '<span class="dash-comp-gray">—</span>'}</td>
     <td>${newN  > 0 ? `<span class="dash-tag newh">${newN} novos</span>`  : '<span class="dash-comp-gray">—</span>'}</td>
@@ -2829,17 +2850,28 @@ function _renderCompRow(tenant, comp) {
 function _renderBnTable(data) {
   const mkNum = (val, cls, list, label, tenantLabel) => {
     if (!val) return `<span class="dash-bn-num zero">—</span>`;
-    const items = (list || []).map(n => `<div class="dash-bn-dd-item">${n}</div>`).join('') || `<div class="dash-bn-dd-empty">nenhuma</div>`;
+    const count = list?.length || val;
+    const items = (list || []).map(n => `<div class="dash-bn-dd-item">${n}</div>`).join('') || `<div class="dash-bn-dd-empty">Nenhuma distribuidora</div>`;
     return `<div style="position:relative;display:inline-block">
       <span class="dash-bn-num ${cls}">${val} ▾</span>
       <div class="dash-bn-dropdown">
-        <div class="dash-bn-dd-header">${label} — ${tenantLabel}</div>
+        <div class="dash-bn-dd-header">
+          <span>${label} — ${tenantLabel}</span>
+          <span style="background:#f3f4f6;padding:1px 7px;border-radius:8px;font-size:10px">${count}</span>
+        </div>
         ${items}
       </div>
     </div>`;
   };
 
-  const rows = DASH_TENANT_ORDER.map(t => {
+  const sorted = [...DASH_TENANT_ORDER].sort((a, b) => {
+    const ba = data[a]?.batalha, bb = data[b]?.batalha;
+    const sa = ba && !ba.error ? (ba.gaps||0) + (ba.atrasos||0) + (ba.semVendas||0) : -1;
+    const sb = bb && !bb.error ? (bb.gaps||0) + (bb.atrasos||0) + (bb.semVendas||0) : -1;
+    return sb - sa;
+  });
+
+  const rows = sorted.map(t => {
     const meta = TENANT_META[t] || { label: t, badge: t.toUpperCase() };
     const bn = data[t]?.batalha;
     if (!bn || bn.error) {
@@ -2856,7 +2888,7 @@ function _renderBnTable(data) {
 
   return `<table class="dash-bn-table">
     <thead><tr>
-      <th>Indústria</th><th>Total distrib.</th>
+      <th>Indústria</th><th>Total</th>
       <th>Gaps ≥4d</th><th>Atrasos ≥4d</th><th>Sem vendas</th>
     </tr></thead>
     <tbody>${rows}</tbody>

@@ -138,7 +138,7 @@ Compara dois relatórios XLSX (anterior vs. atual) exibindo tendências de venda
 
 ### 2. Batalha Naval
 
-Grid de vendas por dia do mês. Linhas = distribuidoras, colunas = dias. Células coloridas: verde (> 0), vermelho (< 0), `—` (sem venda).
+Grid de vendas por dia do mês. Linhas = distribuidoras, colunas = dias. Células coloridas: verde (> 0), vermelho (< 0), `—` (sem movimentação).
 
 **APIs:**
 - `GET /api/batalha-naval-arquivos` → lista até 5 arquivos recentes no Drive
@@ -148,13 +148,32 @@ Grid de vendas por dia do mês. Linhas = distribuidoras, colunas = dias. Célula
 **Funcionalidades:**
 - Seletores: **Holding** (inclui "Todas") + **Mês/Ano**
 - Filtro de busca por distribuidora
-- Filtro de dias da semana (checkboxes Dom–Sáb)
+- Filtro de dias da semana (chips Dom–Sáb)
 - **Checkbox ✓ por distribuidora** — persistido em `localStorage` (`bn_checks`); botão "Desmarcar todos"
 - **Ordenação por coluna** — clique no cabeçalho ordena por nome, valor do dia ou status do check; segundo clique inverte; indicador ▲/▼
 - Export CSV com metadados, totais e filtros aplicados
 - Histórico de arquivos no Drive (dropdown)
 
-**`batalhaState`:** `{ rows, fileId, loaded, diasSemana, searchDistrib, sortCol, sortAsc }`
+**Alertas visuais (adicionado 2026-07-31):**
+
+| Condição | Linha | Células da janela |
+|---|---|---|
+| Gap ≥ 4 dias seguidos sem movimentação (mid-mês, retomou depois) | Fundo amarelo | Células do gap em amarelo forte |
+| Atraso ≥ 4 dias sem movimentação (trailing — sem retomada até hoje) | Fundo vermelho | Células do atraso em vermelho forte |
+| Sem nenhuma movimentação no mês | Fundo cinza + badge "sem vendas" | — |
+
+- **Movimentação** = qualquer valor ≠ 0 (venda positiva **ou** devolução negativa). Valor zero não quebra gap.
+- Mês atual: referência = dia de hoje. Meses passados: referência = último dia do mês.
+- Prioridade visual: cinza > vermelho > amarelo.
+- **Helper:** `bnComputeAlertas(p, idx, diasNoMes, todayDay)` → `{ midGaps, maxMidGap, atraso, atrasoStart, atrasoEnd, lastSaleDay, noSale }`
+
+**Chips de filtro (linha abaixo dos dias da semana):**
+- `Gap 4d` — exibe só orgs com gap mid-mês ≥ 4 dias consecutivos
+- `Atraso >3d` — exibe só orgs com trailing ≥ 4 dias sem movimentação
+- `Sem vendas` — exibe só orgs sem nenhuma movimentação no mês
+- `Sem cores` — toggle: oculta cores de alerta sem afetar filtros ativos
+
+**`batalhaState`:** `{ rows, fileId, loaded, diasSemana, searchDistrib, sortCol, sortAsc, filtroGap, filtroAtraso, filtroSemVendas, ocultarAlertas }`
 
 ---
 
@@ -244,13 +263,15 @@ Lista de usuários com três sub-abas.
 | `GET /api/email-massa/holdings` | Cruza sellout + usuários + coordenadores |
 | `GET /api/email-massa/debug` | Diagnóstico de matching |
 | `POST /api/email-massa/enviar` | SSE — 1 email por holding |
+| `POST /api/validacao-mensal/importar` | Parseia CSV/XLSX de fechamento; retorna dados sem persistir |
 
 **Comportamento do envio:**
 - `TO`: todos os emails dos distribuidores da holding
 - `CC`: coordenadores de vendas (automático) + emails avulsos
 - `BCC`: emails avulsos ocultos
-- Tag `{{holding}}` substituída pelo nome real em assunto e corpo
+- Tags dinâmicas substituídas no assunto e corpo: `{{holding}}`, `{{referencia}}`, `{{prazo}}`, `{{tabela_validacao}}`
 - Editor rich text (contenteditable) — preserva cola do Word/Docs/Outlook
+- Modo HTML raw (textarea) — usado para templates complexos; corpo lido do textarea quando em modo HTML
 
 **Credenciais Gmail** (Google Cloud project: `storied-key-493919-a7`):
 ```
@@ -258,6 +279,45 @@ GMAIL_CLIENT_ID=<ver .env ou Vercel>
 GMAIL_CLIENT_SECRET=<ver .env ou Vercel>
 ```
 Também configuradas nas **Env Vars do Vercel**.
+
+---
+
+#### Validação Mensal — Opt-in de Fechamento (adicionado 2026-07-28)
+
+Funcionalidade para envio de email com dados de fechamento por holding, permitindo que distribuidores validem seus números antes de confirmar na plataforma Sellers.
+
+**Fluxo:**
+1. Admin faz upload de CSV/XLSX com colunas: `HOLDING`, `Customer`, `Tipo de Operação`, `Venda Valor`
+2. Backend parseia e retorna os dados — **sem salvar em banco** (in-memory por sessão)
+3. Frontend armazena em `usuariosState.validacaoMensal` com prompt de mês de referência
+4. No modal de email, botão "📋 Template Validação Mensal" preenche corpo + assunto
+5. No envio, `validacaoLinhas` e `validacaoReferencia` passam no body do POST
+6. Backend injeta `{{tabela_validacao}}` por holding antes de enviar
+
+**Template de email:**
+- Estrutura: cabeçalho → tabela de dados → prazo → tutorial (PASSO 1–4)
+- Tabela agrupada por Customer com alternância de fundo; total líquido ao final
+- Valores formatados como BRL (`R$ X.XXX,XX`); negativos como `- R$ X.XXX,XX`
+- Tipos de operação normalizados: `VENDA→Venda`, `DEVOLUCAO→Devolução`, `TRANSFERENCIA→Transferência`, `BONIFICACAO→Bonificação`
+
+**Tags disponíveis no editor:**
+| Tag | Substituição |
+|-----|-------------|
+| `{{holding}}` | Nome da holding |
+| `{{referencia}}` | Mês de referência (ex: Julho/2026) |
+| `{{prazo}}` | Prazo configurável no modal (ex: 01/08/2026 até 06/08/2026) |
+| `{{tabela_validacao}}` | Tabela HTML com dados de fechamento da holding |
+
+**Campo Prazo:**
+- Auto-calculado: mês seguinte ao da referência (ex: ref=Julho/2026 → `01/08/2026 até 06/08/2026`)
+- Editável no modal; valor persistido em `_emPrazoEditado` entre aberturas
+- Resetado ao importar nova validação
+
+**Helpers backend:**
+- `parseBRLNum(str)` — detecta formato EN (`-859.59`) vs BR (`1.234,56`) antes de parsear
+- `formatBRL(str)` — formata como moeda BRL
+- `tipoLabel(tipo)` — mapeia UPPERCASE para labels PT-BR com acentos
+- `buildValidacaoTable(linhas, holdingName, referencia)` — gera HTML da tabela por holding
 
 ---
 

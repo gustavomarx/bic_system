@@ -1746,49 +1746,67 @@ function buildValidacaoTable(linhas, holdingName, referencia) {
   if (!rows.length) return '';
 
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const customers = [...new Set(rows.map(l => l.customer))];
+  const fmtVal = num => {
+    const abs = Math.abs(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return num < 0 ? `- R$ ${abs}` : `R$ ${abs}`;
+  };
+
+  // Customers e tipos ordenados alfabeticamente
+  const customers = [...new Set(rows.map(l => l.customer))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
   let html = '';
   let altBg = false;
 
   for (const cust of customers) {
-    const custRows = rows.filter(r => r.customer === cust);
-    const bg = altBg ? '#f8fafc' : '#ffffff';
+    const custRows = rows
+      .filter(r => r.customer === cust)
+      .sort((a, b) => tipoLabel(a.tipoOperacao).localeCompare(tipoLabel(b.tipoOperacao), 'pt-BR'));
+
+    const custTotal = custRows.reduce((s, r) => s + parseBRLNum(r.vendaValor), 0);
+    const bg        = altBg ? '#f8fafc' : '#ffffff';
+    const bgSub     = altBg ? '#edf2f7' : '#f1f5f9';
+
     custRows.forEach((row, i) => {
-      const valorFmt = formatBRL(row.vendaValor);
-      const isNeg    = valorFmt.startsWith('(') || valorFmt.startsWith('-');
-      const color    = isNeg ? '#dc2626' : '#166534';
+      const num   = parseBRLNum(row.vendaValor);
+      const color = num < 0 ? '#dc2626' : '#166534';
       const custCell = i === 0
-        ? `<td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg};font-weight:500;vertical-align:top">${esc(cust)}</td>`
-        : `<td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg};color:#cbd5e1"></td>`;
+        ? `<td rowspan="${custRows.length + 1}" style="padding:10px 14px;border:1px solid #e2e8f0;border-right:3px solid #003B70;font-size:12px;font-weight:600;color:#1e293b;background:${bg};vertical-align:top;width:44%">${esc(cust)}</td>`
+        : '';
       html += `<tr>
         ${custCell}
-        <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg}">${esc(tipoLabel(row.tipoOperacao))}</td>
-        <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:12px;background:${bg};text-align:right;color:${color};font-weight:600">${esc(valorFmt)}</td>
+        <td style="padding:8px 14px;border:1px solid #e2e8f0;font-size:12px;color:#475569;background:${bg}">${esc(tipoLabel(row.tipoOperacao))}</td>
+        <td style="padding:8px 14px;border:1px solid #e2e8f0;font-size:12px;text-align:right;color:${color};background:${bg}">${esc(fmtVal(num))}</td>
       </tr>`;
     });
+
+    // Subtotal do customer
+    const subColor = custTotal < 0 ? '#dc2626' : '#166534';
+    html += `<tr>
+      <td style="padding:7px 14px;border:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#64748b;background:${bgSub};text-transform:uppercase;letter-spacing:.4px">Subtotal</td>
+      <td style="padding:7px 14px;border:1px solid #e2e8f0;font-size:12px;font-weight:700;text-align:right;color:${subColor};background:${bgSub}">${esc(fmtVal(custTotal))}</td>
+    </tr>`;
+
     altBg = !altBg;
   }
 
-  // Total líquido
-  const total    = rows.reduce((sum, r) => sum + parseBRLNum(r.vendaValor), 0);
-  const totalFmt = Math.abs(total).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const totalStr = total < 0 ? `- R$ ${totalFmt}` : `R$ ${totalFmt}`;
+  // Total líquido da holding
+  const total      = rows.reduce((s, r) => s + parseBRLNum(r.vendaValor), 0);
   const totalColor = total < 0 ? '#dc2626' : '#166534';
-  const totalRow = `<tr style="background:#f1f5f9">
-    <td colspan="2" style="padding:10px 12px;border:1px solid #e2e8f0;font-size:12px;font-weight:700;color:#1e293b">Total Líquido</td>
-    <td style="padding:10px 12px;border:1px solid #e2e8f0;font-size:13px;font-weight:700;text-align:right;color:${totalColor}">${esc(totalStr)}</td>
+  const totalRow   = `<tr style="background:#003B70">
+    <td colspan="2" style="padding:12px 14px;border:1px solid #002855;font-size:13px;font-weight:700;color:#ffffff">Total Líquido da Holding</td>
+    <td style="padding:12px 14px;border:1px solid #002855;font-size:14px;font-weight:700;text-align:right;color:${total < 0 ? '#fca5a5' : '#86efac'}">${esc(fmtVal(total))}</td>
   </tr>`;
 
   const refLabel = referencia ? ` — ${esc(referencia)}` : '';
   return `
-<h3 style="color:#003B70;margin-top:30px;margin-bottom:8px">📊 Dados de Fechamento${refLabel}</h3>
-<p style="font-size:13px;color:#555555;margin-bottom:12px">Abaixo estão os valores do seu fechamento mensal. Utilize-os como base para sua validação no Sellers BI:</p>
-<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px 0">
+<h3 style="color:#003B70;margin-top:30px;margin-bottom:6px;font-size:16px">📊 Dados de Fechamento${refLabel}</h3>
+<p style="font-size:13px;color:#555555;margin-bottom:14px">Abaixo estão os valores do seu fechamento mensal. Utilize-os como base para sua validação no Sellers BI:</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 24px 0;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">
   <thead>
     <tr style="background:#003B70">
-      <th style="padding:10px 12px;text-align:left;border:1px solid #002855;color:#ffffff;font-size:12px;font-weight:600">Customer</th>
-      <th style="padding:10px 12px;text-align:left;border:1px solid #002855;color:#ffffff;font-size:12px;font-weight:600">Tipo de Operação</th>
-      <th style="padding:10px 12px;text-align:right;border:1px solid #002855;color:#ffffff;font-size:12px;font-weight:600">Venda Valor</th>
+      <th style="padding:11px 14px;text-align:left;border-bottom:2px solid #002855;color:#ffffff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;width:44%">Customer</th>
+      <th style="padding:11px 14px;text-align:left;border-bottom:2px solid #002855;color:#ffffff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Tipo de Operação</th>
+      <th style="padding:11px 14px;text-align:right;border-bottom:2px solid #002855;color:#ffffff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Valor</th>
     </tr>
   </thead>
   <tbody>${html}${totalRow}</tbody>

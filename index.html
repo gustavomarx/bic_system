@@ -2074,73 +2074,55 @@
     .dash-section-title { font-size: 13px; font-weight: 600; color: var(--text-main); }
     .dash-section-sub { font-size: 11px; color: var(--text-muted); margin-left: auto; }
 
-    /* Scroll wrapper interno das seções */
-    .dash-scroll { overflow-y: auto; max-height: 360px; }
-
-    /* Comparativo — table */
-    .dash-comp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .dash-comp-table th { position: sticky; top: 0; z-index: 2; padding: 9px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fafafa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
-    .dash-comp-table td { padding: 10px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-    .dash-comp-table tr:last-child td { border-bottom: none; }
-    .dash-comp-table tr.expandable { cursor: pointer; }
-    .dash-comp-table tr.expandable:hover td { background: #fafafa; }
-    .dash-comp-table tr.row-ok td { opacity: .55; }
-    .dash-comp-table tr.row-ok:hover td { opacity: 1; }
-    .dash-comp-table tr.detail-row td { padding: 0; background: #fafbfc; }
-    .dash-comp-detail-inner { padding: 10px 16px 12px 48px; display: flex; flex-wrap: wrap; gap: 20px; }
-    .dash-comp-detail-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
-    .dash-comp-detail-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
-    .dash-comp-detail-names { font-size: 12px; color: var(--text-main); line-height: 1.8; }
-    .dash-comp-ok   { color: #16a34a; font-weight: 600; }
-    .dash-comp-warn { color: #d97706; font-weight: 700; }
-    .dash-comp-crit { color: #dc2626; font-weight: 700; }
-    .dash-comp-gray { color: #c4c9d4; }
-    .dash-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-    .dash-tag.gone { background: #f3e8ff; color: #7c3aed; }
-    .dash-tag.newh { background: #fef3c7; color: #92400e; }
-    .dash-tag.rem  { background: #fee2e2; color: #991b1b; }
-    .dash-dates { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
-    .dash-arrow { font-size: 10px; color: #9ca3af; transition: transform .2s; display: inline-block; margin-left: 4px; }
-    tr.detail-open .dash-arrow { transform: rotate(90deg); }
-
-    /* Batalha Naval */
-    .dash-bn-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .dash-bn-table th { position: sticky; top: 0; z-index: 2; padding: 9px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fafafa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
-    .dash-bn-table td { padding: 10px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-    .dash-bn-table tr:last-child td { border-bottom: none; }
-    .dash-bn-table tr:hover td { background: #fafafa; }
-    .dash-bn-num { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 700; padding: 4px 12px; border-radius: 6px; border: 1px solid transparent; transition: filter .1s; font-size: 13px; }
-    .dash-bn-num:hover { filter: brightness(.92); }
-    .dash-bn-num.gap    { background: #fef9c3; color: #854d0e; border-color: #fde047; }
-    .dash-bn-num.atraso { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-    .dash-bn-num.nosale { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
-    .dash-bn-num.zero   { color: #d1d5db; cursor: default; font-weight: 400; font-size: 12px; }
-    .dash-bn-dropdown { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 100; background: #fff; border: 1px solid var(--bic-border); border-radius: 10px; padding: 0; max-height: 280px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 280px; }
-    .dash-bn-dropdown.open { display: block; }
-    .dash-bn-dd-header { position: sticky; top: 0; padding: 10px 14px 8px; font-size: 11px; font-weight: 700; color: var(--text-muted); border-bottom: 2px solid #f3f4f6; background: #fff; display: flex; align-items: center; justify-content: space-between; }
-    .dash-bn-dd-item { padding: 8px 14px; font-size: 13px; color: var(--text-main); border-bottom: 1px solid #f9fafb; line-height: 1.3; }
-    .dash-bn-dd-item:last-child { border-bottom: none; }
-    .dash-bn-dd-item:hover { background: #f3f4f6; }
-    .dash-bn-dd-empty { padding: 12px 14px; font-size: 13px; color: var(--text-muted); font-style: italic; }
-
-    /* Histórico */
-    .dash-hist-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px; }
-    .dash-hist-card { border: 1px solid var(--bic-border); border-radius: 8px; overflow: hidden; }
-    .dash-hist-hdr { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; background: #fafafa; user-select: none; transition: background .1s; }
-    .dash-hist-hdr:hover { background: #f3f4f6; }
-    .dash-hist-hdr .bic-badge { font-size: 9px; }
-    .dash-hist-name { font-size: 13px; font-weight: 500; }
-    .dash-hist-cnt { margin-left: auto; font-size: 11px; font-weight: 700; color: #dc2626; background: #fee2e2; padding: 2px 8px; border-radius: 10px; }
-    .dash-hist-ok-cnt { margin-left: auto; font-size: 11px; color: #16a34a; font-weight: 600; }
-    .dash-hist-chevron { font-size: 10px; color: #9ca3af; transition: transform .2s; }
-    .dash-hist-card.open .dash-hist-chevron { transform: rotate(90deg); }
-    .dash-hist-body { display: none; border-top: 1px solid var(--bic-border); padding: 6px 12px 10px; max-height: 220px; overflow-y: auto; }
-    .dash-hist-card.open .dash-hist-body { display: block; }
-    .dash-hist-item { font-size: 12px; padding: 5px 0; color: var(--text-main); border-bottom: 1px solid #f3f4f6; display: flex; align-items: flex-start; gap: 6px; }
-    .dash-hist-item::before { content: '·'; color: #dc2626; font-size: 16px; line-height: 1.1; flex-shrink: 0; }
-    .dash-hist-item:last-child { border-bottom: none; }
-    .dash-hist-all-ok { font-size: 12px; color: #16a34a; font-style: italic; padding: 6px 0; }
-    .dash-hist-err { font-size: 12px; color: var(--text-muted); font-style: italic; }
+    /* Cards grid */
+    .dash-cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 0; }
+    .dash-icard { border: 1px solid var(--bic-border); border-radius: 10px; background: #fff; border-left-width: 4px; position: relative; }
+    .dash-icard.sev-ok   { border-left-color: #16a34a; }
+    .dash-icard.sev-warn { border-left-color: #d97706; }
+    .dash-icard.sev-crit { border-left-color: #dc2626; }
+    .dash-icard.sev-none { border-left-color: #d1d5db; }
+    .dash-icard-hdr { display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: #fafafa; border-bottom: 1px solid var(--bic-border); border-radius: 9px 9px 0 0; }
+    .dash-icard-name { font-size: 13px; font-weight: 600; flex: 1; }
+    .dash-icard-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 9px; }
+    .dash-icard-section { display: flex; flex-direction: column; gap: 4px; }
+    .dash-icard-slabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; }
+    .dash-icard-sval { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .dash-icard-divider { height: 1px; background: #f3f4f6; margin: 0; }
+    /* detail popup */
+    .dash-icard-detail { display: none; border-top: 1px solid var(--bic-border); background: #fafbfc; padding: 10px 14px; }
+    .dash-icard.expanded .dash-icard-detail { display: block; }
+    .dash-icard-toggle { font-size: 10px; color: #9ca3af; cursor: pointer; margin-left: auto; user-select: none; transition: transform .15s; display: inline-block; }
+    .dash-icard.expanded .dash-icard-toggle { transform: rotate(180deg); }
+    /* chips */
+    .dash-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; border: 1px solid transparent; cursor: default; }
+    .dash-chip.gap    { background: #fef9c3; color: #854d0e; border-color: #fde047; }
+    .dash-chip.atraso { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .dash-chip.nosale { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
+    .dash-chip.anom   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .dash-chip.hist   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .dash-chip.ok     { color: #16a34a; font-weight: 500; font-size: 12px; background: none; border: none; padding: 0; }
+    .dash-chip.clickable { cursor: pointer; }
+    .dash-chip.clickable:hover { filter: brightness(.92); }
+    /* dropdown */
+    .dash-dd-wrap { position: relative; display: inline-block; }
+    .dash-dd { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 200; background: #fff; border: 1px solid var(--bic-border); border-radius: 10px; min-width: 260px; max-height: 260px; overflow-y: auto; box-shadow: 0 8px 28px rgba(0,0,0,.13); }
+    .dash-dd.open { display: block; }
+    .dash-dd-hdr { position: sticky; top: 0; background: #fff; padding: 9px 14px 7px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #6b7280; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; }
+    .dash-dd-item { padding: 8px 14px; font-size: 13px; color: var(--text-main); border-bottom: 1px solid #f9fafb; }
+    .dash-dd-item:last-child { border-bottom: none; }
+    .dash-dd-item:hover { background: #f3f4f6; }
+    .dash-dd-empty { padding: 12px 14px; font-size: 13px; color: #9ca3af; font-style: italic; }
+    /* detail names */
+    .dash-detail-group { margin-bottom: 8px; }
+    .dash-detail-group:last-child { margin-bottom: 0; }
+    .dash-detail-glabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+    .dash-detail-label  { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+    .dash-detail-names { font-size: 12px; color: var(--text-main); line-height: 1.7; }
+    /* comparativo inline detail */
+    .dash-icard-comp-expand { background: none; border: none; color: #9ca3af; font-size: 11px; cursor: pointer; padding: 0 2px; line-height: 1; }
+    .dash-icard-comp-expand:hover { color: #374151; }
+    .dash-icard-comp-detail { display: none; margin-top: 8px; padding: 8px 10px; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .dash-icard-comp-detail.open { display: block; }
 
   </style>
 </head>
@@ -2677,14 +2659,25 @@ function _renderDashContent(wrap) {
     }
   }
 
+  // Sort tenants by severity score (worst first)
+  const sorted = [...DASH_TENANT_ORDER].sort((a, b) => {
+    const _score = t => {
+      const d = data[t];
+      if (!d) return -1;
+      const anom = (!d.comparativo?.error ? d.comparativo?.anomalyCount || 0 : 0);
+      const atr  = (!d.batalha?.error ? d.batalha?.atrasos   || 0 : 0);
+      const gap  = (!d.batalha?.error ? d.batalha?.gaps      || 0 : 0);
+      const sv   = (!d.batalha?.error ? d.batalha?.semVendas || 0 : 0);
+      return anom * 10 + atr * 3 + gap * 2 + sv;
+    };
+    return _score(b) - _score(a);
+  });
+
   wrap.innerHTML = `
-    <!-- Topbar -->
     <div class="dash-topbar">
       <span class="dash-ts">Atualizado em ${tsLabel}</span>
       <button class="dash-refresh-btn" onclick="_loadDashboard(true)">↻ Atualizar</button>
     </div>
-
-    <!-- KPIs -->
     <div class="dash-kpi-row">
       <div class="dash-kpi ${totalAnomalias > 0 ? 'kpi-red' : 'kpi-green'}">
         <div class="dash-kpi-num">${totalAnomalias}</div>
@@ -2703,100 +2696,36 @@ function _renderDashContent(wrap) {
         <div class="dash-kpi-label">Distribuidoras sem vendas</div>
       </div>
     </div>
-
-    <!-- Comparativo -->
-    <div class="dash-section">
-      <div class="dash-section-header">
-        <span>📊</span>
-        <span class="dash-section-title">Comparativo de Sellout — Anomalias por Indústria</span>
-        <span class="dash-section-sub">Ordenado por anomalias · clique na linha para ver os nomes</span>
-      </div>
-      <div class="dash-scroll">
-        <table class="dash-comp-table">
-          <thead><tr>
-            <th>Indústria</th>
-            <th>Período</th>
-            <th>Saíram</th>
-            <th>Entraram</th>
-            <th>Meses removidos</th>
-            <th>Status</th>
-          </tr></thead>
-          <tbody>${[...DASH_TENANT_ORDER]
-            .sort((a,b) => {
-              const sa = data[a]?.comparativo?.anomalyCount || 0;
-              const sb = data[b]?.comparativo?.anomalyCount || 0;
-              return sb - sa;
-            })
-            .map(t => _renderCompRow(t, data[t]?.comparativo)).join('')}</tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Batalha Naval -->
-    <div class="dash-section">
-      <div class="dash-section-header">
-        <span>🎯</span>
-        <span class="dash-section-title">Batalha Naval — Alertas do Mês Atual</span>
-        <span class="dash-section-sub">Ordenado por alertas · clique nos números para ver as distribuidoras</span>
-      </div>
-      <div class="dash-scroll">
-        ${_renderBnTable(data)}
-      </div>
-    </div>
-
-    <!-- Histórico -->
-    <div class="dash-section">
-      <div class="dash-section-header">
-        <span>📅</span>
-        <span class="dash-section-title">Distribuidoras sem Histórico 2024+</span>
-        <span class="dash-section-sub">Sem registros a partir de 2024 · clique no card para expandir</span>
-      </div>
-      <div class="dash-scroll" style="max-height:420px">
-        <div class="dash-hist-grid">
-          ${[...DASH_TENANT_ORDER]
-            .sort((a,b) => {
-              const sa = data[a]?.historico?.sem2024?.length || 0;
-              const sb = data[b]?.historico?.sem2024?.length || 0;
-              return sb - sa;
-            })
-            .map(t => _renderHistCard(t, data[t]?.historico)).join('')}
-        </div>
-      </div>
+    <div class="dash-cards-grid">
+      ${sorted.map(t => _renderIndustryCard(t, data[t])).join('')}
     </div>
   `;
 
-  // Comparativo row expand
-  wrap.querySelectorAll('tr.expandable').forEach(row => {
-    row.addEventListener('click', () => {
-      const id = row.dataset.tenant;
-      const detail = wrap.querySelector(`tr.detail-row[data-tenant="${id}"]`);
-      if (!detail) return;
-      const open = detail.style.display !== 'none';
-      detail.style.display = open ? 'none' : '';
-      row.classList.toggle('detail-open', !open);
+  // Comparativo detail toggles
+  wrap.querySelectorAll('.dash-icard-comp-expand').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card = btn.closest('.dash-icard');
+      card.querySelector('.dash-icard-comp-detail')?.classList.toggle('open');
+      btn.textContent = card.querySelector('.dash-icard-comp-detail')?.classList.contains('open') ? '▲' : '▼';
     });
   });
 
-  // BN dropdowns
-  wrap.querySelectorAll('.dash-bn-num:not(.zero)').forEach(btn => {
-    btn.addEventListener('click', e => {
+  // Chip dropdowns
+  wrap.querySelectorAll('.dash-chip.clickable').forEach(chip => {
+    chip.addEventListener('click', e => {
       e.stopPropagation();
-      const dd = btn.nextElementSibling;
-      if (!dd?.classList.contains('dash-bn-dropdown')) return;
-      wrap.querySelectorAll('.dash-bn-dropdown.open').forEach(el => { if (el !== dd) el.classList.remove('open'); });
+      const dd = chip.nextElementSibling;
+      if (!dd?.classList.contains('dash-dd')) return;
+      wrap.querySelectorAll('.dash-dd.open').forEach(el => { if (el !== dd) el.classList.remove('open'); });
       dd.classList.toggle('open');
     });
   });
-  document.addEventListener('click', function _ddClose(e) {
-    if (!wrap.contains(e.target)) {
-      wrap.querySelectorAll('.dash-bn-dropdown.open').forEach(el => el.classList.remove('open'));
-      document.removeEventListener('click', _ddClose);
-    }
-  });
 
-  // Hist accordion
-  wrap.querySelectorAll('.dash-hist-hdr').forEach(hdr => {
-    hdr.addEventListener('click', () => hdr.closest('.dash-hist-card').classList.toggle('open'));
+  // Close dropdowns on outside click
+  document.addEventListener('click', function _ddClose() {
+    wrap.querySelectorAll('.dash-dd.open').forEach(el => el.classList.remove('open'));
+    document.removeEventListener('click', _ddClose);
   });
 }
 
@@ -2804,120 +2733,111 @@ function _mkBadge(badge) {
   return `<span class="bic-badge" style="font-size:9px">${badge}</span>`;
 }
 
-function _renderCompRow(tenant, comp) {
+function _renderIndustryCard(tenant, d) {
   const meta = TENANT_META[tenant] || { label: tenant, badge: tenant.toUpperCase() };
+  const comp = d?.comparativo;
+  const bn   = d?.batalha;
+  const hist = d?.historico;
 
+  // Severity
+  const anom = (!comp?.error ? comp?.anomalyCount || 0 : 0);
+  const atr  = (!bn?.error   ? bn?.atrasos   || 0 : 0);
+  const gap  = (!bn?.error   ? bn?.gaps      || 0 : 0);
+  const sv   = (!bn?.error   ? bn?.semVendas || 0 : 0);
+  const sevCls = (anom > 0 || atr >= 5) ? 'sev-crit' : (gap > 0 || atr > 0 || sv > 0) ? 'sev-warn' : 'sev-ok';
+
+  // ── Comparativo section ──
+  let compHtml = '';
   if (!comp || comp.error) {
-    return `<tr><td>${_mkBadge(meta.badge)} ${meta.label}</td><td colspan="5" class="dash-comp-gray" style="font-size:12px">${comp?.error ? 'erro ao carregar' : 'sem dados'}</td></tr>`;
+    compHtml = `<span class="dash-chip" style="background:#f3f4f6;color:#6b7280">sem dados</span>`;
+  } else if (anom === 0) {
+    compHtml = `<span class="dash-chip ok">✓ OK</span>`;
+  } else {
+    const goneN = comp.gone?.length || 0;
+    const newN  = comp.newH?.length  || 0;
+    const remN  = comp.monthsRemoved?.length || 0;
+    const fmt   = arr => arr?.slice(0,6).join(', ') + (arr?.length > 6 ? ` +${arr.length - 6}` : '');
+    const detailParts = [
+      goneN > 0 ? `<div class="dash-detail-group"><div class="dash-detail-label" style="color:#7c3aed">Saíram (${goneN})</div><div class="dash-detail-names">${fmt(comp.gone)}</div></div>` : '',
+      newN  > 0 ? `<div class="dash-detail-group"><div class="dash-detail-label" style="color:#92400e">Entraram (${newN})</div><div class="dash-detail-names">${fmt(comp.newH)}</div></div>` : '',
+      remN  > 0 ? `<div class="dash-detail-group"><div class="dash-detail-label" style="color:#991b1b">Meses removidos (${remN})</div><div class="dash-detail-names">${comp.monthsRemoved.map(m=>m.mes).join(', ')}</div></div>` : '',
+    ].join('');
+    const periodo = comp.noFiles ? '' : comp.onlyOne ? '' : (comp.prevDate && comp.currDate) ? `<div class="dash-icard-slabel" style="margin-top:4px">${comp.prevDate} → ${comp.currDate}</div>` : '';
+    compHtml = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span class="dash-chip anom">${anom} anomalia${anom !== 1 ? 's' : ''}</span>
+      ${goneN > 0 ? `<span class="dash-chip" style="background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;font-size:11px">${goneN} saíram</span>` : ''}
+      ${newN  > 0 ? `<span class="dash-chip" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;font-size:11px">${newN} novos</span>` : ''}
+      ${remN  > 0 ? `<span class="dash-chip" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-size:11px">${remN} mês rem.</span>` : ''}
+      ${detailParts ? `<button class="dash-icard-comp-expand" title="Ver detalhes">▼</button>` : ''}
+    </div>
+    ${periodo}
+    ${detailParts ? `<div class="dash-icard-comp-detail">${detailParts}</div>` : ''}`;
   }
 
-  const n = comp.anomalyCount || 0;
-  const dotCls = n === 0 ? 'ok' : n <= 3 ? 'warn' : 'crit';
-  const nCls   = n === 0 ? 'dash-comp-ok' : n <= 3 ? 'dash-comp-warn' : 'dash-comp-crit';
-  const periodo = comp.noFiles ? '—' : comp.onlyOne ? 'apenas 1 arquivo' : (comp.prevDate && comp.currDate) ? `${comp.prevDate} → ${comp.currDate}${comp.sameFile ? ' ⚠' : ''}` : '—';
-  const goneN = comp.gone?.length || 0;
-  const newN  = comp.newH?.length  || 0;
-  const remN  = comp.monthsRemoved?.length || 0;
-  const statusTxt = n === 0 ? '<span class="dash-comp-ok">✓ OK</span>' : `<span class="${nCls}">${n} anomalia${n !== 1 ? 's' : ''}</span>`;
-  const hasDetail = goneN > 0 || newN > 0 || remN > 0;
-
-  const rowCls = [hasDetail ? 'expandable' : '', n === 0 ? 'row-ok' : ''].filter(Boolean).join(' ');
-  const mainRow = `<tr class="${rowCls}" data-tenant="${tenant}">
-    <td>${_mkBadge(meta.badge)} ${meta.label}${hasDetail ? `<span class="dash-arrow">▶</span>` : ''}</td>
-    <td class="dash-dates">${periodo}</td>
-    <td>${goneN > 0 ? `<span class="dash-tag gone">${goneN} saíram</span>` : '<span class="dash-comp-gray">—</span>'}</td>
-    <td>${newN  > 0 ? `<span class="dash-tag newh">${newN} novos</span>`  : '<span class="dash-comp-gray">—</span>'}</td>
-    <td>${remN  > 0 ? `<span class="dash-tag rem">${remN} mês</span>`     : '<span class="dash-comp-gray">—</span>'}</td>
-    <td>${statusTxt}</td>
-  </tr>`;
-
-  if (!hasDetail) return mainRow;
-
-  const fmt = arr => arr?.slice(0,8).join(', ') + (arr?.length > 8 ? ` +${arr.length - 8} mais` : '');
-  const detailInner = [
-    goneN > 0 ? `<div class="dash-comp-detail-group"><div class="dash-comp-detail-label" style="color:#7c3aed">Saíram (${goneN})</div><div class="dash-comp-detail-names">${fmt(comp.gone)}</div></div>` : '',
-    newN  > 0 ? `<div class="dash-comp-detail-group"><div class="dash-comp-detail-label" style="color:#92400e">Entraram (${newN})</div><div class="dash-comp-detail-names">${fmt(comp.newH)}</div></div>`  : '',
-    remN  > 0 ? `<div class="dash-comp-detail-group"><div class="dash-comp-detail-label" style="color:#991b1b">Meses removidos (${remN})</div><div class="dash-comp-detail-names">${comp.monthsRemoved.map(m=>m.mes).join(', ')}</div></div>` : '',
-  ].join('');
-
-  const detailRow = `<tr class="detail-row" data-tenant="${tenant}" style="display:none">
-    <td colspan="6"><div class="dash-comp-detail-inner">${detailInner}</div></td>
-  </tr>`;
-
-  return mainRow + detailRow;
-}
-
-function _renderBnTable(data) {
-  const mkNum = (val, cls, list, label, tenantLabel) => {
-    if (!val) return `<span class="dash-bn-num zero">—</span>`;
-    const count = list?.length || val;
-    const items = (list || []).map(n => `<div class="dash-bn-dd-item">${n}</div>`).join('') || `<div class="dash-bn-dd-empty">Nenhuma distribuidora</div>`;
-    return `<div style="position:relative;display:inline-block">
-      <span class="dash-bn-num ${cls}">${val} ▾</span>
-      <div class="dash-bn-dropdown">
-        <div class="dash-bn-dd-header">
-          <span>${label} — ${tenantLabel}</span>
-          <span style="background:#f3f4f6;padding:1px 7px;border-radius:8px;font-size:10px">${count}</span>
-        </div>
+  // ── Batalha section ──
+  const mkChip = (val, cls, list, label) => {
+    if (!val) return `<span class="dash-chip nosale" style="opacity:.5">0 ${label}</span>`;
+    const items = (list || []).map(n => `<div class="dash-dd-item">${n}</div>`).join('') || `<div class="dash-dd-item" style="color:#9ca3af">—</div>`;
+    return `<div class="dash-dd-wrap">
+      <span class="dash-chip ${cls} clickable">${val} ${label} ▾</span>
+      <div class="dash-dd">
+        <div class="dash-dd-hdr">${label} · ${list?.length || val}</div>
         ${items}
       </div>
     </div>`;
   };
 
-  const sorted = [...DASH_TENANT_ORDER].sort((a, b) => {
-    const ba = data[a]?.batalha, bb = data[b]?.batalha;
-    const sa = ba && !ba.error ? (ba.gaps||0) + (ba.atrasos||0) + (ba.semVendas||0) : -1;
-    const sb = bb && !bb.error ? (bb.gaps||0) + (bb.atrasos||0) + (bb.semVendas||0) : -1;
-    return sb - sa;
-  });
-
-  const rows = sorted.map(t => {
-    const meta = TENANT_META[t] || { label: t, badge: t.toUpperCase() };
-    const bn = data[t]?.batalha;
-    if (!bn || bn.error) {
-      return `<tr><td>${_mkBadge(meta.badge)} ${meta.label}</td><td colspan="4" class="dash-comp-gray" style="font-size:12px">${bn?.error ? 'erro' : 'sem dados'}</td></tr>`;
-    }
-    return `<tr>
-      <td>${_mkBadge(meta.badge)} ${meta.label}</td>
-      <td style="color:var(--text-muted);font-size:13px">${bn.total || 0}</td>
-      <td>${mkNum(bn.gaps,      'gap',    bn.gapsList,     'Gaps',       meta.label)}</td>
-      <td>${mkNum(bn.atrasos,   'atraso', bn.atrasosList,  'Atrasos',    meta.label)}</td>
-      <td>${mkNum(bn.semVendas, 'nosale', bn.semVendasList,'Sem vendas', meta.label)}</td>
-    </tr>`;
-  }).join('');
-
-  return `<table class="dash-bn-table">
-    <thead><tr>
-      <th>Indústria</th><th>Total</th>
-      <th>Gaps ≥4d</th><th>Atrasos ≥4d</th><th>Sem vendas</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-}
-
-function _renderHistCard(tenant, hist) {
-  const meta = TENANT_META[tenant] || { label: tenant, badge: tenant.toUpperCase() };
-  let body = '', cntHtml = '';
-
-  if (!hist || hist.error) {
-    body = `<div class="dash-hist-err">${hist?.error ? 'Erro ao carregar' : 'Sem dados'}</div>`;
-  } else if (!hist.sem2024?.length) {
-    body = `<div class="dash-hist-all-ok">✓ Todas têm histórico 2024+</div>`;
-    cntHtml = `<span class="dash-hist-ok-cnt">✓</span>`;
+  let bnHtml = '';
+  if (!bn || bn.error) {
+    bnHtml = `<span class="dash-chip" style="background:#f3f4f6;color:#6b7280">sem dados</span>`;
+  } else if (gap === 0 && atr === 0 && sv === 0) {
+    bnHtml = `<span class="dash-chip ok">✓ Sem alertas</span><span class="dash-icard-slabel" style="margin-left:6px">${bn.total || 0} distrib.</span>`;
   } else {
-    const n = hist.sem2024.length;
-    cntHtml = `<span class="dash-hist-cnt">${n}</span>`;
-    body = hist.sem2024.map(name => `<div class="dash-hist-item">${name}</div>`).join('');
+    bnHtml = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      ${mkChip(gap, 'gap',    bn.gapsList,     'gap')}
+      ${mkChip(atr, 'atraso', bn.atrasosList,  'atraso')}
+      ${mkChip(sv,  'nosale', bn.semVendasList, 'sem venda')}
+      <span class="dash-icard-slabel">${bn.total || 0} distrib.</span>
+    </div>`;
   }
 
-  return `<div class="dash-hist-card">
-    <div class="dash-hist-hdr">
+  // ── Histórico section ──
+  let histHtml = '';
+  if (!hist || hist.error) {
+    histHtml = `<span class="dash-chip" style="background:#f3f4f6;color:#6b7280">sem dados</span>`;
+  } else if (!hist.sem2024?.length) {
+    histHtml = `<span class="dash-chip ok">✓ Todas com histórico</span>`;
+  } else {
+    const n = hist.sem2024.length;
+    const names = hist.sem2024.map(name => `<div class="dash-dd-item">${name}</div>`).join('');
+    histHtml = `<div class="dash-dd-wrap">
+      <span class="dash-chip hist clickable">${n} sem histórico 2024+ ▾</span>
+      <div class="dash-dd">
+        <div class="dash-dd-hdr">Sem histórico 2024+ · ${n}</div>
+        ${names}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="dash-icard ${sevCls}" data-tenant="${tenant}">
+    <div class="dash-icard-hdr">
       ${_mkBadge(meta.badge)}
-      <span class="dash-hist-name">${meta.label}</span>
-      ${cntHtml}
-      <span class="dash-hist-chevron">▶</span>
+      <span class="dash-icard-name">${meta.label}</span>
     </div>
-    <div class="dash-hist-body">${body}</div>
+    <div class="dash-icard-body">
+      <div class="dash-icard-section">
+        <div class="dash-icard-slabel">Comparativo</div>
+        <div class="dash-icard-sval">${compHtml}</div>
+      </div>
+      <div class="dash-icard-section">
+        <div class="dash-icard-slabel">Batalha Naval</div>
+        <div class="dash-icard-sval">${bnHtml}</div>
+      </div>
+      <div class="dash-icard-section">
+        <div class="dash-icard-slabel">Histórico</div>
+        <div class="dash-icard-sval">${histHtml}</div>
+      </div>
+    </div>
   </div>`;
 }
 

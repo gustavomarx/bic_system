@@ -7097,7 +7097,8 @@ function criarChipInput(containerId) {
 let _emCcChips  = [];
 let _emCcoChips = [];
 let _emBodyMode = 'html'; // 'html' | 'preview'
-let _emEmailsDesativados = new Set(); // "holding::email" — temporário por envio
+let _emEmailsDesativados  = new Set(); // "holding::email" — temporário por envio
+let _emCoordsDesativados  = new Set(); // email do coordenador — temporário por envio
 let _emPrazoEditado = null; // persiste o prazo editado pelo usuário entre aberturas do modal
 
 function abrirModalEmailMassa() {
@@ -7166,13 +7167,34 @@ function abrirModalEmailMassa() {
     <div class="em-field">
       <label>CC — Cópia</label>
       ${(() => {
-        const coordEmails = [...new Set(selHoldings.flatMap(h => (h.coordenadores||[]).map(c => c.email)))];
-        if (!coordEmails.length) return '';
-        return `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#1e40af">
-          <strong>Automático:</strong> coordenadores de vendas das holdings selecionadas serão adicionados em cópia.
-          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
-            ${coordEmails.map(e=>`<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;padding:2px 8px;border-radius:10px">${escHtml(e)}</span>`).join('')}
+        // Monta lista única de coordenadores (dedupe por email) com referência às holdings
+        const coordMap = new Map(); // email → {nome, holdings[]}
+        selHoldings.forEach(h => {
+          (h.coordenadores || []).forEach(c => {
+            if (!coordMap.has(c.email)) coordMap.set(c.email, { nome: c.nome, holdings: [] });
+            coordMap.get(c.email).holdings.push(h.holding);
+          });
+        });
+        if (!coordMap.size) return '';
+        const rows = [...coordMap.entries()].map(([email, {nome, holdings}]) => `
+          <div class="em-dest-row" id="em-coord-row-${CSS.escape(email)}">
+            <label>
+              <input type="checkbox" checked
+                data-email="${escHtml(email)}"
+                onchange="emToggleCoord(this.dataset.email, this.checked)">
+              <span class="em-dest-nome">${escHtml(nome)}</span>
+              <span style="color:#94a3b8;font-size:11px">&lt;${escHtml(email)}&gt;</span>
+              <span style="color:#93c5fd;font-size:10px;margin-left:4px">${holdings.map(h=>`<span style="background:#dbeafe;color:#1d4ed8;padding:1px 5px;border-radius:8px">${escHtml(h)}</span>`).join(' ')}</span>
+            </label>
+          </div>`).join('');
+        return `<div style="border:1px solid #bfdbfe;border-radius:8px;overflow:hidden;margin-bottom:8px">
+          <div style="background:#eff6ff;padding:8px 14px;font-size:11px;color:#1e40af;font-weight:600;display:flex;align-items:center;gap:8px">
+            <span>Automático — coordenadores de vendas</span>
+            <span id="em-coord-count" style="margin-left:auto;font-weight:400;color:#3b82f6">${coordMap.size} ativos</span>
+            <button type="button" onclick="emCoordsTodos(true)"  style="background:none;border:none;font-size:10px;color:#3b82f6;cursor:pointer;padding:0 4px">todos</button>
+            <button type="button" onclick="emCoordsTodos(false)" style="background:none;border:none;font-size:10px;color:#3b82f6;cursor:pointer;padding:0 4px">nenhum</button>
           </div>
+          <div id="em-coord-body" style="padding:4px 0">${rows}</div>
         </div>`;
       })()}
       <div style="font-size:11px;color:#9ca3af;margin-bottom:4px">Adicionar emails avulsos (pressione Enter ou Tab)</div>
@@ -7214,13 +7236,14 @@ function abrirModalEmailMassa() {
     <div class="em-summary" id="em-resumo">
       <span><strong>${sel.size}</strong> holdings selecionadas</span>
       <span id="em-resumo-dest"><strong>${totalEmails}</strong> destinatários</span>
-      <span><strong>${totalCoord}</strong> coordenadores em CC</span>
+      <span id="em-resumo-coord"><strong>${totalCoord}</strong> coordenadores em CC</span>
       <span id="em-resumo-cc">+ <strong>0</strong> CC avulsos</span>
       <span id="em-resumo-cco">+ <strong>0</strong> CCO avulsos</span>
     </div>
   `;
 
   _emEmailsDesativados = new Set();
+  _emCoordsDesativados = new Set();
   _emCcChips  = criarChipInput('em-cc-container');
   _emCcoChips = criarChipInput('em-cco-container');
 
@@ -7459,6 +7482,25 @@ function emDestinatariosTodos(marcar) {
   });
 }
 
+function emToggleCoord(email, ativo) {
+  if (ativo) _emCoordsDesativados.delete(email);
+  else        _emCoordsDesativados.add(email);
+
+  const row = document.getElementById('em-coord-row-' + CSS.escape(email));
+  if (row) row.classList.toggle('desativado', !ativo);
+
+  _emAtualizarContadorDestinatarios();
+}
+
+function emCoordsTodos(marcar) {
+  document.querySelectorAll('#em-coord-body input[type=checkbox]').forEach(cb => {
+    if (cb.checked !== marcar) {
+      cb.checked = marcar;
+      emToggleCoord(cb.dataset.email, marcar);
+    }
+  });
+}
+
 function _emAtualizarContadorDestinatarios() {
   const sel = usuariosState.holdingsSelecionadas;
   const selHoldings = usuariosState.holdings.filter(h => sel.has(h.holding));
@@ -7473,9 +7515,20 @@ function _emAtualizarContadorDestinatarios() {
   const resumo = document.getElementById('em-resumo-dest');
   if (resumo) resumo.innerHTML = `<strong>${totalAtivos}</strong> destinatários`;
 
-  // Aviso visual se algum desativado
+  // Aviso visual se algum destinatário desativado
   const totalGeral = selHoldings.reduce((a, h) => a + (h.emails?.length || 0), 0);
   if (lbl) lbl.style.color = totalAtivos < totalGeral ? '#d97706' : '';
+
+  // Coordenadores ativos
+  const totalCoordsGeral = new Set(selHoldings.flatMap(h => (h.coordenadores||[]).map(c => c.email))).size;
+  const totalCoordsAtivos = totalCoordsGeral - _emCoordsDesativados.size;
+  const coordCount = document.getElementById('em-coord-count');
+  if (coordCount) {
+    coordCount.textContent = `${totalCoordsAtivos} ativo${totalCoordsAtivos !== 1 ? 's' : ''}`;
+    coordCount.style.color = totalCoordsAtivos < totalCoordsGeral ? '#d97706' : '#3b82f6';
+  }
+  const resumoCoord = document.getElementById('em-resumo-coord');
+  if (resumoCoord) resumoCoord.innerHTML = `<strong>${totalCoordsAtivos}</strong> coordenadores em CC`;
 }
 
 function fecharModalEmailMassa() {
@@ -7495,11 +7548,11 @@ async function iniciarEnvioEmails() {
   // Filtra emails desativados (somente para este envio)
   const holdingsData = usuariosState.holdings
     .filter(h => sel.has(h.holding))
-    .map(h => ({
-      ...h,
-      emails: (h.emails || []).filter(e => !_emEmailsDesativados.has(h.holding + '::' + e.email)),
-      totalEmails: (h.emails || []).filter(e => !_emEmailsDesativados.has(h.holding + '::' + e.email)).length,
-    }))
+    .map(h => {
+      const emails = (h.emails || []).filter(e => !_emEmailsDesativados.has(h.holding + '::' + e.email));
+      const coordenadores = (h.coordenadores || []).filter(c => !_emCoordsDesativados.has(c.email));
+      return { ...h, emails, coordenadores, totalEmails: emails.length };
+    })
     .filter(h => h.emails.length > 0); // pula holdings sem nenhum destinatário ativo
   if (!holdingsData.length) { alert('Nenhum destinatário ativo. Reative ao menos um email antes de enviar.'); return; }
   const cc  = _emCcChips.slice();

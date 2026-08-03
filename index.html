@@ -2047,6 +2047,22 @@
     #em-corpo ul, #em-corpo ol { padding-left:24px; margin:4px 0; }
     #em-corpo li { margin:2px 0; }
     #em-corpo p { margin:4px 0; }
+    /* Destinatários por holding */
+    .em-dest-section { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    .em-dest-summary { display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; background:#f8fafc; font-size:12px; font-weight:600; color:#475569; user-select:none; list-style:none; }
+    .em-dest-summary::-webkit-details-marker { display:none; }
+    .em-dest-summary .em-dest-chevron { margin-left:auto; font-size:11px; color:#9ca3af; transition:transform .15s; }
+    details.em-dest-section[open] .em-dest-chevron { transform:rotate(90deg); }
+    .em-dest-body { padding:8px 0; }
+    .em-dest-holding-hdr { display:flex; align-items:center; gap:8px; padding:6px 14px 4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#64748b; border-top:1px solid #f1f5f9; }
+    .em-dest-holding-hdr:first-child { border-top:none; }
+    .em-dest-row { display:flex; align-items:center; gap:8px; padding:4px 14px 4px 28px; font-size:12px; color:#334155; }
+    .em-dest-row label { cursor:pointer; display:flex; align-items:center; gap:6px; flex:1; }
+    .em-dest-row input[type=checkbox] { accent-color:var(--bic-orange); width:14px; height:14px; flex-shrink:0; cursor:pointer; }
+    .em-dest-row.desativado label { text-decoration:line-through; color:#9ca3af; }
+    .em-dest-actions { display:flex; gap:8px; padding:6px 14px; border-top:1px solid #f1f5f9; }
+    .em-dest-actions button { background:none; border:none; font-size:11px; color:#64748b; cursor:pointer; padding:2px 6px; border-radius:4px; }
+    .em-dest-actions button:hover { background:#f1f5f9; }
 
     /* ── Dashboard ───────────────────────────────────────────── */
     .dash-wrap { padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; height: 100%; box-sizing: border-box; }
@@ -7081,6 +7097,7 @@ function criarChipInput(containerId) {
 let _emCcChips  = [];
 let _emCcoChips = [];
 let _emBodyMode = 'html'; // 'html' | 'preview'
+let _emEmailsDesativados = new Set(); // "holding::email" — temporário por envio
 let _emPrazoEditado = null; // persiste o prazo editado pelo usuário entre aberturas do modal
 
 function abrirModalEmailMassa() {
@@ -7165,15 +7182,45 @@ function abrirModalEmailMassa() {
       <label>CCO — Cópia Oculta</label>
       <div class="em-chip-input" id="em-cco-container"><input type="text" placeholder="email@exemplo.com"></div>
     </div>
+    <div class="em-field">
+      <label>Destinatários <span style="font-size:11px;color:#9ca3af;font-weight:400;text-transform:none">(desmarque para excluir deste envio)</span></label>
+      <details class="em-dest-section" id="em-dest-details">
+        <summary class="em-dest-summary">
+          <span id="em-dest-count-label">${totalEmails} destinatários em ${sel.size} holding${sel.size !== 1 ? 's' : ''}</span>
+          <span class="em-dest-chevron">▶</span>
+        </summary>
+        <div class="em-dest-body" id="em-dest-body">
+          ${selHoldings.map(h => {
+            if (!h.emails?.length) return `<div class="em-dest-holding-hdr">${escHtml(h.holding)} <span style="color:#d1d5db;font-weight:400">— sem emails</span></div>`;
+            const rows = h.emails.map(e => `
+              <div class="em-dest-row" id="em-dest-row-${CSS.escape(h.holding+'::'+e.email)}">
+                <label>
+                  <input type="checkbox" checked
+                    data-holding="${escHtml(h.holding)}" data-email="${escHtml(e.email)}"
+                    onchange="emToggleEmail(this.dataset.holding, this.dataset.email, this.checked)">
+                  <span class="em-dest-nome">${escHtml(e.nome)}</span>
+                  <span style="color:#94a3b8;font-size:11px">&lt;${escHtml(e.email)}&gt;</span>
+                </label>
+              </div>`).join('');
+            return `<div class="em-dest-holding-hdr">${escHtml(h.holding)} <span style="color:#94a3b8;font-weight:400">(${h.emails.length})</span></div>${rows}`;
+          }).join('')}
+          <div class="em-dest-actions">
+            <button type="button" onclick="emDestinatariosTodos(true)">Marcar todos</button>
+            <button type="button" onclick="emDestinatariosTodos(false)">Desmarcar todos</button>
+          </div>
+        </div>
+      </details>
+    </div>
     <div class="em-summary" id="em-resumo">
       <span><strong>${sel.size}</strong> holdings selecionadas</span>
-      <span><strong>${totalEmails}</strong> destinatários</span>
+      <span id="em-resumo-dest"><strong>${totalEmails}</strong> destinatários</span>
       <span><strong>${totalCoord}</strong> coordenadores em CC</span>
       <span id="em-resumo-cc">+ <strong>0</strong> CC avulsos</span>
       <span id="em-resumo-cco">+ <strong>0</strong> CCO avulsos</span>
     </div>
   `;
 
+  _emEmailsDesativados = new Set();
   _emCcChips  = criarChipInput('em-cc-container');
   _emCcoChips = criarChipInput('em-cco-container');
 
@@ -7390,6 +7437,47 @@ function _emAtualizarResumo() {
   if (ccoEl) ccoEl.innerHTML = `+ <strong>${_emCcoChips.length}</strong> CCO avulsos`;
 }
 
+function emToggleEmail(holding, email, ativo) {
+  const key = holding + '::' + email;
+  if (ativo) _emEmailsDesativados.delete(key);
+  else        _emEmailsDesativados.add(key);
+
+  // Estiliza a linha
+  const rowId = 'em-dest-row-' + CSS.escape(key);
+  const row = document.getElementById(rowId);
+  if (row) row.classList.toggle('desativado', !ativo);
+
+  _emAtualizarContadorDestinatarios();
+}
+
+function emDestinatariosTodos(marcar) {
+  document.querySelectorAll('#em-dest-body input[type=checkbox]').forEach(cb => {
+    if (cb.checked !== marcar) {
+      cb.checked = marcar;
+      emToggleEmail(cb.dataset.holding, cb.dataset.email, marcar);
+    }
+  });
+}
+
+function _emAtualizarContadorDestinatarios() {
+  const sel = usuariosState.holdingsSelecionadas;
+  const selHoldings = usuariosState.holdings.filter(h => sel.has(h.holding));
+  const totalAtivos = selHoldings.reduce((acc, h) => {
+    const ativos = (h.emails || []).filter(e => !_emEmailsDesativados.has(h.holding + '::' + e.email));
+    return acc + ativos.length;
+  }, 0);
+
+  const lbl = document.getElementById('em-dest-count-label');
+  if (lbl) lbl.textContent = `${totalAtivos} destinatário${totalAtivos !== 1 ? 's' : ''} ativos de ${sel.size} holding${sel.size !== 1 ? 's' : ''}`;
+
+  const resumo = document.getElementById('em-resumo-dest');
+  if (resumo) resumo.innerHTML = `<strong>${totalAtivos}</strong> destinatários`;
+
+  // Aviso visual se algum desativado
+  const totalGeral = selHoldings.reduce((a, h) => a + (h.emails?.length || 0), 0);
+  if (lbl) lbl.style.color = totalAtivos < totalGeral ? '#d97706' : '';
+}
+
 function fecharModalEmailMassa() {
   document.getElementById('email-massa-overlay').classList.remove('open');
 }
@@ -7404,7 +7492,16 @@ async function iniciarEnvioEmails() {
   if (!corpo || corpo === '<br>') { alert('Preencha o corpo do email.'); return; }
 
   const sel = usuariosState.holdingsSelecionadas;
-  const holdingsData = usuariosState.holdings.filter(h => sel.has(h.holding));
+  // Filtra emails desativados (somente para este envio)
+  const holdingsData = usuariosState.holdings
+    .filter(h => sel.has(h.holding))
+    .map(h => ({
+      ...h,
+      emails: (h.emails || []).filter(e => !_emEmailsDesativados.has(h.holding + '::' + e.email)),
+      totalEmails: (h.emails || []).filter(e => !_emEmailsDesativados.has(h.holding + '::' + e.email)).length,
+    }))
+    .filter(h => h.emails.length > 0); // pula holdings sem nenhum destinatário ativo
+  if (!holdingsData.length) { alert('Nenhum destinatário ativo. Reative ao menos um email antes de enviar.'); return; }
   const cc  = _emCcChips.slice();
   const cco = _emCcoChips.slice();
   const vd  = usuariosState.validacaoMensal;

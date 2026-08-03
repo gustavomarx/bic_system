@@ -7545,6 +7545,8 @@ async function iniciarEnvioEmails() {
   if (!corpo || corpo === '<br>') { alert('Preencha o corpo do email.'); return; }
 
   const sel = usuariosState.holdingsSelecionadas;
+  const cc  = _emCcChips.slice();
+  const cco = _emCcoChips.slice();
   // Filtra emails desativados (somente para este envio)
   const holdingsData = usuariosState.holdings
     .filter(h => sel.has(h.holding))
@@ -7552,11 +7554,13 @@ async function iniciarEnvioEmails() {
       const emails = (h.emails || []).filter(e => !_emEmailsDesativados.has(h.holding + '::' + e.email));
       const coordenadores = (h.coordenadores || []).filter(c => !_emCoordsDesativados.has(c.email));
       return { ...h, emails, coordenadores, totalEmails: emails.length };
-    })
-    .filter(h => h.emails.length > 0); // pula holdings sem nenhum destinatário ativo
-  if (!holdingsData.length) { alert('Nenhum destinatário ativo. Reative ao menos um email antes de enviar.'); return; }
-  const cc  = _emCcChips.slice();
-  const cco = _emCcoChips.slice();
+    });
+  const totalDest = holdingsData.reduce((a, h) => a + h.emails.length, 0);
+  const totalCoordAtivos = holdingsData.reduce((a, h) => a + h.coordenadores.length, 0);
+  if (totalDest === 0 && cc.length === 0 && cco.length === 0 && totalCoordAtivos === 0) {
+    alert('Nenhum destinatário ativo. Reative ao menos um email, coordenador, CC ou CCO antes de enviar.');
+    return;
+  }
   const vd  = usuariosState.validacaoMensal;
 
   // Muda o modal para painel de progresso

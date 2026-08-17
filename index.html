@@ -6316,7 +6316,8 @@ function renderHistoricoTable() {
 const HIST_MODOS_CONHECIDOS = ['sellers', 'ftp', 'temp'];
 
 function _histRows() {
-  const q = (historicoState.search || (document.getElementById('hist-search') || {}).value || '').toLowerCase();
+  const _histSearchEl = document.getElementById('hist-search');
+  const q = (_histSearchEl != null ? _histSearchEl.value : (historicoState.search ?? '')).toLowerCase();
   historicoState.search = q;
 
   let rows = q
@@ -6828,10 +6829,13 @@ async function renderHoldings() {
           📥 Importar Coordenadores
           <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarCoordenadores(this)">
         </label>
-        <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px" title="Importa CSV/XLSX com colunas HOLDING, Customer, Tipo de Operação, Venda Valor">
-          📊 Validação Mensal
-          <input type="file" accept=".csv,.xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarValidacaoMensal(this)">
-        </label>
+        <div style="display:flex;align-items:center;gap:4px">
+          <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px" title="Importa CSV/XLSX com colunas HOLDING, Customer, Tipo de Operação, Venda Valor">
+            📊 Validação Mensal
+            <input type="file" accept=".csv,.xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarValidacaoMensal(this)">
+          </label>
+          <a href="${_biValidacaoUrl()}" target="_blank" class="dp-btn dp-btn-outline" style="font-size:12px;padding:5px 8px;line-height:1" title="Abrir relatório no BI">🔗</a>
+        </div>
         <button class="dp-btn dp-btn-outline" onclick="usuariosState.holdingsCarregado=false;renderHoldings()">↻ Recarregar</button>
         <button class="dp-btn dp-btn-primary" id="btn-enviar-email-massa" onclick="abrirModalEmailMassa()" disabled style="opacity:.4">📤 Enviar Email</button>
       </div>
@@ -6989,28 +6993,55 @@ async function importarCoordenadores(input) {
   input.value = '';
 }
 
+function _biValidacaoUrl() {
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let ano, mesIdx;
+  const ref = usuariosState.validacaoMensal?.referencia || '';
+  if (ref) {
+    const parts = ref.split('/');
+    const mesStr = parts[0].trim().toLowerCase();
+    ano = parseInt(parts[1]?.trim()) || new Date().getFullYear();
+    mesIdx = meses.findIndex(m => m.toLowerCase().startsWith(mesStr.slice(0,3)));
+    if (mesIdx < 0) mesIdx = new Date().getMonth();
+  } else {
+    const hoje = new Date();
+    mesIdx = hoje.getMonth();
+    ano = hoje.getFullYear();
+  }
+  const mes = String(mesIdx + 1).padStart(2, '0');
+  const fim = new Date(ano, mesIdx + 1, 0).getDate();
+  const inicio = `${ano}-${mes}-01`;
+  const final  = `${ano}-${mes}-${String(fim).padStart(2,'0')}`;
+  return `https://bi.forsellers.app/analise/41?f=VENDA_DATA%3Bentre%3B${inicio}%3B${final}%3B${final}&sort=&cruzar=&dir=ASC&campos=HOLDING%2CPARTNER_NAME%2CANO_MES_FIX%2CTIPO_DE_OPERACAO%2CVENDA_VALOR`;
+}
+
 async function importarValidacaoMensal(input) {
   if (!input.files?.[0]) return;
   const file = input.files[0];
-  const referencia = prompt('Mês de referência (ex: Junho/2026):', '') ?? '';
   const fd = new FormData();
   fd.append('arquivo', file);
-  fd.append('referencia', referencia);
   try {
     const r = await fetch('/api/validacao-mensal/importar', { method: 'POST', body: fd });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Erro ao importar');
-    // Guarda em memória — sem banco
+
+    // Confirma referência extraída automaticamente do Ano/Mês da planilha
+    const _mesesRef = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const _hoje = new Date();
+    const _refPadrao = `${_mesesRef[_hoje.getMonth()]}/${_hoje.getFullYear()}`;
+    const refAuto = data.referenciaAuto || _refPadrao;
+    const ok = confirm(`Confirmar mês de referência: ${refAuto}?`);
+    const referencia = ok ? refAuto : (prompt('Mês de referência (ex: Junho/2026):', refAuto) ?? refAuto);
+
     usuariosState.validacaoMensal = {
       linhas:        data.linhas        || [],
-      referencia:    data.referencia    || '',
+      referencia,
       totalLinhas:   data.totalLinhas   || 0,
       totalHoldings: data.totalHoldings || 0,
       importadoEm:   new Date().toISOString(),
     };
-    _emPrazoEditado = null; // reseta prazo ao importar nova validação
-    alert(`✓ Validação importada!\n${data.totalLinhas} linhas · ${data.totalHoldings} holdings${data.referencia ? ' · ' + data.referencia : ''}`);
-    // Atualiza status sem recarregar holdings
+    _emPrazoEditado = null;
+    alert(`✓ Validação importada!\n${data.totalLinhas} linhas · ${data.totalHoldings} holdings${referencia ? ' · ' + referencia : ''}`);
     _atualizarStatusValidacao();
   } catch (err) {
     alert(`Erro: ${err.message}`);
@@ -7340,6 +7371,10 @@ function emUsarTemplateValidacao() {
 <p>Prezado(a) Parceiro(a) <strong>{{holding}}</strong>,</p>
 <p>Segue abaixo o resumo dos valores do mês de <strong>{{referencia}}</strong> para que você possa conferir com seu controle interno antes de realizar a validação na plataforma.</p>
 
+<table cellpadding="0" cellspacing="0" align="center" style="margin:20px auto;">
+  <tr><td bgcolor="#003B70" style="border-radius:5px;"><a href="https://forsellers.app/" target="_blank" style="display:inline-block;padding:12px 28px;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Acessar Plataforma Sellers →</a></td></tr>
+</table>
+
 {{tabela_validacao}}
 
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:25px 0;background:#FFF7E8;border-left:5px solid #F39C12;">
@@ -7406,7 +7441,7 @@ function emUsarTemplateValidacao() {
 </tr>
 <tr>
   <td style="background:#003B70;padding:20px;text-align:center;color:#ffffff;font-size:13px;">
-    Sellers Tecnologia • Plataforma Sellers
+    Sellers® • Plataforma Sellers
   </td>
 </tr>
 </table>

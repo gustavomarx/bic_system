@@ -1541,6 +1541,7 @@ app.post('/api/validacao-mensal/importar', requireAuth, requireAdmin, uploadMemo
     const customerCol = colKeys.find(k => /^customer$/i.test(k.trim())) || colKeys.find(k => /customer/i.test(k));
     const tipoCol     = colKeys.find(k => /tipo.*(opera|op)/i.test(k)) || colKeys.find(k => /^tipo$/i.test(k.trim()));
     const valorCol    = colKeys.find(k => /venda.*(valor|value)/i.test(k)) || colKeys.find(k => /^valor$/i.test(k.trim()));
+    const anoMesCol   = colKeys.find(k => /^ano[\s\/\-_]?m[eê]s/i.test(k.trim())) || colKeys.find(k => /ano_mes/i.test(k));
 
     if (!holdingCol || !customerCol || !tipoCol || !valorCol) {
       return res.status(400).json({
@@ -1549,11 +1550,24 @@ app.post('/api/validacao-mensal/importar', requireAuth, requireAdmin, uploadMemo
       });
     }
 
+    // Extrai e formata referência a partir da coluna Ano/Mês ("2026-07" → "Julho/2026")
+    let referenciaAuto = referencia;
+    if (anoMesCol && !referenciaAuto) {
+      const anoMesVal = String(rows.find(r => r[anoMesCol])?.[anoMesCol] || '').trim();
+      const match = anoMesVal.match(/^(\d{4})[-\/]?(\d{2})$/);
+      if (match) {
+        const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        const mesIdx = parseInt(match[2], 10) - 1;
+        referenciaAuto = `${mesesNomes[mesIdx] || match[2]}/${match[1]}`;
+      }
+    }
+
     const linhas = rows
       .filter(r => String(r[holdingCol] || '').trim())
       .map(r => ({
         holding:      String(r[holdingCol]  || '').trim(),
         customer:     String(r[customerCol] || '').trim(),
+        anoMes:       anoMesCol ? String(r[anoMesCol] || '').trim() : '',
         tipoOperacao: String(r[tipoCol]     || '').trim().toUpperCase(),
         vendaValor:   String(r[valorCol]    || '').trim(),
       }));
@@ -1561,7 +1575,7 @@ app.post('/api/validacao-mensal/importar', requireAuth, requireAdmin, uploadMemo
     const totalHoldings = new Set(linhas.map(l => l.holding)).size;
 
     // Retorna os dados diretamente — frontend guarda em memória e passa no envio
-    res.json({ ok: true, linhas, totalLinhas: linhas.length, totalHoldings, referencia });
+    res.json({ ok: true, linhas, totalLinhas: linhas.length, totalHoldings, referencia, referenciaAuto });
   } catch (err) {
     console.error('Erro /api/validacao-mensal/importar:', err.message);
     res.status(500).json({ error: err.message });
@@ -1926,39 +1940,30 @@ function dashCompareAnomalies(prevRows, currRows, noHolding) {
     ? (row.customer || '').trim()
     : (row.holding || row.customer || '').trim();
 
-  const groupKeys = rows => {
-    const map = {};
+  // Conjunto global do ano inteiro (todos os meses)
+  const allKeys = rows => {
+    const set = new Set();
     for (const row of rows) {
-      const mes = String(row.anoMes || '').trim();
       const k = keyFn(row);
-      if (!mes || !k) continue;
-      if (!map[mes]) map[mes] = new Set();
-      map[mes].add(k);
+      if (k) set.add(k);
     }
-    return map;
+    return set;
   };
 
-  const prev = groupKeys(prevRows);
-  const curr = groupKeys(currRows);
-  const gone = new Set(), newH = new Set(), monthsRemoved = [];
+  const prev = allKeys(prevRows);
+  const curr = allKeys(currRows);
+  const gone = [], newH = [];
 
-  for (const mes of Object.keys(prev)) {
-    if (!curr[mes]) {
-      monthsRemoved.push({ mes, count: prev[mes].size });
-    } else {
-      for (const k of prev[mes]) if (!curr[mes].has(k)) gone.add(k);
-      for (const k of curr[mes]) if (!prev[mes].has(k)) newH.add(k);
-    }
-  }
-  for (const mes of Object.keys(curr)) {
-    if (!prev[mes]) for (const k of curr[mes]) newH.add(k);
-  }
+  for (const k of prev) if (!curr.has(k)) gone.push(k);
+  for (const k of curr) if (!prev.has(k)) newH.push(k);
+
+  gone.sort(); newH.sort();
 
   return {
-    gone: [...gone],
-    newH: [...newH],
-    monthsRemoved,
-    anomalyCount: gone.size + newH.size + monthsRemoved.length,
+    gone,
+    newH,
+    monthsRemoved: [],
+    anomalyCount: gone.length + newH.length,
   };
 }
 
@@ -2046,7 +2051,7 @@ async function dashLoadTenant(tenant) {
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false${extra}`,
       fields: 'files(id, name, createdTime)',
       orderBy: 'name desc',
-      pageSize: 10,
+      pageSize: 100,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
     });

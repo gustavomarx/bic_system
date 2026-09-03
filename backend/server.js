@@ -408,8 +408,8 @@ app.get('/api/arquivos', async (req, res) => {
     const response = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
       fields: 'files(id, name, createdTime, modifiedTime)',
-      orderBy: 'name desc',
-      pageSize: 100,
+      orderBy: 'createdTime desc',
+      pageSize: 1000,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
     });
@@ -2050,8 +2050,8 @@ async function dashLoadTenant(tenant) {
     const r = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false${extra}`,
       fields: 'files(id, name, createdTime)',
-      orderBy: 'name desc',
-      pageSize: 100,
+      orderBy: 'createdTime desc',
+      pageSize: 1000,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
     });

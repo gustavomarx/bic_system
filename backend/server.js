@@ -475,7 +475,7 @@ app.get('/api/inatividade-arquivos', async (req, res) => {
     const response = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
       fields: 'files(id, name, createdTime)',
-      orderBy: 'name desc',
+      orderBy: 'createdTime desc',
       pageSize: 365,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
@@ -510,7 +510,7 @@ app.get('/api/inatividade-historico', async (req, res) => {
     const listResp = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
       fields: 'files(id, name, createdTime)',
-      orderBy: 'name desc',
+      orderBy: 'createdTime desc',
       pageSize: 365,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
@@ -1096,8 +1096,8 @@ app.get('/api/historico-arquivos', async (req, res) => {
     const listResp = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
       fields: 'files(id, name, createdTime)',
-      orderBy: 'name desc',
-      pageSize: 100,
+      orderBy: 'createdTime desc',
+      pageSize: 1000,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
     });
@@ -1127,8 +1127,8 @@ app.get('/api/historico-dados', async (req, res) => {
       // Pega o mais recente
       const listResp = await drive.files.list({
         q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
-        fields: 'files(id, name)',
-        orderBy: 'name desc',
+        fields: 'files(id, name, createdTime)',
+        orderBy: 'createdTime desc',
         pageSize: 1,
         includeItemsFromAllDrives: true,
         supportsAllDrives: true,

@@ -2793,7 +2793,15 @@ function _renderIndustryCard(tenant, d) {
   // ── Batalha section ──
   const mkChip = (val, cls, list, label) => {
     if (!val) return `<span class="dash-chip nosale" style="opacity:.5">0 ${label}</span>`;
-    const items = (list || []).map(n => `<div class="dash-dd-item">${n}</div>`).join('') || `<div class="dash-dd-item" style="color:#9ca3af">—</div>`;
+    const fmtItem = n => {
+      if (n && typeof n === 'object') {
+        const dt = n.lastSaleDate ? new Date(n.lastSaleDate + 'T00:00:00').toLocaleDateString('pt-BR') : '';
+        const diasTxt = Number.isFinite(n.atrasoDias) ? ` (${n.atrasoDias} dia${n.atrasoDias !== 1 ? 's' : ''})` : '';
+        return `<div class="dash-dd-item">${n.name}${dt ? ` <span style="color:#9ca3af;font-weight:400">— ${dt}${diasTxt}</span>` : ''}</div>`;
+      }
+      return `<div class="dash-dd-item">${n}</div>`;
+    };
+    const items = (list || []).map(fmtItem).join('') || `<div class="dash-dd-item" style="color:#9ca3af">—</div>`;
     return `<div class="dash-dd-wrap">
       <span class="dash-chip ${cls} clickable">${val} ${label} ▾</span>
       <div class="dash-dd">

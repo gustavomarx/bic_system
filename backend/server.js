@@ -2009,10 +2009,15 @@ function dashBnAlerts(rows, todayDay, mesStr) {
     }
     const atraso = lastSaleDay > 0 ? todayDay - lastSaleDay : todayDay;
     if (maxMidGap >= BN_GAP) gapsList.push(p);
-    if (atraso >= BN_GAP) atrasosList.push(p);
+    if (atraso >= BN_GAP) {
+      const lastSaleDate = `${mesStr}-${String(lastSaleDay).padStart(2, '0')}`;
+      atrasosList.push({ name: p, lastSaleDate, atrasoDias: atraso });
+    }
   }
 
-  gapsList.sort(); atrasosList.sort(); semVendasList.sort();
+  gapsList.sort();
+  atrasosList.sort((a, b) => a.lastSaleDate.localeCompare(b.lastSaleDate));
+  semVendasList.sort();
 
   return {
     total: partners.size,

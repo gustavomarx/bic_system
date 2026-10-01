@@ -1917,9 +1917,34 @@ const DASHBOARD_TENANTS = ['bic','asa','bombril','cicopal','fini','fruki','gallo
 const DASHBOARD_NO_HOLDING = new Set(['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico']);
 
 // In-memory cache: evita múltiplas chamadas ao Drive em sequência rápida
-let _dashCache = null;
-let _dashCacheTs = 0;
+const _dashCache = {}; // { 'YYYY-MM': { payload, ts } }
 const DASH_CACHE_TTL = 5 * 60 * 1000; // 5 min
+const DASH_DIA_VIRADA = 10; // até este dia do mês, o padrão é avaliar o mês anterior
+
+// Período de referência da Batalha Naval no dashboard (horário de Brasília).
+// ref: 'atual' | 'anterior' | undefined (padrão: anterior até o dia DASH_DIA_VIRADA)
+function dashPeriodo(ref) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const y = Number(parts.find(p => p.type === 'year').value);
+  const m = Number(parts.find(p => p.type === 'month').value);
+  const d = Number(parts.find(p => p.type === 'day').value);
+
+  if (ref !== 'atual' && ref !== 'anterior') ref = d <= DASH_DIA_VIRADA ? 'anterior' : 'atual';
+
+  const fmt = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}`;
+  const atual = fmt(y, m);
+  const prevY = m === 1 ? y - 1 : y;
+  const prevM = m === 1 ? 12 : m - 1;
+  const anterior = fmt(prevY, prevM);
+
+  if (ref === 'anterior') {
+    const ultimoDia = new Date(prevY, prevM, 0).getDate();
+    return { ref, mesStr: anterior, diaRef: ultimoDia, atual, anterior };
+  }
+  return { ref, mesStr: atual, diaRef: d, atual, anterior };
+}
 
 async function dashDownloadParse(fileId, { sheetName = null, normalize = true } = {}) {
   const drive = getDriveClient(true);
@@ -2045,7 +2070,7 @@ function dashHistoricoSem2024(rows) {
     .sort();
 }
 
-async function dashLoadTenant(tenant) {
+async function dashLoadTenant(tenant, periodo) {
   const noHolding = DASHBOARD_NO_HOLDING.has(tenant);
   const folders = getTenantFolders(tenant);
   const drive = getDriveClient(true);
@@ -2101,10 +2126,8 @@ async function dashLoadTenant(tenant) {
     const files = await listFiles(folders.batalha);
     if (!files.length) throw new Error('Sem arquivo');
     const rows = await dashDownloadParse(files[0].id, { sheetName: 'Dados', normalize: false });
-    const hoje = new Date();
-    const mesStr = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
     result.batalha = {
-      ...dashBnAlerts(rows, hoje.getDate(), mesStr),
+      ...dashBnAlerts(rows, periodo.diaRef, periodo.mesStr),
       fileDate: files[0].createdTime
         ? new Date(files[0].createdTime).toLocaleDateString('pt-BR')
         : null,
@@ -2129,12 +2152,14 @@ async function dashLoadTenant(tenant) {
 
 app.get('/api/dashboard', requireAuth, async (req, res) => {
   const force = req.query.force === '1';
-  if (!force && _dashCache && (Date.now() - _dashCacheTs) < DASH_CACHE_TTL) {
-    return res.json(_dashCache);
+  const periodo = dashPeriodo(req.query.ref);
+  const cached = _dashCache[periodo.mesStr];
+  if (!force && cached && (Date.now() - cached.ts) < DASH_CACHE_TTL) {
+    return res.json({ ...cached.payload, periodo });
   }
   try {
     const settled = await Promise.allSettled(
-      DASHBOARD_TENANTS.map(t => dashLoadTenant(t))
+      DASHBOARD_TENANTS.map(t => dashLoadTenant(t, periodo))
     );
     const data = {};
     settled.forEach((r, i) => {
@@ -2143,9 +2168,8 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
         : { comparativo: { error: r.reason?.message, anomalyCount: 0 }, batalha: { error: r.reason?.message }, historico: { error: r.reason?.message } };
     });
     const payload = { data, ts: new Date().toISOString() };
-    _dashCache = payload;
-    _dashCacheTs = Date.now();
-    res.json(payload);
+    _dashCache[periodo.mesStr] = { payload, ts: Date.now() };
+    res.json({ ...payload, periodo });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

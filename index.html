@@ -2073,6 +2073,8 @@
     .dash-ts { font-size: 12px; color: var(--text-muted); }
     .dash-refresh-btn { font-size: 12px; padding: 5px 14px; border: 1px solid var(--bic-border); background: #fff; border-radius: 6px; cursor: pointer; }
     .dash-refresh-btn:hover { background: #f3f4f6; }
+    .dash-periodo { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+    .dash-periodo select { font-size: 12px; padding: 4px 8px; border: 1px solid var(--bic-border); background: #fff; border-radius: 6px; cursor: pointer; }
 
     /* KPI cards */
     .dash-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
@@ -2637,6 +2639,19 @@ const TENANT_META = {
 const DASH_TENANT_ORDER = ['bic','asa','bombril','cicopal','fini','fruki','gallo','gtex','kibon','peccin','pepsico','mdias','mdiassaud','marilan'];
 
 let _dashData = null;
+let _dashRef  = null; // 'anterior' | 'atual' | null (null = padrão do backend: anterior até o dia 10)
+
+const _MESES_ABREV = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function _fmtMesRef(mesStr) {
+  if (!mesStr) return '';
+  const [y, m] = mesStr.split('-');
+  return `${_MESES_ABREV[Number(m) - 1]}/${y}`;
+}
+
+function _setDashRef(ref) {
+  _dashRef = ref;
+  _loadDashboard(false);
+}
 
 function renderDashboard() {
   const area = document.getElementById('content-area');
@@ -2650,7 +2665,10 @@ async function _loadDashboard(force) {
   const wrap = document.getElementById('dash-wrap');
   if (!wrap) return;
   try {
-    const r = await fetch(`/api/dashboard${force ? '?force=1' : ''}`);
+    const qs = new URLSearchParams();
+    if (force)    qs.set('force', '1');
+    if (_dashRef) qs.set('ref', _dashRef);
+    const r = await fetch(`/api/dashboard${qs.toString() ? '?' + qs : ''}`);
     if (!r.ok) throw new Error(await r.text());
     _dashData = await r.json();
     _renderDashContent(wrap);
@@ -2660,8 +2678,16 @@ async function _loadDashboard(force) {
 }
 
 function _renderDashContent(wrap) {
-  const { data, ts } = _dashData;
+  const { data, ts, periodo } = _dashData;
   const tsLabel = ts ? new Date(ts).toLocaleString('pt-BR', { timeStyle: 'short', dateStyle: 'short' }) : '—';
+  const periodoSel = periodo ? `
+      <label class="dash-periodo">
+        <span>Batalha Naval:</span>
+        <select onchange="_setDashRef(this.value)">
+          <option value="anterior" ${periodo.ref === 'anterior' ? 'selected' : ''}>Mês anterior (${_fmtMesRef(periodo.anterior)})</option>
+          <option value="atual" ${periodo.ref === 'atual' ? 'selected' : ''}>Mês atual (${_fmtMesRef(periodo.atual)})</option>
+        </select>
+      </label>` : '';
 
   let totalAnomalias = 0, totalGaps = 0, totalAtrasos = 0, totalSemVendas = 0;
   for (const t of DASH_TENANT_ORDER) {
@@ -2692,6 +2718,7 @@ function _renderDashContent(wrap) {
   wrap.innerHTML = `
     <div class="dash-topbar">
       <span class="dash-ts">Atualizado em ${tsLabel}</span>
+      ${periodoSel}
       <button class="dash-refresh-btn" onclick="_loadDashboard(true)">↻ Atualizar</button>
     </div>
     <div class="dash-kpi-row">

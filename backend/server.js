@@ -1163,6 +1163,22 @@ app.get('/api/historico-dados', async (req, res) => {
 });
 
 // ─── Usuários — arquivo mais recente do Drive ─────────────────────────────────
+// O monitor grava a extração geral (aba "Usuarios": uma linha por usuário × organização × indústria,
+// colunas Industria e Tipo = Indústria/Distribuidor). Arquivos antigos tinham só BIC, nas abas
+// "Distribuidores" e "Industria".
+function usuariosBic(wb) {
+  const ws = wb.Sheets['Usuarios'];
+  if (!ws) {
+    const ler = nome => wb.Sheets[nome] ? XLSX.utils.sheet_to_json(wb.Sheets[nome], { defval: '' }) : [];
+    return { distribuidores: ler('Distribuidores'), industria: ler('Industria') };
+  }
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' }).filter(r => r.Industria === 'BIC');
+  return {
+    distribuidores: rows.filter(r => r.Tipo === 'Distribuidor'),
+    industria:      rows.filter(r => r.Tipo === 'Indústria'),
+  };
+}
+
 app.get('/api/usuarios-arquivo', async (req, res) => {
   try {
     const drive    = getDriveClient(true);
@@ -1195,14 +1211,8 @@ app.get('/api/usuarios-dados', async (req, res) => {
       { responseType: 'arraybuffer' }
     );
 
-    const wb          = XLSX.read(fileResp.data, { type: 'array' });
-    const wsDistrib   = wb.Sheets['Distribuidores'];
-    const wsIndustria = wb.Sheets['Industria'];
-
-    const distribuidores = wsDistrib   ? XLSX.utils.sheet_to_json(wsDistrib)   : [];
-    const industria      = wsIndustria ? XLSX.utils.sheet_to_json(wsIndustria) : [];
-
-    res.json({ distribuidores, industria });
+    const wb = XLSX.read(fileResp.data, { type: 'array' });
+    res.json(usuariosBic(wb));
   } catch (err) {
     console.error('Erro /api/usuarios-dados:', err.message);
     res.status(500).json({ error: err.message });
@@ -1326,8 +1336,7 @@ app.get('/api/email-massa/debug', requireAuth, requireAdmin, async (req, res) =>
         { responseType: 'arraybuffer' }
       );
       const wb = XLSX.read(resp.data, { type: 'array' });
-      const ws = wb.Sheets['Distribuidores'];
-      const rows = ws ? XLSX.utils.sheet_to_json(ws, { defval: '' }) : [];
+      const rows = usuariosBic(wb).distribuidores;
       const unique = new Map();
       for (const r of rows) {
         const emp = String(r.Empresa || '').trim();
@@ -1640,8 +1649,7 @@ app.get('/api/email-massa/holdings', requireAuth, async (req, res) => {
       { responseType: 'arraybuffer' }
     );
     const usuariosWb  = XLSX.read(usuariosResp.data, { type: 'array' });
-    const wsDistrib   = usuariosWb.Sheets['Distribuidores'];
-    const distribRows = wsDistrib ? XLSX.utils.sheet_to_json(wsDistrib, { defval: '' }) : [];
+    const distribRows = usuariosBic(usuariosWb).distribuidores;
 
     const empresaEmails = {};
     for (const d of distribRows) {

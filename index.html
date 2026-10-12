@@ -248,6 +248,21 @@
     .sb-toggle { background: none; border: 1px solid var(--bic-border); border-radius: 6px; width: 30px; height: 30px; font-size: 15px; line-height: 1; color: var(--text-muted); cursor: pointer; flex-shrink: 0; transition: background .15s, color .15s; }
     .sb-toggle:hover { background: var(--bic-gray); color: var(--text-main); }
 
+    /* ── Usuários (Visão Geral) ─────────────────────────────── */
+    .nav-item.nav-sub { padding-left: 34px; font-size: 13px; }
+    .nav-item.nav-sub .nav-icon { font-size: 13px; }
+    .sb-collapsed .nav-item.nav-sub { padding-left: 0; }
+    .em-passo { background: #fff; border: 1px solid var(--bic-border); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+    .em-passo-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; margin-bottom: 10px; }
+    .usu-ind-select { border: 1.5px solid #dde3ed; border-radius: 8px; padding: 7px 10px; font-size: 13px; background: #fff; color: var(--text-main); cursor: pointer; }
+    .usu-resumo { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .usu-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 6px 11px; border: 1px solid var(--bic-border); border-radius: 8px; background: #fff; cursor: pointer; text-align: left; }
+    .usu-chip strong { font-size: 12px; color: var(--text-main); }
+    .usu-chip span { font-size: 11px; color: var(--text-muted); }
+    .usu-chip:hover { border-color: #fdba74; }
+    .usu-chip.active { border-color: var(--bic-orange); background: #fff8f2; }
+    .usu-ind-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: var(--bic-gray); white-space: nowrap; }
+
     /* ── Alertas Slack ───────────────────────────────────────── */
     .al-wrap { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; max-width: 980px; }
     .al-card { background: #fff; border: 1px solid var(--bic-border); border-radius: 12px; padding: 20px 22px; }
@@ -2270,14 +2285,18 @@
       <span class="nav-label">Paliativos MTrix</span>
     </div>
 
+    <div class="nav-item" data-module="dashboard" id="dashboard-nav-item" style="display:none">
+      <span class="nav-icon">🧭</span>
+      <span class="nav-label">Painel Geral</span>
+    </div>
+
     <div class="nav-item" data-module="usuarios">
       <span class="nav-icon">👥</span>
       <span class="nav-label">Usuários</span>
     </div>
-
-    <div class="nav-item" data-module="dashboard" id="dashboard-nav-item" style="display:none">
-      <span class="nav-icon">🧭</span>
-      <span class="nav-label">Painel Geral</span>
+    <div class="nav-item nav-sub" data-module="usuarios-email" id="usuarios-email-nav-item" style="display:none">
+      <span class="nav-icon">✉️</span>
+      <span class="nav-label">Envio de E-mail</span>
     </div>
 
     <div class="nav-item" data-module="alertas" id="alertas-nav-item" style="display:none">
@@ -3742,6 +3761,9 @@ function navigateTo(mod) {
   } else if (mod === 'usuarios') {
     document.getElementById('topbar-title').textContent = 'Usuários';
     renderUsuarios();
+  } else if (mod === 'usuarios-email') {
+    document.getElementById('topbar-title').textContent = 'Envio de E-mail';
+    renderEmailMassa();
   } else if (mod === 'batalha') {
     document.getElementById('topbar-title').textContent = 'Batalha Naval';
     renderBatalha();
@@ -6677,15 +6699,18 @@ function _histRenderPorMes() {
 //  MÓDULO USUÁRIOS
 // ═══════════════════════════════════════════════════════════════════════
 const usuariosState = {
-  distribuidores: [],
-  industria: [],
+  rows: [],            // extração geral: Industria, Tipo, Empresa, Nome, Email, Perfil, Tem_Permissao
+  filtroIndustria: '', // '' = todas
   abaAtiva: 'distribuidores',
   arquivo: '',
   carregado: false,
   sortCol: null,
   sortAsc: true,
   permissaoBi: 'sim',  // 'sim' | 'nao' | 'todos'
-  // Holdings
+  // Envio de e-mail: indústria (tenant) e agrupamento
+  emailTenant: '',
+  emailModo: 'customer',   // 'customer' | 'holding' (holding só BIC)
+  // Grupos de envio (holdings ou customers)
   holdings: [],
   semHolding: [],
   holdingsCarregado: false,
@@ -6700,10 +6725,10 @@ function renderUsuarios() {
   area.innerHTML = `
     <div style="padding:20px">
       <div class="hist-toolbar" style="margin-bottom:0">
+        <select class="usu-ind-select" id="usu-ind" onchange="usuSetIndustria(this.value)"><option value="">Todas as indústrias</option></select>
         <div class="hist-modo-group">
-          <button class="hist-modo-btn active" id="usu-btn-distrib" onclick="usuSetAba('distribuidores')">🏢 Distribuidores</button>
+          <button class="hist-modo-btn" id="usu-btn-distrib" onclick="usuSetAba('distribuidores')">🏢 Distribuidores</button>
           <button class="hist-modo-btn" id="usu-btn-industria" onclick="usuSetAba('industria')">🏭 Indústria</button>
-          <button class="hist-modo-btn" id="usu-btn-holdings" onclick="usuSetAba('holdings')">📧 Holdings</button>
         </div>
         <div class="hist-modo-group" id="usu-perm-filter">
           <button class="hist-modo-btn active" id="usu-perm-sim" onclick="usuSetPermissao('sim')">✅ Permissão BI: Sim</button>
@@ -6714,6 +6739,7 @@ function renderUsuarios() {
         <button class="dp-btn dp-btn-outline" id="usu-btn-refresh" onclick="usuRefresh()">↻ Atualizar</button>
         <span class="hist-file-badge" id="usu-file-badge"></span>
       </div>
+      <div class="usu-resumo" id="usu-resumo"></div>
       <div style="margin:10px 0 14px;font-size:12px;color:var(--text-muted)" id="usu-counter"></div>
       <div class="hist-table-wrap">
         <div class="hist-empty" id="usu-empty">
@@ -6727,7 +6753,8 @@ function renderUsuarios() {
       </div>
     </div>
   `;
-  // Garante estado inicial do filtro de permissão
+  // Garante estado inicial das abas e do filtro de permissão
+  _usuAtualizarAbas();
   _atualizarBotoesPerm();
   if (usuariosState.abaAtiva !== 'distribuidores') {
     const permFilter = document.getElementById('usu-perm-filter');
@@ -6746,24 +6773,29 @@ function usuSetAba(aba) {
   usuariosState.sortCol     = null;
   usuariosState.sortAsc     = true;
   usuariosState.permissaoBi = 'sim';
-  ['distrib','industria','holdings'].forEach(id => {
-    const btn = document.getElementById(`usu-btn-${id}`);
-    if (btn) btn.classList.toggle('active', aba === ({distrib:'distribuidores',industria:'industria',holdings:'holdings'}[id]));
-  });
+  _usuAtualizarAbas();
   const search = document.getElementById('usu-search');
   if (search) search.value = '';
   const permFilter = document.getElementById('usu-perm-filter');
   if (permFilter) permFilter.style.display = aba === 'distribuidores' ? '' : 'none';
-  const searchBar = document.getElementById('usu-search');
-  if (searchBar) searchBar.style.display = aba === 'holdings' ? 'none' : '';
-  const refreshBtn = document.getElementById('usu-btn-refresh');
-  if (refreshBtn) refreshBtn.style.display = aba === 'holdings' ? 'none' : '';
   _atualizarBotoesPerm();
-  if (aba === 'holdings') {
-    renderHoldings();
-  } else {
-    renderUsuariosTabela();
-  }
+  renderUsuariosTabela();
+}
+
+function _usuAtualizarAbas() {
+  const aba = usuariosState.abaAtiva;
+  ['distrib','industria'].forEach(id => {
+    const btn = document.getElementById(`usu-btn-${id}`);
+    if (btn) btn.classList.toggle('active', aba === ({distrib:'distribuidores',industria:'industria'}[id]));
+  });
+}
+
+function usuSetIndustria(ind) {
+  usuariosState.filtroIndustria = ind;
+  const sel = document.getElementById('usu-ind');
+  if (sel && sel.value !== ind) sel.value = ind;
+  _usuAtualizarAbas();
+  renderUsuariosTabela();
 }
 
 function usuSetPermissao(valor) {
@@ -6789,9 +6821,9 @@ async function usuRefresh() {
 
 async function carregarUsuarios() {
   try {
-    const arqResp = await fetch('/api/usuarios-arquivo');
-    if (!arqResp.ok) throw new Error(await arqResp.text());
-    const arquivo = await arqResp.json();
+    const resp = await fetch('/api/usuarios-geral');
+    if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).error || resp.status);
+    const { arquivo, rows } = await resp.json();
 
     if (!arquivo) {
       const el = document.getElementById('usu-empty');
@@ -6802,13 +6834,18 @@ async function carregarUsuarios() {
     const badge = document.getElementById('usu-file-badge');
     if (badge) badge.textContent = `Arquivo: ${arquivo.name}`;
 
-    const dadosResp = await fetch(`/api/usuarios-dados?fileId=${arquivo.fileId}`);
-    if (!dadosResp.ok) throw new Error(await dadosResp.text());
-    const { distribuidores, industria } = await dadosResp.json();
-
-    usuariosState.distribuidores = distribuidores || [];
-    usuariosState.industria      = industria      || [];
-    usuariosState.arquivo        = arquivo.name;
+    usuariosState.rows    = rows || [];
+    usuariosState.arquivo = arquivo.name;
+    const inds = [...new Set(usuariosState.rows.map(r => r.Industria))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    if (usuariosState.filtroIndustria && !inds.includes(usuariosState.filtroIndustria)) usuariosState.filtroIndustria = '';
+    if (inds.length === 1) usuariosState.filtroIndustria = inds[0];
+    const sel = document.getElementById('usu-ind');
+    if (sel) {
+      sel.innerHTML = (inds.length > 1 ? '<option value="">Todas as indústrias</option>' : '')
+        + inds.map(i => `<option value="${escHtml(i)}">${escHtml(i)}</option>`).join('');
+      sel.value = usuariosState.filtroIndustria;
+    }
+    _usuAtualizarAbas();
     usuariosState.carregado      = true;
 
     renderUsuariosTabela();
@@ -6828,12 +6865,38 @@ function usuSort(col) {
   renderUsuariosTabela();
 }
 
+// Chips com distribuidores / usuários por indústria (clicáveis = filtro)
+function _usuRenderResumo() {
+  const el = document.getElementById('usu-resumo');
+  if (!el || !usuariosState.carregado) return;
+  const por = {};
+  for (const r of usuariosState.rows) {
+    const p = por[r.Industria] ||= { dist: new Set(), usu: 0 };
+    if (r.Tipo === 'Distribuidor') p.dist.add(r.Empresa);
+    p.usu++;
+  }
+  const inds = Object.keys(por).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  if (inds.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = inds.map((i, k) => `
+    <button class="usu-chip${usuariosState.filtroIndustria === i ? ' active' : ''}" data-k="${k}">
+      <strong>${escHtml(i)}</strong>
+      <span>${por[i].dist.size} distrib. · ${por[i].usu} usuários</span>
+    </button>`).join('');
+  el.querySelectorAll('.usu-chip').forEach(b => b.onclick = () => {
+    const i = inds[+b.dataset.k];
+    usuSetIndustria(usuariosState.filtroIndustria === i ? '' : i);
+  });
+}
+
 function renderUsuariosTabela() {
   const isDistrib = usuariosState.abaAtiva === 'distribuidores';
   const q = (document.getElementById('usu-search')?.value || '').toLowerCase().trim();
-  const source = isDistrib ? usuariosState.distribuidores : usuariosState.industria;
+  const indSel = usuariosState.filtroIndustria;
+  const todas  = !indSel;
+  const tipo   = isDistrib ? 'Distribuidor' : 'Indústria';
+  _usuRenderResumo();
 
-  let filtered = source.slice();
+  let filtered = usuariosState.rows.filter(r => r.Tipo === tipo && (todas || r.Industria === indSel));
 
   // Filtro de Permissão BI (só distribuidores)
   if (isDistrib && usuariosState.permissaoBi !== 'todos') {
@@ -6844,9 +6907,10 @@ function renderUsuariosTabela() {
   // Filtro de busca
   if (q) {
     filtered = filtered.filter(r =>
-      (r.Nome    || '').toLowerCase().includes(q)
-   || (r.Email   || '').toLowerCase().includes(q)
-   || (r.Empresa || '').toLowerCase().includes(q)
+      (r.Nome      || '').toLowerCase().includes(q)
+   || (r.Email     || '').toLowerCase().includes(q)
+   || (r.Empresa   || '').toLowerCase().includes(q)
+   || (r.Industria || '').toLowerCase().includes(q)
     );
   }
 
@@ -6867,7 +6931,11 @@ function renderUsuariosTabela() {
   }
 
   const counter = document.getElementById('usu-counter');
-  if (counter) counter.textContent = `${filtered.length} usuário${filtered.length !== 1 ? 's' : ''}`;
+  if (counter) {
+    const emps = new Set(filtered.map(r => r.Empresa)).size;
+    counter.textContent = `${filtered.length} usuário${filtered.length !== 1 ? 's' : ''}`
+      + (isDistrib ? ` · ${emps} distribuidor${emps !== 1 ? 'es' : ''}` : '');
+  }
 
   const emptyEl = document.getElementById('usu-empty');
   const table   = document.getElementById('usu-table');
@@ -6890,12 +6958,15 @@ function renderUsuariosTabela() {
     return usuariosState.sortAsc ? ' <span style="font-size:10px">▲</span>' : ' <span style="font-size:10px">▼</span>';
   };
   const thStyle = 'cursor:pointer;user-select:none';
+  const thInd = todas ? `<th class="hist-th" style="min-width:120px;${thStyle}" onclick="usuSort('Industria')">Indústria${sortIcon('Industria')}</th>` : '';
+  const tdInd = r => todas ? `<td class="hist-td"><span class="usu-ind-tag">${escHtml(r.Industria)}</span></td>` : '';
 
   if (isDistrib) {
-    thead.innerHTML = `<tr>
+    thead.innerHTML = `<tr>${thInd}
       <th class="hist-th" style="min-width:200px;${thStyle}" onclick="usuSort('Empresa')">Empresa${sortIcon('Empresa')}</th>
       <th class="hist-th" style="min-width:180px;${thStyle}" onclick="usuSort('Nome')">Nome${sortIcon('Nome')}</th>
       <th class="hist-th" style="min-width:220px;${thStyle}" onclick="usuSort('Email')">E-mail${sortIcon('Email')}</th>
+      <th class="hist-th" style="min-width:120px;${thStyle}" onclick="usuSort('Perfil')">Perfil${sortIcon('Perfil')}</th>
       <th class="hist-th" style="min-width:130px;${thStyle}" onclick="usuSort('Tem_Permissao')">Permissão BI${sortIcon('Tem_Permissao')}</th>
     </tr>`;
     tbody.innerHTML = filtered.map(r => {
@@ -6903,21 +6974,24 @@ function renderUsuariosTabela() {
       const badge = perm
         ? `<span style="background:#dcfce7;color:#166534;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600">Sim</span>`
         : `<span style="background:#fee2e2;color:#991b1b;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600">Não</span>`;
-      return `<tr class="hist-tr">
+      return `<tr class="hist-tr">${tdInd(r)}
         <td class="hist-td">${escHtml(r.Empresa)}</td>
         <td class="hist-td">${escHtml(r.Nome)}</td>
         <td class="hist-td"><a href="mailto:${escHtml(r.Email)}" style="color:var(--bic-orange)">${escHtml(r.Email)}</a></td>
+        <td class="hist-td">${escHtml(r.Perfil)}</td>
         <td class="hist-td">${badge}</td>
       </tr>`;
     }).join('');
   } else {
-    thead.innerHTML = `<tr>
+    thead.innerHTML = `<tr>${thInd}
       <th class="hist-th" style="min-width:200px;${thStyle}" onclick="usuSort('Nome')">Nome${sortIcon('Nome')}</th>
       <th class="hist-th" style="min-width:240px;${thStyle}" onclick="usuSort('Email')">E-mail${sortIcon('Email')}</th>
+      <th class="hist-th" style="min-width:120px;${thStyle}" onclick="usuSort('Perfil')">Perfil${sortIcon('Perfil')}</th>
     </tr>`;
-    tbody.innerHTML = filtered.map(r => `<tr class="hist-tr">
+    tbody.innerHTML = filtered.map(r => `<tr class="hist-tr">${tdInd(r)}
       <td class="hist-td">${escHtml(r.Nome)}</td>
       <td class="hist-td"><a href="mailto:${escHtml(r.Email)}" style="color:var(--bic-orange)">${escHtml(r.Email)}</a></td>
+      <td class="hist-td">${escHtml(r.Perfil)}</td>
     </tr>`).join('');
   }
 }
@@ -6925,6 +6999,63 @@ function renderUsuariosTabela() {
 // ═══════════════════════════════════════════════════════════════════════
 //  EMAIL EM MASSA — Holdings
 // ═══════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════
+//  ENVIO DE E-MAIL (Visão Geral → Usuários → Envio de E-mail, admin)
+//  1º escolhe a indústria; depois os usuários são agrupados por customer
+//  (ou por holding, na BIC) e cada grupo recebe um e-mail.
+// ═══════════════════════════════════════════════════════════════════════
+const _emRot = () => usuariosState.emailModo === 'holding'
+  ? { um: 'holding', varios: 'holdings', Um: 'Holding' }
+  : { um: 'customer', varios: 'customers', Um: 'Customer' };
+
+function renderEmailMassa() {
+  const area = document.getElementById('content-area');
+  const inds = _userTenantList().filter(t => TENANT_CONFIG[t]);
+  const ordem = DASH_TENANT_ORDER.filter(t => inds.includes(t));
+  const t = usuariosState.emailTenant;
+  area.innerHTML = `
+    <div style="padding:20px">
+      <div class="em-passo">
+        <div class="em-passo-label">1 · Indústria</div>
+        <div class="usu-resumo" style="margin-top:0">
+          ${ordem.map(k => `<button class="usu-chip${k === t ? ' active' : ''}" onclick="emSetIndustria('${k}')"><strong>${escHtml(TENANT_CONFIG[k].label)}</strong></button>`).join('')}
+        </div>
+      </div>
+      <div id="em-passo2" style="${t ? '' : 'display:none'}">
+        <div class="em-passo">
+          <div class="em-passo-label">2 · Destinatários</div>
+          <div class="hist-modo-group" id="em-modo-group" style="${t === 'bic' ? '' : 'display:none'};margin-bottom:12px;width:fit-content">
+            <button class="hist-modo-btn${usuariosState.emailModo === 'customer' ? ' active' : ''}" onclick="emSetModo('customer')">🏢 Por customer</button>
+            <button class="hist-modo-btn${usuariosState.emailModo === 'holding' ? ' active' : ''}" onclick="emSetModo('holding')">🏦 Por holding</button>
+          </div>
+          <div id="usu-counter"></div>
+          <div class="hist-table-wrap">
+            <div class="hist-empty" id="usu-empty"></div>
+            <table class="hist-table" id="usu-table" style="display:none;width:100%"></table>
+          </div>
+        </div>
+      </div>
+      ${t ? '' : '<div class="hist-empty" style="margin-top:18px"><span class="hist-empty-icon">✉️</span>Escolha a indústria para carregar os usuários.</div>'}
+    </div>`;
+  if (t) { usuariosState.holdingsCarregado = false; renderHoldings(); }
+}
+
+function emSetIndustria(tenant) {
+  if (usuariosState.emailTenant !== tenant) {
+    usuariosState.emailTenant     = tenant;
+    usuariosState.emailModo       = tenant === 'bic' ? 'holding' : 'customer';
+    usuariosState.validacaoMensal = null;   // a validação é da indústria
+    _emPrazoEditado = null;
+  }
+  renderEmailMassa();
+}
+
+function emSetModo(modo) {
+  if (usuariosState.emailModo === modo) return;
+  usuariosState.emailModo = modo;
+  renderEmailMassa();
+}
 
 async function renderHoldings() {
   const emptyEl = document.getElementById('usu-empty');
@@ -6941,12 +7072,15 @@ async function renderHoldings() {
   const counterEl = document.getElementById('usu-counter');
   if (counterEl) counterEl.innerHTML = '';
 
-  if (emptyEl) { emptyEl.style.display = ''; emptyEl.innerHTML = '<span class="hist-spinner"></span> Carregando holdings…'; }
+  const tenant = usuariosState.emailTenant;
+  const modo   = usuariosState.emailModo;
+  const rot    = _emRot();
+  if (emptyEl) { emptyEl.style.display = ''; emptyEl.innerHTML = `<span class="hist-spinner"></span> Carregando usuários por ${rot.um}…`; }
 
   // Verifica Gmail e coordenadores em paralelo
   const [gData, coordData] = await Promise.all([
     fetch('/api/gmail/status').then(r=>r.json()).catch(()=>({connected:false})),
-    fetch('/api/coordenadores').then(r=>r.json()).catch(()=>({mapa:{},importadoEm:null})),
+    fetch(`/api/coordenadores?tenant=${tenant}`).then(r=>r.json()).catch(()=>({mapa:{},importadoEm:null})),
   ]);
   usuariosState.gmailConectado = gData.connected;
   usuariosState.gmailEmail     = gData.email || '';
@@ -6954,19 +7088,19 @@ async function renderHoldings() {
   const validData = usuariosState.validacaoMensal || {};
 
   let coordStatus = '';
-  if (coordData.importadoEm) {
-    const d = new Date(coordData.importadoEm).toLocaleDateString('pt-BR');
-    const total = Object.values(coordData.mapa || {}).reduce((a,v)=>a+v.length,0);
-    coordStatus = `<span style="color:#166534;font-size:12px">✓ ${total} coordenadores importados (${d})</span>`;
+  if (coordData.total) {
+    const d = coordData.importadoEm ? ` (${new Date(coordData.importadoEm).toLocaleDateString('pt-BR')})` : '';
+    const fonte = coordData.fonte === 'bigquery' ? 'BigQuery' : 'importação manual';
+    coordStatus = `<span style="color:#166534;font-size:12px">✓ ${coordData.total} coordenadores · ${fonte}${d}</span>`;
   } else {
-    coordStatus = `<span style="color:#92400e;font-size:12px">⚠ Nenhum coordenador importado</span>`;
+    coordStatus = `<span style="color:#92400e;font-size:12px">⚠ Nenhum coordenador para esta indústria</span>`;
   }
 
   let validStatusHtml = '';
   if (validData.importadoEm) {
     const dv = new Date(validData.importadoEm).toLocaleDateString('pt-BR');
     const refLabel = validData.referencia ? ` · ${escHtml(validData.referencia)}` : '';
-    validStatusHtml = `<span style="color:#0369a1;font-size:12px">📊 Validação: ${validData.totalLinhas} linhas · ${validData.totalHoldings} holdings${refLabel} (${dv})</span>`;
+    validStatusHtml = _emValidacaoTexto(validData);
   } else {
     validStatusHtml = `<span style="color:#9ca3af;font-size:12px">— Sem validação importada</span>`;
   }
@@ -6974,15 +7108,15 @@ async function renderHoldings() {
 
   // Carrega holdings
   try {
-    const r = await fetch('/api/email-massa/holdings');
-    if (!r.ok) throw new Error(await r.text());
+    const r = await fetch(`/api/email-massa/grupos?tenant=${tenant}&modo=${modo}`);
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.status);
     const data = await r.json();
     usuariosState.holdings             = data.holdings || [];
     usuariosState.semHolding           = data.semHolding || [];
     usuariosState.holdingsCarregado    = true;
     usuariosState.holdingsSelecionadas = new Set();
   } catch (err) {
-    if (emptyEl) emptyEl.innerHTML = `<span class="hist-empty-icon">⚠️</span>Erro ao carregar holdings: ${err.message}`;
+    if (emptyEl) emptyEl.innerHTML = `<span class="hist-empty-icon">⚠️</span>Erro ao carregar ${rot.varios}: ${escHtml(err.message)}`;
     return;
   }
 
@@ -7004,16 +7138,13 @@ async function renderHoldings() {
         ${validStatus}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px">
-          📥 Importar Coordenadores
-          <input type="file" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarCoordenadores(this)">
-        </label>
+        <button class="dp-btn dp-btn-outline" style="font-size:12px" id="btn-coord-bq" onclick="atualizarCoordenadoresBQ()" title="Pede ao BIC Monitor (nesta máquina) para consultar o BigQuery e salvar o arquivo de coordenadores no Drive">📥 Atualizar coordenadores</button>
         <div style="display:flex;align-items:center;gap:4px">
-          <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px" title="Importa CSV/XLSX com colunas HOLDING, Customer, Tipo de Operação, Venda Valor">
+          <label class="dp-btn dp-btn-outline" style="cursor:pointer;position:relative;font-size:12px" title="Importa CSV/XLSX com colunas Customer, Tipo de Operação, Venda Valor (e HOLDING para envio por holding)">
             📊 Validação Mensal
             <input type="file" accept=".csv,.xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="importarValidacaoMensal(this)">
           </label>
-          <a href="${_biValidacaoUrl()}" target="_blank" class="dp-btn dp-btn-outline" style="font-size:12px;padding:5px 8px;line-height:1" title="Abrir relatório no BI">🔗</a>
+          ${tenant === 'bic' ? `<a href="${_biValidacaoUrl()}" target="_blank" class="dp-btn dp-btn-outline" style="font-size:12px;padding:5px 8px;line-height:1" title="Abrir relatório no BI">🔗</a>` : ''}
         </div>
         <button class="dp-btn dp-btn-outline" onclick="usuariosState.holdingsCarregado=false;renderHoldings()">↻ Recarregar</button>
         <button class="dp-btn dp-btn-primary" id="btn-enviar-email-massa" onclick="abrirModalEmailMassa()" disabled style="opacity:.4">📤 Enviar Email</button>
@@ -7027,8 +7158,8 @@ async function renderHoldings() {
               <input type="checkbox" class="holdings-checkbox" id="chk-todas" onchange="usuToggleTodasHoldings(this.checked)">
             </th>
             <th class="hist-th" style="width:24px"></th>
-            <th class="hist-th">Holding</th>
-            <th class="hist-th" style="text-align:center;width:90px">Empresas</th>
+            <th class="hist-th">${rot.Um}</th>
+            ${modo === 'holding' ? '<th class="hist-th" style="text-align:center;width:90px">Empresas</th>' : ''}
             <th class="hist-th" style="text-align:center;width:80px">Emails</th>
             <th class="hist-th">Coordenadores de Vendas</th>
           </tr>
@@ -7046,6 +7177,8 @@ async function renderHoldings() {
 function _renderHoldingsLinhas() {
   const h   = usuariosState.holdings;
   const sel = usuariosState.holdingsSelecionadas;
+  const porHolding = usuariosState.emailModo === 'holding';
+  const ncols = porHolding ? 6 : 5;
   return h.map((hld, idx) => {
     const checked = sel.has(hld.holding);
     const nomeCoord = (nome, email) => {
@@ -7064,21 +7197,22 @@ function _renderHoldingsLinhas() {
         </td>
         <td class="hist-td" onclick="usuExpandHolding(${idx},event)" style="color:#9ca3af;font-size:12px;user-select:none" id="hld-exp-${idx}">▶</td>
         <td class="hist-td" style="font-weight:600" onclick="usuToggleHolding(${idx})">${hEsc}</td>
-        <td class="hist-td" style="text-align:center;color:#475569" onclick="usuToggleHolding(${idx})">${hld.totalEmpresas}</td>
+        ${porHolding ? `<td class="hist-td" style="text-align:center;color:#475569" onclick="usuToggleHolding(${idx})">${hld.totalEmpresas}</td>` : ''}
         <td class="hist-td" style="text-align:center" onclick="usuToggleHolding(${idx})">
           <span style="background:${hld.totalEmails>0?'#f0fdf4':'#fee2e2'};color:${hld.totalEmails>0?'#166534':'#991b1b'};padding:2px 10px;border-radius:4px;font-size:12px;font-weight:600">${hld.totalEmails}</span>
         </td>
         <td class="hist-td" onclick="usuToggleHolding(${idx})">${coords}</td>
       </tr>
       <tr id="hld-detail-${idx}" style="display:none;background:#f8fafc">
-        <td colspan="6" style="padding:0 16px 14px 52px">
+        <td colspan="${ncols}" style="padding:0 16px 14px 52px">
+          ${porHolding ? `
           <div style="font-size:11px;color:#64748b;margin-top:10px;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Empresas nesta holding</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
             ${hld.empresas.map(emp => {
               const temEmail = hld.empresasMatch && hld.empresasMatch.includes(emp);
               return `<span style="background:${temEmail?'#e0f2fe':'#f1f5f9'};color:${temEmail?'#0369a1':'#64748b'};font-size:11px;padding:3px 10px;border-radius:12px">${escHtml(emp)}</span>`;
             }).join('')}
-          </div>
+          </div>` : ''}
           ${hld.emails.length ? `
           <div style="font-size:11px;color:#64748b;margin-top:12px;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Emails distribuidores (${hld.emails.length})</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
@@ -7095,7 +7229,7 @@ function _renderHoldingsLinhas() {
     <tr class="hist-tr" style="opacity:.5">
       <td class="hist-td"></td><td class="hist-td"></td>
       <td class="hist-td" style="font-style:italic;color:#9ca3af">Sem holding</td>
-      <td class="hist-td"></td>
+      ${porHolding ? '<td class="hist-td"></td>' : ''}
       <td class="hist-td" style="text-align:center;font-size:12px;color:#9ca3af">${usuariosState.semHolding.length} emails</td>
       <td class="hist-td"></td>
     </tr>` : '');
@@ -7143,7 +7277,8 @@ function _atualizarSelecaoHoldings() {
   const selEmails = h.filter(x=>sel.has(x.holding)).reduce((a,x)=>a+x.totalEmails,0);
   const selCoord  = h.filter(x=>sel.has(x.holding)).reduce((a,x)=>a+x.coordenadores.length,0);
   const resumo = document.getElementById('holdings-resumo-texto');
-  if (resumo) resumo.textContent = `${h.length} holdings · ${selCount} selecionadas · ${selEmails} emails · ${selCoord} coordenadores`;
+  const rot = _emRot();
+  if (resumo) resumo.textContent = `${h.length} ${rot.varios} · ${selCount} selecionado(s) · ${selEmails} emails · ${selCoord} coordenadores`;
 
   // Atualiza botão enviar
   const btn = document.getElementById('btn-enviar-email-massa');
@@ -7154,16 +7289,37 @@ function _atualizarSelecaoHoldings() {
   }
 }
 
+// Coordenadores vêm do BigQuery pelo BIC Monitor, que roda localmente (porta 3001)
+const MONITOR_URL = 'http://localhost:3001';
+async function atualizarCoordenadoresBQ() {
+  const btn = document.getElementById('btn-coord-bq');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Consultando BigQuery…'; }
+  try {
+    const r = await fetch(`${MONITOR_URL}/geral/coordenadores`, { method: 'POST' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    alert(`✓ Coordenadores ${j.skipped ? 'sem mudança' : 'atualizados'}\n${j.linhas} vínculos · ${j.arquivo}`);
+    usuariosState.holdingsCarregado = false;
+    renderHoldings();
+  } catch (err) {
+    alert(err instanceof TypeError
+      ? 'Não consegui falar com o BIC Monitor em ' + MONITOR_URL + '.\nAbra o monitor nesta máquina e tente de novo (ou use o botão "Coordenadores (BigQuery)" na tela de Usuários do monitor).'
+      : 'Erro: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📥 Atualizar coordenadores'; }
+  }
+}
+
 async function importarCoordenadores(input) {
   if (!input.files?.[0]) return;
   const file = input.files[0];
   const fd = new FormData();
   fd.append('arquivo', file);
   try {
-    const r = await fetch('/api/coordenadores/importar', { method: 'POST', body: fd });
+    const r = await fetch(`/api/coordenadores/importar?tenant=${usuariosState.emailTenant}`, { method: 'POST', body: fd });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Erro ao importar');
-    alert(`✓ Coordenadores importados!\n${data.totalHoldings} holdings · ${data.totalCoord} coordenadores`);
+    alert(`✓ Coordenadores importados (${TENANT_CONFIG[usuariosState.emailTenant]?.label})!\n${data.totalEmpresas} empresas · ${data.totalCoord} coordenadores`);
     usuariosState.holdingsCarregado = false;
     renderHoldings();
   } catch (err) {
@@ -7213,14 +7369,18 @@ async function importarValidacaoMensal(input) {
     const referencia = ok ? refAuto : (prompt('Mês de referência (ex: Junho/2026):', refAuto) ?? refAuto);
 
     usuariosState.validacaoMensal = {
-      linhas:        data.linhas        || [],
+      linhas:         data.linhas         || [],
       referencia,
-      totalLinhas:   data.totalLinhas   || 0,
-      totalHoldings: data.totalHoldings || 0,
-      importadoEm:   new Date().toISOString(),
+      totalLinhas:    data.totalLinhas    || 0,
+      totalHoldings:  data.totalHoldings  || 0,
+      totalCustomers: data.totalCustomers || 0,
+      importadoEm:    new Date().toISOString(),
     };
     _emPrazoEditado = null;
-    alert(`✓ Validação importada!\n${data.totalLinhas} linhas · ${data.totalHoldings} holdings${referencia ? ' · ' + referencia : ''}`);
+    if (usuariosState.emailModo === 'holding' && !data.totalHoldings) {
+      alert('⚠ O arquivo não tem a coluna HOLDING: a tabela de validação só sai no envio por customer.');
+    }
+    alert(`✓ Validação importada!\n${data.totalLinhas} linhas · ${data.totalCustomers} customers${data.totalHoldings ? ' · ' + data.totalHoldings + ' holdings' : ''}${referencia ? ' · ' + referencia : ''}`);
     _atualizarStatusValidacao();
   } catch (err) {
     alert(`Erro: ${err.message}`);
@@ -7233,12 +7393,17 @@ function _atualizarStatusValidacao() {
   const el = document.getElementById('valid-status-badge');
   if (!el) return;
   if (vd?.importadoEm) {
-    const d = new Date(vd.importadoEm).toLocaleDateString('pt-BR');
-    const ref = vd.referencia ? ` · ${escHtml(vd.referencia)}` : '';
-    el.innerHTML = `<span style="color:#0369a1;font-size:12px">📊 Validação: ${vd.totalLinhas} linhas · ${vd.totalHoldings} holdings${ref} (${d})</span>`;
+    el.innerHTML = _emValidacaoTexto(vd);
   } else {
     el.innerHTML = `<span style="color:#9ca3af;font-size:12px">— Sem validação importada</span>`;
   }
+}
+
+function _emValidacaoTexto(vd) {
+  const d   = new Date(vd.importadoEm).toLocaleDateString('pt-BR');
+  const ref = vd.referencia ? ` · ${escHtml(vd.referencia)}` : '';
+  const qtd = usuariosState.emailModo === 'holding' ? `${vd.totalHoldings || 0} holdings` : `${vd.totalCustomers || 0} customers`;
+  return `<span style="color:#0369a1;font-size:12px">📊 Validação: ${vd.totalLinhas} linhas · ${qtd}${ref} (${d})</span>`;
 }
 
 // Calcula prazo padrão: "01/MM+1/AAAA até 06/MM+1/AAAA" a partir da referência "Julho/2026"
@@ -7318,12 +7483,21 @@ function abrirModalEmailMassa() {
   const selHoldings = usuariosState.holdings.filter(h => sel.has(h.holding));
   const totalEmails = selHoldings.reduce((a,h)=>a+h.totalEmails,0);
   const totalCoord  = selHoldings.reduce((a,h)=>a+h.coordenadores.length,0);
+  const rot = _emRot();
+  const indLabel = TENANT_CONFIG[usuariosState.emailTenant]?.label || '';
+
+  // rodapé e título podem ter sido trocados por um envio anterior
+  document.getElementById('em-modal-title').textContent = `Enviar e-mail — ${indLabel} (por ${rot.um})`;
+  document.getElementById('em-modal-footer').innerHTML = `
+      <button class="dp-btn dp-btn-outline" onclick="fecharModalEmailMassa()">Cancelar</button>
+      <button class="dp-btn dp-btn-primary" id="em-btn-enviar" onclick="iniciarEnvioEmails()">Enviar</button>`;
 
   document.getElementById('em-modal-body').innerHTML = `
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:11px;color:#64748b;font-weight:600">Tags disponíveis:</span>
-      <span class="em-chip" style="cursor:pointer;background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="emInsertTag('{{holding}}')" title="Nome da holding">{{holding}}</span>
-      <span class="em-chip" style="cursor:pointer;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe" onclick="emInsertTag('{{tabela_validacao}}')" title="Tabela de dados de fechamento por holding (requer validação importada)">{{tabela_validacao}}</span>
+      <span class="em-chip" style="cursor:pointer;background:#fef3c7;color:#92400e;border:1px solid #fde68a" onclick="emInsertTag('{{holding}}')" title="Nome do ${rot.um} que recebe o e-mail">{{holding}}</span>
+      <span class="em-chip" style="cursor:pointer;background:#fff1f2;color:#9f1239;border:1px solid #fecdd3" onclick="emInsertTag('{{industria}}')" title="Nome da indústria">{{industria}}</span>
+      <span class="em-chip" style="cursor:pointer;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe" onclick="emInsertTag('{{tabela_validacao}}')" title="Tabela de dados de fechamento por ${rot.um} (requer validação importada)">{{tabela_validacao}}</span>
       <span class="em-chip" style="cursor:pointer;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0" onclick="emInsertTag('{{referencia}}')" title="Mês de referência da validação importada">{{referencia}}</span>
       <span class="em-chip" style="cursor:pointer;background:#fdf4ff;color:#7e22ce;border:1px solid #e9d5ff" onclick="emInsertTag('{{prazo}}')" title="Prazo configurado no campo abaixo">{{prazo}}</span>
       ${usuariosState.validacaoMensal?.importadoEm
@@ -7333,7 +7507,7 @@ function abrirModalEmailMassa() {
     </div>
     <div class="em-field">
       <label>Assunto</label>
-      <input type="text" id="em-assunto" placeholder="Assunto do email… use {{holding}} para o nome da holding"
+      <input type="text" id="em-assunto" placeholder="Assunto do email… use {{holding}} para o nome do ${rot.um}"
         onfocus="emSetActiveField('assunto')">
     </div>
     <div class="em-field">
@@ -7418,7 +7592,7 @@ function abrirModalEmailMassa() {
       <label>Destinatários <span style="font-size:11px;color:#9ca3af;font-weight:400;text-transform:none">(desmarque para excluir deste envio)</span></label>
       <details class="em-dest-section" id="em-dest-details">
         <summary class="em-dest-summary">
-          <span id="em-dest-count-label">${totalEmails} destinatários em ${sel.size} holding${sel.size !== 1 ? 's' : ''}</span>
+          <span id="em-dest-count-label">${totalEmails} destinatários em ${sel.size} ${sel.size !== 1 ? rot.varios : rot.um}</span>
           <span class="em-dest-chevron">▶</span>
         </summary>
         <div class="em-dest-body" id="em-dest-body">
@@ -7444,7 +7618,7 @@ function abrirModalEmailMassa() {
       </details>
     </div>
     <div class="em-summary" id="em-resumo">
-      <span><strong>${sel.size}</strong> holdings selecionadas</span>
+      <span><strong>${sel.size}</strong> ${rot.varios} selecionados</span>
       <span id="em-resumo-dest"><strong>${totalEmails}</strong> destinatários</span>
       <span id="em-resumo-coord"><strong>${totalCoord}</strong> coordenadores em CC</span>
       <span id="em-resumo-cc">+ <strong>0</strong> CC avulsos</span>
@@ -7592,7 +7766,7 @@ function emUsarTemplateValidacao() {
 <h3>PASSO 3 – Configurar a Validação</h3>
 <ul>
   <li>Selecione o que será validado: <strong>Vendas</strong> ou <strong>Estoque</strong>.</li>
-  <li>Selecione o parceiro: <strong>BIC</strong>.</li>
+  <li>Selecione o parceiro: <strong>{{industria}}</strong>.</li>
   <li>Selecione o mês de referência: <strong>{{referencia}}</strong>.</li>
 </ul>
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;background:#FFF8E5;border-left:5px solid #F1C40F;">
@@ -7724,7 +7898,8 @@ function _emAtualizarContadorDestinatarios() {
   }, 0);
 
   const lbl = document.getElementById('em-dest-count-label');
-  if (lbl) lbl.textContent = `${totalAtivos} destinatário${totalAtivos !== 1 ? 's' : ''} ativos de ${sel.size} holding${sel.size !== 1 ? 's' : ''}`;
+  const rot = _emRot();
+  if (lbl) lbl.textContent = `${totalAtivos} destinatário${totalAtivos !== 1 ? 's' : ''} ativos de ${sel.size} ${sel.size !== 1 ? rot.varios : rot.um}`;
 
   const resumo = document.getElementById('em-resumo-dest');
   if (resumo) resumo.innerHTML = `<strong>${totalAtivos}</strong> destinatários`;
@@ -7792,7 +7967,7 @@ async function iniciarEnvioEmails() {
     const pct = total > 0 ? Math.round((enviados/total)*100) : 0;
     document.getElementById('em-modal-body').innerHTML = `
       <div style="font-size:13px;color:#475569;margin-bottom:8px">
-        <strong>${enviados}</strong> / <strong>${total}</strong> holdings concluídas
+        <strong>${enviados}</strong> / <strong>${total}</strong> ${_emRot().varios} concluídos
       </div>
       <div class="em-progress-bar">
         <div class="em-progress-bar-fill" style="width:${pct}%"></div>
@@ -7826,6 +8001,8 @@ async function iniciarEnvioEmails() {
         cco,
         validacaoLinhas:     vd?.linhas     || [],
         validacaoReferencia: vd?.referencia || '',
+        modo:                usuariosState.emailModo,
+        industria:           TENANT_CONFIG[usuariosState.emailTenant]?.label || '',
         prazo:               document.getElementById('em-prazo')?.value?.trim()
                              || computePrazoDefault(vd?.referencia || '') || '',
       }),
@@ -7895,7 +8072,7 @@ let currentTenant = 'bic';
 
 const TENANT_CONFIG = {
   asa:       { label: 'Asa',              badge: 'ASA', subtitle: 'Asa',              modules: ['comparativo','batalha','historico'] },
-  bic:       { label: 'BIC',              badge: 'BIC', subtitle: 'Portal Sellout',   modules: ['comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','usuarios','ranking','evolucao'] },
+  bic:       { label: 'BIC',              badge: 'BIC', subtitle: 'Portal Sellout',   modules: ['comparativo','batalha','inatividade','historico','depara','distribuidores','paliativos','ranking','evolucao'] },
   bombril:   { label: 'Bombril',          badge: 'BOM', subtitle: 'Bombril',          modules: ['comparativo','batalha','historico'] },
   cicopal:   { label: 'Cicopal',          badge: 'CIC', subtitle: 'Cicopal',          modules: ['comparativo','batalha','historico'] },
   fini:      { label: 'Fini',             badge: 'FIN', subtitle: 'Fini',             modules: ['comparativo','batalha','historico'] },
@@ -7919,7 +8096,7 @@ function applyTenantNav() {
   document.getElementById('admin-nav-section').style.display = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('admin-nav-item').style.display    = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('alertas-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
-  const tenantMods = isDash ? [] : (TENANT_CONFIG[currentTenant]?.modules || []);
+  const tenantMods = isDash ? ['usuarios', 'usuarios-email'] : (TENANT_CONFIG[currentTenant]?.modules || []);
   document.querySelectorAll('.nav-item[data-module]').forEach(item => {
     const mod = item.dataset.module;
     if (mod === 'admin-users' || mod === 'dashboard' || mod === 'alertas') return;
@@ -7929,6 +8106,8 @@ function applyTenantNav() {
     const hasPermission = !_currentUser || _currentUser.isAdmin || !Array.isArray(_currentUser.modules) || _currentUser.modules.includes(mod);
     item.style.display = (inTenant && hasPermission) ? '' : 'none';
   });
+  // Envio de e-mail (submenu de Usuários) é só para admin
+  if (!isAdmin) document.getElementById('usuarios-email-nav-item').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════════════════════════

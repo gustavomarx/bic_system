@@ -1184,7 +1184,7 @@ app.get('/api/usuarios-arquivo', async (req, res) => {
     const drive    = getDriveClient(true);
     const folderId = process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID;
     const listResp = await drive.files.list({
-      q:                         `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      q:                         `'${folderId}' in parents and name contains 'usuarios_' and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
       fields:                    'files(id, name, createdTime)',
       orderBy:                   'createdTime desc',
       supportsAllDrives:         true,
@@ -1215,6 +1215,61 @@ app.get('/api/usuarios-dados', async (req, res) => {
     res.json(usuariosBic(wb));
   } catch (err) {
     console.error('Erro /api/usuarios-dados:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Último arquivo de usuários do Drive, como linhas da extração geral
+// (Industria, Tipo, Empresa, Nome, Email, Perfil, Tem_Permissao). Formato antigo vira Industria = BIC.
+async function usuariosGeralRows() {
+  const drive    = getDriveClient(true);
+  const listResp = await drive.files.list({
+    q:                         `'${process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID}' in parents and name contains 'usuarios_' and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+    fields:                    'files(id, name, createdTime)',
+    orderBy:                   'createdTime desc',
+    pageSize:                  1,
+    supportsAllDrives:         true,
+    includeItemsFromAllDrives: true,
+  });
+  const f = listResp.data.files?.[0];
+  if (!f) return { arquivo: null, rows: [] };
+
+  const fileResp = await drive.files.get({ fileId: f.id, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
+  const wb = XLSX.read(fileResp.data, { type: 'array' });
+  let rows;
+  if (wb.Sheets['Usuarios']) {
+    rows = XLSX.utils.sheet_to_json(wb.Sheets['Usuarios'], { defval: '' });
+  } else {
+    const { distribuidores, industria } = usuariosBic(wb);   // formato antigo: só BIC
+    rows = [
+      ...distribuidores.map(r => ({ ...r, Industria: 'BIC', Tipo: 'Distribuidor' })),
+      ...industria.map(r => ({ ...r, Industria: 'BIC', Tipo: 'Indústria' })),
+    ];
+  }
+  rows = rows.map(r => ({
+    Industria: r.Industria, Tipo: r.Tipo, Empresa: String(r.Empresa || '').trim(), Nome: String(r.Nome || '').trim(),
+    Id_Organizacao: String(r.Id_Organizacao || ''),
+    Email: String(r.Email || '').trim(), Perfil: r.Perfil || '', Tem_Permissao: r.Tem_Permissao || '',
+  }));
+  return { arquivo: { name: f.name, createdTime: f.createdTime }, rows };
+}
+
+// Visão Geral → Usuários: extração geral (todas as indústrias), limitada às indústrias que o usuário acessa.
+// Admin vê tudo (inclusive indústrias sem tenant no portal, ex.: Ultracheese).
+app.get('/api/usuarios-geral', async (req, res) => {
+  try {
+    const u = req.user || {};
+    if (!u.isAdmin && Array.isArray(u.modules) && !u.modules.includes('usuarios')) {
+      return res.status(403).json({ error: 'Sem acesso ao módulo de usuários' });
+    }
+    let { arquivo, rows } = await usuariosGeralRows();
+    if (!u.isAdmin) {
+      const permitidas = new Set((u.tenants ?? ['bic']).map(t => TENANT_LABELS[t]).filter(Boolean));
+      rows = rows.filter(r => permitidas.has(r.Industria));
+    }
+    res.json({ arquivo, rows: rows.map(({ Id_Organizacao, ...r }) => r) });
+  } catch (err) {
+    console.error('Erro /api/usuarios-geral:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -1325,7 +1380,7 @@ app.get('/api/email-massa/debug', requireAuth, requireAdmin, async (req, res) =>
 
     // Amostra de Empresas do XLSX de usuários
     const usuList = await drive.files.list({
-      q: `'${process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+      q: `'${process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID}' in parents and name contains 'usuarios_' and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
       fields: 'files(id,name)', orderBy: 'createdTime desc', pageSize: 1,
       supportsAllDrives: true, includeItemsFromAllDrives: true,
     });
@@ -1441,11 +1496,20 @@ app.get('/api/gmail/status', requireAuth, async (req, res) => {
 });
 
 // ─── Coordenadores ────────────────────────────────────────────────────────────
+// Um mapa por indústria no Firestore: system_config/coordenadores (BIC, legado) e coordenadores_<tenant>.
+function coordDocId(tenant) {
+  return !tenant || tenant === 'bic' ? 'coordenadores' : `coordenadores_${tenant}`;
+}
+function coordTenantValido(tenant) {
+  return !tenant || Object.prototype.hasOwnProperty.call(TENANT_LABELS, tenant);
+}
 
 // POST /api/coordenadores/importar — upload XLSX, parseia, salva no Firestore
 app.post('/api/coordenadores/importar', requireAuth, requireAdmin, uploadMemory.single('arquivo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
+    const tenant = String(req.query.tenant || '');
+    if (!coordTenantValido(tenant)) return res.status(400).json({ error: 'Indústria inválida' });
 
     const wb   = XLSX.read(req.file.buffer, { type: 'buffer' });
     const ws   = wb.Sheets[wb.SheetNames[0]];
@@ -1488,7 +1552,7 @@ app.post('/api/coordenadores/importar', requireAuth, requireAdmin, uploadMemory.
     const totalCoord    = Object.values(mapa).reduce((acc, arr) => acc + arr.length, 0);
 
     const db = getFirebaseAdmin().firestore();
-    await db.collection('system_config').doc('coordenadores').set({
+    await db.collection('system_config').doc(coordDocId(tenant)).set({
       mapa,
       importadoEm: new Date().toISOString(),
       colunas: { empresa: empresaCol, nome: nomeCol || null, email: emailCol },
@@ -1504,8 +1568,14 @@ app.post('/api/coordenadores/importar', requireAuth, requireAdmin, uploadMemory.
 // GET /api/coordenadores — retorna mapeamento atual
 app.get('/api/coordenadores', requireAuth, async (req, res) => {
   try {
+    const tenant = String(req.query.tenant || '');
+    if (!coordTenantValido(tenant)) return res.status(400).json({ error: 'Indústria inválida' });
+    if (tenant) {
+      const c = await coordenadoresDe(tenant);
+      return res.json({ fonte: c.fonte, total: c.total, arquivo: c.arquivo, importadoEm: c.arquivo?.createdTime || c.importadoEm || null });
+    }
     const db  = getFirebaseAdmin().firestore();
-    const doc = await db.collection('system_config').doc('coordenadores').get();
+    const doc = await db.collection('system_config').doc(coordDocId(tenant)).get();
     if (!doc.exists) return res.json({ mapa: {}, importadoEm: null });
     res.json(doc.data());
   } catch (err) {
@@ -1552,9 +1622,9 @@ app.post('/api/validacao-mensal/importar', requireAuth, requireAdmin, uploadMemo
     const valorCol    = colKeys.find(k => /venda.*(valor|value)/i.test(k)) || colKeys.find(k => /^valor$/i.test(k.trim()));
     const anoMesCol   = colKeys.find(k => /^ano[\s\/\-_]?m[eê]s/i.test(k.trim())) || colKeys.find(k => /ano_mes/i.test(k));
 
-    if (!holdingCol || !customerCol || !tipoCol || !valorCol) {
+    if (!customerCol || !tipoCol || !valorCol) {
       return res.status(400).json({
-        error: 'Colunas não identificadas. Esperado: HOLDING, Customer, Tipo de Operação, Venda Valor',
+        error: 'Colunas não identificadas. Esperado: Customer, Tipo de Operação, Venda Valor (e HOLDING, se houver)',
         colunas_encontradas: colKeys,
       });
     }
@@ -1572,19 +1642,20 @@ app.post('/api/validacao-mensal/importar', requireAuth, requireAdmin, uploadMemo
     }
 
     const linhas = rows
-      .filter(r => String(r[holdingCol] || '').trim())
+      .filter(r => String(r[customerCol] || '').trim())
       .map(r => ({
-        holding:      String(r[holdingCol]  || '').trim(),
+        holding:      holdingCol ? String(r[holdingCol] || '').trim() : '',
         customer:     String(r[customerCol] || '').trim(),
         anoMes:       anoMesCol ? String(r[anoMesCol] || '').trim() : '',
         tipoOperacao: String(r[tipoCol]     || '').trim().toUpperCase(),
         vendaValor:   String(r[valorCol]    || '').trim(),
       }));
 
-    const totalHoldings = new Set(linhas.map(l => l.holding)).size;
+    const totalHoldings  = new Set(linhas.map(l => l.holding).filter(Boolean)).size;
+    const totalCustomers = new Set(linhas.map(l => l.customer)).size;
 
     // Retorna os dados diretamente — frontend guarda em memória e passa no envio
-    res.json({ ok: true, linhas, totalLinhas: linhas.length, totalHoldings, referencia, referenciaAuto });
+    res.json({ ok: true, linhas, totalLinhas: linhas.length, totalHoldings, totalCustomers, referencia, referenciaAuto });
   } catch (err) {
     console.error('Erro /api/validacao-mensal/importar:', err.message);
     res.status(500).json({ error: err.message });
@@ -1601,122 +1672,178 @@ function normalizeStr(str) {
     .trim();
 }
 
-// GET /api/email-massa/holdings — cruza sellout + usuarios + coordenadores
+// Coordenadores da indústria. Fonte principal: coordenadores_DD-MM-AAAA.xlsx gerado pelo monitor
+// (BigQuery bigdata.partner_user_permission, na pasta dos usuários). Sem linhas da indústria no
+// arquivo, cai no mapa importado manualmente no Firestore (legado).
+async function coordenadoresArquivo() {
+  const drive = getDriveClient(true);
+  const list  = await drive.files.list({
+    q:         `'${process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID}' in parents and name contains 'coordenadores_' and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+    fields:    'files(id, name, createdTime)',
+    orderBy:   'createdTime desc',
+    pageSize:  1,
+    supportsAllDrives: true, includeItemsFromAllDrives: true,
+  });
+  const f = list.data.files?.[0];
+  if (!f) return { arquivo: null, rows: [] };
+  const resp = await drive.files.get({ fileId: f.id, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
+  const wb   = XLSX.read(resp.data, { type: 'array' });
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+  return { arquivo: { name: f.name, createdTime: f.createdTime }, rows };
+}
+
+// { porId: id da distribuidora → [{nome,email}], porNome: empresa normalizada → [{nome,email}], fonte, arquivo, total }
+async function coordenadoresDe(tenant) {
+  const industria = TENANT_LABELS[tenant];
+  const { arquivo, rows } = await coordenadoresArquivo();
+  const porId = {}, porNome = {};
+  const add = (mapa, k, c) => {
+    if (!k) return;
+    const lista = mapa[k] ||= [];
+    if (!lista.some(x => x.email === c.email)) lista.push(c);
+  };
+  let total = 0;
+  for (const r of rows) {
+    if (r.Industria !== industria) continue;
+    const c = { nome: String(r.Nome || '').trim(), email: String(r.Email || '').trim().toLowerCase() };
+    if (!c.email.includes('@')) continue;
+    add(porId, String(r.Id_Organizacao || ''), c);
+    add(porNome, normalizeStr(r.Empresa || ''), c);
+    total++;
+  }
+  if (total) return { porId, porNome, fonte: 'bigquery', arquivo, total };
+
+  const db  = getFirebaseAdmin().firestore();
+  const doc = await db.collection('system_config').doc(coordDocId(tenant)).get();
+  const mapa = doc.exists ? (doc.data().mapa || {}) : {};
+  for (const [k, lista] of Object.entries(mapa)) for (const c of lista) { add(porNome, normalizeStr(k), c); total++; }
+  return { porId, porNome, fonte: total ? 'firestore' : null, arquivo: null, importadoEm: doc.exists ? doc.data().importadoEm : null, total };
+}
+
+const coordDaEmpresa = (coord, id, norm) => (id && coord.porId[id]) || coord.porNome[norm] || [];
+
+// empresa normalizada → { nome original, emails: [{ nome, email }] } — distribuidores da indústria
+// Só usuários com permissão BI (mesmo padrão da lista de usuários)
+async function emailsPorEmpresa(industria) {
+  const { rows } = await usuariosGeralRows();
+  const porEmpresa = {};
+  for (const r of rows) {
+    if (r.Industria !== industria || r.Tipo !== 'Distribuidor' || r.Tem_Permissao !== 'Sim') continue;
+    const email = r.Email.toLowerCase();
+    if (!r.Empresa || !email.includes('@')) continue;
+    const k = normalizeStr(r.Empresa);
+    const e = porEmpresa[k] ||= { nome: r.Empresa, id: r.Id_Organizacao, emails: new Map() };
+    if (!e.emails.has(email)) e.emails.set(email, { nome: r.Nome, email });
+  }
+  return porEmpresa;
+}
+
+// Agrupa por customer (distribuidor): um e-mail por empresa
+async function emailGruposCustomer(tenant) {
+  const [porEmpresa, coordInd] = await Promise.all([emailsPorEmpresa(TENANT_LABELS[tenant]), coordenadoresDe(tenant)]);
+  const grupos = Object.entries(porEmpresa).map(([norm, e]) => {
+    const coord = new Map(coordDaEmpresa(coordInd, e.id, norm).map(c => [c.email, c]));
+    return {
+      holding:       e.nome,
+      empresas:      [norm],
+      empresasMatch: [norm],
+      emails:        [...e.emails.values()],
+      coordenadores: [...coord.values()],
+      totalEmpresas: 1,
+      totalEmails:   e.emails.size,
+    };
+  }).sort((a, b) => a.holding.localeCompare(b.holding, 'pt-BR'));
+  return { holdings: grupos, semHolding: [] };
+}
+
+// Agrupa por holding (só BIC): holdings e customers do sellout mais recente, e-mails pelo nome da empresa
+async function emailGruposHoldingBic() {
+  const drive = getDriveClient(true);
+  const selloutList = await drive.files.list({
+    q:         `'${process.env.GOOGLE_DRIVE_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+    fields:    'files(id, name, createdTime)',
+    orderBy:   'createdTime desc',
+    pageSize:  1,
+    supportsAllDrives: true, includeItemsFromAllDrives: true,
+  });
+  if (!selloutList.data.files?.length) throw new Error('Nenhum arquivo de sellout encontrado');
+
+  const selloutResp = await drive.files.get(
+    { fileId: selloutList.data.files[0].id, alt: 'media', supportsAllDrives: true },
+    { responseType: 'arraybuffer' }
+  );
+  const selloutWb   = XLSX.read(selloutResp.data, { type: 'array' });
+  const selloutRows = XLSX.utils.sheet_to_json(selloutWb.Sheets[selloutWb.SheetNames[0]], { defval: null }).map(normalizeRow);
+
+  const holdingCustomers = {};
+  for (const row of selloutRows) {
+    if (!row.holding || !row.customer) continue;
+    const h = String(row.holding).trim();
+    const c = normalizeStr(String(row.customer).trim());
+    if (!holdingCustomers[h]) holdingCustomers[h] = new Set();
+    holdingCustomers[h].add(c);
+  }
+
+  const [porEmpresa, coordInd] = await Promise.all([emailsPorEmpresa('BIC'), coordenadoresDe('bic')]);
+
+  const holdings           = [];
+  const empresasComHolding = new Set();
+  for (const [holding, customersSet] of Object.entries(holdingCustomers)) {
+    const emailsMap     = new Map();
+    const empresasMatch = [];
+    const coordMap      = new Map();
+    for (const custNorm of customersSet) {
+      const e = porEmpresa[custNorm];
+      if (e) {
+        empresasMatch.push(custNorm);
+        empresasComHolding.add(custNorm);
+        for (const m of e.emails.values()) emailsMap.set(m.email, m);
+      }
+      // Coordenadores: casar pelo nome da empresa (customer), não pelo nome da holding
+      for (const c of coordDaEmpresa(coordInd, e?.id, custNorm)) if (!coordMap.has(c.email)) coordMap.set(c.email, c);
+    }
+    holdings.push({
+      holding,
+      empresas:      [...customersSet],
+      empresasMatch,
+      emails:        [...emailsMap.values()],
+      coordenadores: [...coordMap.values()],
+      totalEmpresas: customersSet.size,
+      totalEmails:   emailsMap.size,
+    });
+  }
+
+  // Usuários sem holding
+  const semHolding = [];
+  for (const [norm, e] of Object.entries(porEmpresa)) {
+    if (!empresasComHolding.has(norm)) semHolding.push(...e.emails.values());
+  }
+
+  holdings.sort((a, b) => a.holding.localeCompare(b.holding));
+  return { holdings, semHolding };
+}
+
+// GET /api/email-massa/grupos?tenant=bic&modo=holding|customer
+app.get('/api/email-massa/grupos', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const tenant = String(req.query.tenant || '');
+    const modo   = req.query.modo === 'holding' ? 'holding' : 'customer';
+    if (!TENANT_LABELS[tenant]) return res.status(400).json({ error: 'Indústria inválida' });
+    if (modo === 'holding' && tenant !== 'bic') return res.status(400).json({ error: 'Agrupamento por holding só existe para a BIC' });
+    res.json(modo === 'holding' ? await emailGruposHoldingBic() : await emailGruposCustomer(tenant));
+  } catch (err) {
+    console.error('Erro /api/email-massa/grupos:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/email-massa/holdings — legado (BIC por holding)
 app.get('/api/email-massa/holdings', requireAuth, async (req, res) => {
   try {
-    const drive = getDriveClient(true);
-
-    // 1. Sellout mais recente → mapa holding → Set<customer normalizado>
-    const selloutList = await drive.files.list({
-      q:         `'${process.env.GOOGLE_DRIVE_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
-      fields:    'files(id, name, createdTime)',
-      orderBy:   'createdTime desc',
-      pageSize:  1,
-      supportsAllDrives: true, includeItemsFromAllDrives: true,
-    });
-    if (!selloutList.data.files?.length) return res.status(404).json({ error: 'Nenhum arquivo de sellout encontrado' });
-
-    const selloutResp = await drive.files.get(
-      { fileId: selloutList.data.files[0].id, alt: 'media', supportsAllDrives: true },
-      { responseType: 'arraybuffer' }
-    );
-    const selloutRows = XLSX.utils.sheet_to_json(
-      XLSX.read(selloutResp.data, { type: 'array' }).Sheets[XLSX.read(selloutResp.data, { type: 'array' }).SheetNames[0]],
-      { defval: null }
-    ).map(normalizeRow);
-
-    const holdingCustomers = {};
-    for (const row of selloutRows) {
-      if (!row.holding || !row.customer) continue;
-      const h = String(row.holding).trim();
-      const c = normalizeStr(String(row.customer).trim());
-      if (!holdingCustomers[h]) holdingCustomers[h] = new Set();
-      holdingCustomers[h].add(c);
-    }
-
-    // 2. Usuários XLSX → mapa empresa normalizada → [{ nome, email }]
-    const usuariosList = await drive.files.list({
-      q:         `'${process.env.GOOGLE_DRIVE_USUARIOS_FOLDER_ID}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
-      fields:    'files(id, name, createdTime)',
-      orderBy:   'createdTime desc',
-      pageSize:  1,
-      supportsAllDrives: true, includeItemsFromAllDrives: true,
-    });
-    if (!usuariosList.data.files?.length) return res.status(404).json({ error: 'Nenhum arquivo de usuários encontrado' });
-
-    const usuariosResp = await drive.files.get(
-      { fileId: usuariosList.data.files[0].id, alt: 'media', supportsAllDrives: true },
-      { responseType: 'arraybuffer' }
-    );
-    const usuariosWb  = XLSX.read(usuariosResp.data, { type: 'array' });
-    const distribRows = usuariosBic(usuariosWb).distribuidores;
-
-    const empresaEmails = {};
-    for (const d of distribRows) {
-      const empresa = normalizeStr(String(d.Empresa || '').trim());
-      const email   = String(d.Email || '').trim().toLowerCase();
-      const nome    = String(d.Nome  || '').trim();
-      if (!empresa || !email || !email.includes('@')) continue;
-      if (!empresaEmails[empresa]) empresaEmails[empresa] = [];
-      empresaEmails[empresa].push({ nome, email });
-    }
-
-    // 3. Coordenadores do Firestore
-    const db       = getFirebaseAdmin().firestore();
-    const coordDoc = await db.collection('system_config').doc('coordenadores').get();
-    const coordMapa = coordDoc.exists ? (coordDoc.data().mapa || {}) : {};
-
-    // 4. Montar grupos
-    const holdings        = [];
-    const empresasComHolding = new Set();
-
-    for (const [holding, customersSet] of Object.entries(holdingCustomers)) {
-      const emailsMap = new Map();
-      const empresasMatch = [];
-
-      for (const custNorm of customersSet) {
-        const matches = empresaEmails[custNorm] || [];
-        if (matches.length) {
-          empresasMatch.push(custNorm);
-          empresasComHolding.add(custNorm);
-          for (const m of matches) emailsMap.set(m.email, m);
-        }
-      }
-
-      // Coordenadores: casar pelo nome da empresa (customer), não pelo nome da holding
-      const coordMap = new Map();
-      for (const custNorm of customersSet) {
-        const coordKey = Object.keys(coordMapa).find(k => normalizeStr(k) === custNorm);
-        if (coordKey) {
-          for (const c of coordMapa[coordKey]) {
-            if (!coordMap.has(c.email)) coordMap.set(c.email, c);
-          }
-        }
-      }
-      const coordenadores = [...coordMap.values()];
-
-      holdings.push({
-        holding,
-        empresas:      [...customersSet],
-        empresasMatch,
-        emails:        [...emailsMap.values()],
-        coordenadores,
-        totalEmpresas: customersSet.size,
-        totalEmails:   emailsMap.size,
-      });
-    }
-
-    // Usuários sem holding
-    const semHolding = [];
-    for (const [empNorm, emailsArr] of Object.entries(empresaEmails)) {
-      if (!empresasComHolding.has(empNorm)) semHolding.push(...emailsArr);
-    }
-
-    holdings.sort((a, b) => a.holding.localeCompare(b.holding));
-    res.json({ holdings, semHolding });
+    res.json(await emailGruposHoldingBic());
   } catch (err) {
     console.error('Erro /api/email-massa/holdings:', err.message);
-  res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -1762,9 +1889,12 @@ function tipoLabel(tipo) {
   return map[String(tipo).toUpperCase().trim()] || tipo;
 }
 
-// Gera a tabela HTML de fechamento para uma holding específica
-function buildValidacaoTable(linhas, holdingName, referencia) {
-  const rows = linhas.filter(l => l.holding === holdingName);
+// Gera a tabela HTML de fechamento de um grupo (holding, ou customer quando modo = 'customer')
+function buildValidacaoTable(linhas, holdingName, referencia, modo = 'holding') {
+  const alvo = normalizeStr(holdingName);
+  const rows = modo === 'customer'
+    ? linhas.filter(l => normalizeStr(l.customer) === alvo)
+    : linhas.filter(l => l.holding === holdingName);
   if (!rows.length) return '';
 
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1815,7 +1945,7 @@ function buildValidacaoTable(linhas, holdingName, referencia) {
   const total      = rows.reduce((s, r) => s + parseBRLNum(r.vendaValor), 0);
   const totalColor = total < 0 ? '#dc2626' : '#166534';
   const totalRow   = `<tr style="background:#003B70">
-    <td colspan="2" style="padding:12px 14px;border:1px solid #002855;font-size:13px;font-weight:700;color:#ffffff">Total Líquido da Holding</td>
+    <td colspan="2" style="padding:12px 14px;border:1px solid #002855;font-size:13px;font-weight:700;color:#ffffff">${modo === 'customer' ? 'Total Líquido' : 'Total Líquido da Holding'}</td>
     <td style="padding:12px 14px;border:1px solid #002855;font-size:14px;font-weight:700;text-align:right;color:${total < 0 ? '#fca5a5' : '#86efac'}">${esc(fmtVal(total))}</td>
   </tr>`;
 
@@ -1851,7 +1981,7 @@ function buildEmailRaw({ to, cc, bcc, subject, html }) {
 
 // POST /api/email-massa/enviar — SSE, 1 email por holding
 app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) => {
-  const { holdings, assunto, corpo, cc = [], cco = [], validacaoLinhas = [], validacaoReferencia = '', prazo = '' } = req.body || {};
+  const { holdings, assunto, corpo, cc = [], cco = [], validacaoLinhas = [], validacaoReferencia = '', prazo = '', modo = 'holding', industria = 'BIC' } = req.body || {};
   if (!holdings?.length)  return res.status(400).json({ error: 'Nenhuma holding selecionada' });
   if (!assunto?.trim())   return res.status(400).json({ error: 'Assunto obrigatório' });
   if (!corpo?.trim())     return res.status(400).json({ error: 'Corpo obrigatório' });
@@ -1879,16 +2009,16 @@ app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) 
         const bccList = [...cco].filter(Boolean);
 
         const holdingNome  = h.holding;
-        const assuntoFinal = assunto.replace(/\{\{holding\}\}/gi, holdingNome)
-                                    .replace(/\{\{referencia\}\}/gi, validacaoReferencia)
-                                    .replace(/\{\{prazo\}\}/gi, prazo);
-        let corpoFinal     = corpo.replace(/\{\{holding\}\}/gi, holdingNome)
-                                  .replace(/\{\{referencia\}\}/gi, validacaoReferencia)
-                                  .replace(/\{\{prazo\}\}/gi, prazo);
+        const tags = t => t.replace(/\{\{holding\}\}/gi, holdingNome)
+                           .replace(/\{\{industria\}\}/gi, industria)
+                           .replace(/\{\{referencia\}\}/gi, validacaoReferencia)
+                           .replace(/\{\{prazo\}\}/gi, prazo);
+        const assuntoFinal = tags(assunto);
+        let corpoFinal     = tags(corpo);
 
         // Injeta tabela de dados de fechamento — dados chegam direto do frontend
         if (validacaoLinhas.length) {
-          const tabelaHtml = buildValidacaoTable(validacaoLinhas, holdingNome, validacaoReferencia);
+          const tabelaHtml = buildValidacaoTable(validacaoLinhas, holdingNome, validacaoReferencia, modo);
           corpoFinal = corpoFinal.replace(/\{\{tabela_validacao\}\}/g, tabelaHtml);
         } else {
           corpoFinal = corpoFinal.replace(/\{\{tabela_validacao\}\}/g, '');

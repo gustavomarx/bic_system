@@ -34,19 +34,6 @@
       overflow: hidden;
     }
 
-    .tenant-selector-wrap { position: relative; }
-    .tenant-selector { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); transition: background .15s; user-select: none; }
-    .tenant-selector:hover { background: rgba(255,255,255,0.09); }
-    .tenant-selector.single { cursor: default; pointer-events: none; }
-    .tenant-chevron { font-size: 9px; color: rgba(255,255,255,0.35); margin-left: auto; }
-    .tenant-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #252540; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; overflow: hidden; z-index: 200; display: none; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
-    .tenant-dropdown.open { display: block; }
-    .tenant-option { padding: 9px 12px; font-size: 12px; color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background .1s; }
-    .tenant-option:hover { background: rgba(255,255,255,0.08); }
-    .tenant-option.active { color: #fff; font-weight: 600; background: rgba(244,121,32,.12); }
-    .tenant-option .bic-badge { font-size: 9px; padding: 1px 5px; }
-    .tenant-option-separator { height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0; pointer-events: none; }
-    .tenant-option.vg-option .bic-badge { background: #374151; }
     .perm-tenants-grid { display: flex; gap: 8px; margin-top: 4px; }
     .perm-tenant-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2d3748; cursor: pointer; }
 
@@ -139,14 +126,6 @@
       border-left-color: var(--bic-orange);
     }
     .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-    .nav-item .soon-badge {
-      margin-left: auto;
-      font-size: 9px;
-      background: rgba(255,255,255,0.12);
-      color: rgba(255,255,255,0.45);
-      padding: 2px 6px;
-      border-radius: 10px;
-    }
 
     .sidebar-footer {
       padding: 14px 16px;
@@ -248,6 +227,69 @@
     .perm-all-toggle span { font-size: 12px; font-weight: 600; color: #7a8ba8; text-transform: uppercase; letter-spacing: .06em; }
     .perm-all-btn { font-size: 11px; color: #1a73e8; background: none; border: none; cursor: pointer; text-decoration: underline; }
     #perm-modal-error { display: none; padding: 8px 12px; background: #fff1f2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 8px; font-size: 12px; }
+
+
+    /* ── Sidebar recolhida ───────────────────────────────────── */
+    #sidebar { transition: width .2s ease, min-width .2s ease; overflow-x: hidden; }
+    body.sb-collapsed { --sidebar-w: 64px; }
+    body.sb-collapsed .sidebar-logo { padding: 18px 0 14px; text-align: center; }
+    body.sb-collapsed .sidebar-logo .bic-badge { margin-bottom: 0; letter-spacing: 0; }
+    body.sb-collapsed .sidebar-logo .portal-name,
+    body.sb-collapsed .sidebar-logo .portal-sub,
+    body.sb-collapsed .sidebar-update,
+    body.sb-collapsed .nav-section-label,
+    body.sb-collapsed .nav-label,
+    body.sb-collapsed .sidebar-user-info,
+    body.sb-collapsed .sidebar-edit-btn { display: none !important; }
+    body.sb-collapsed .nav-item { justify-content: center; padding: 11px 0; }
+    body.sb-collapsed .sidebar-footer { padding: 12px 8px; align-items: center; }
+    body.sb-collapsed .sidebar-user { justify-content: center; cursor: pointer; }
+    body.sb-collapsed .sidebar-logout { padding: 5px 0; font-size: 10px; }
+    .sb-toggle { background: none; border: 1px solid var(--bic-border); border-radius: 6px; width: 30px; height: 30px; font-size: 15px; line-height: 1; color: var(--text-muted); cursor: pointer; flex-shrink: 0; transition: background .15s, color .15s; }
+    .sb-toggle:hover { background: var(--bic-gray); color: var(--text-main); }
+
+    /* ── Alertas Slack ───────────────────────────────────────── */
+    .al-wrap { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; max-width: 980px; }
+    .al-card { background: #fff; border: 1px solid var(--bic-border); border-radius: 12px; padding: 20px 22px; }
+    .al-card h2 { font-size: 15px; font-weight: 700; margin: 0 0 4px; color: var(--text-main); }
+    .al-sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; line-height: 1.5; }
+    .al-warn { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; border-radius: 10px; padding: 12px 16px; font-size: 13px; }
+    .al-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+    .al-btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--bic-border); background: #fff; color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s; }
+    .al-btn:hover { background: var(--bic-gray); }
+    .al-btn.primary { background: var(--bic-orange); border-color: var(--bic-orange); color: #fff; }
+    .al-btn.primary:hover { filter: brightness(.95); }
+    .al-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .al-adv { margin-top: 14px; border-top: 1px solid #f3f4f6; padding-top: 12px; }
+    .al-adv summary { font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none; }
+    .al-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 12px; }
+    .al-check { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid #e8edf3; border-radius: 8px; cursor: pointer; }
+    .al-check:has(input:checked) { border-color: var(--bic-orange); background: #fff8f2; }
+    .al-check input { accent-color: var(--bic-orange); margin-top: 2px; flex-shrink: 0; }
+    .al-check strong { display: block; font-size: 13px; }
+    .al-check small { display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+    .al-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; margin: 16px 0 6px; }
+    .al-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .al-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 9px; border: 1px solid var(--bic-border); border-radius: 99px; cursor: pointer; }
+    .al-chip:has(input:checked) { background: #fff4ec; border-color: #fdba74; }
+    .al-chip input { accent-color: var(--bic-orange); margin: 0; }
+    .al-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .al-msg { margin-top: 14px; font-size: 13px; padding: 10px 12px; border-radius: 8px; background: var(--bic-gray); }
+    .al-msg.ok { background: #f0fdf4; color: #166534; }
+    .al-msg.err { background: #fef2f2; color: #991b1b; }
+    .al-preview { margin-top: 10px; background: #1a1d21; color: #e8e8e8; border-radius: 8px; padding: 14px 16px; font-size: 12px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; max-height: 420px; overflow: auto; font-family: ui-monospace, Consolas, monospace; }
+    .al-switch { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .al-switch input { accent-color: var(--bic-orange); width: 16px; height: 16px; }
+    .al-row { display: flex; gap: 16px; margin-top: 14px; }
+    .al-field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; }
+    .al-field input { border: 1.5px solid #dde3ed; border-radius: 8px; padding: 8px 11px; font-size: 13px; color: var(--text-main); outline: none; width: 120px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .al-field.wide input { width: 100%; box-sizing: border-box; }
+    .al-field input:focus { border-color: var(--bic-orange); }
+    .al-last { margin-top: 14px; font-size: 12px; color: var(--text-muted); }
+    .al-save { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+    #al-save-msg { font-size: 13px; color: var(--text-muted); }
+    #al-save-msg.ok { color: #16a34a; }
+    #al-save-msg.err { color: #dc2626; }
 
     /* ── Main content ────────────────────────────────────────── */
     #main {
@@ -372,15 +414,19 @@
     /* ── Summary cards ────────────────────────────────────────── */
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
       margin-bottom: 22px;
     }
+    @media (min-width: 1700px) { .cards-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+    @media (max-width: 760px)  { .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px)  { .cards-grid { grid-template-columns: 1fr; } }
     .card {
       background: #fff;
       border: 1px solid var(--bic-border);
       border-radius: 10px;
       padding: 16px 18px;
+      min-width: 0;
     }
     .card .card-label {
       font-size: 11px;
@@ -391,10 +437,13 @@
       margin-bottom: 8px;
     }
     .card .card-value {
-      font-size: 22px;
+      font-size: clamp(17px, 1.5vw, 22px);
       font-weight: 700;
       color: var(--text-main);
-      line-height: 1;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .card .card-value.green { color: var(--green); }
     .card .card-value.red   { color: var(--red); }
@@ -2101,6 +2150,30 @@
     .dash-icard.sev-none { border-left-color: #d1d5db; }
     .dash-icard-hdr { display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: #fafafa; border-bottom: 1px solid var(--bic-border); border-radius: 9px 9px 0 0; }
     .dash-icard-name { font-size: 13px; font-weight: 600; flex: 1; }
+    .dash-icard-hdr.link { cursor: pointer; transition: background .15s; }
+    .dash-icard-hdr.link:hover { background: #fff4ec; }
+    .dash-icard-go { font-size: 11px; font-weight: 600; color: var(--bic-orange); opacity: 0; transition: opacity .15s; }
+    .dash-icard-hdr.link:hover .dash-icard-go { opacity: 1; }
+    /* progresso de carregamento */
+    .dash-progress { max-width: 560px; width: 100%; margin: 60px auto; background: #fff; border: 1px solid var(--bic-border); border-radius: 12px; padding: 22px 24px; box-sizing: border-box; }
+    .dash-prog-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 10px; }
+    .dash-prog-pct { font-size: 22px; font-weight: 700; color: var(--bic-orange); }
+    .dash-prog-bar { height: 8px; background: #f3f4f6; border-radius: 99px; overflow: hidden; }
+    .dash-prog-fill { height: 100%; background: var(--bic-orange); border-radius: 99px; transition: width .25s ease; }
+    .dash-prog-sub { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    .dash-prog-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .dash-prog-chip { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: #f3f4f6; color: #9ca3af; }
+    .dash-prog-chip.done { background: #dcfce7; color: #166534; }
+    /* abas de indústria */
+    .tenant-tabs { display: flex; gap: 2px; background: #fff; border-bottom: 1px solid var(--bic-border); padding: 0 20px; overflow-x: auto; scrollbar-width: thin; flex-shrink: 0; }
+    .tenant-tab { display: flex; align-items: center; gap: 5px; padding: 10px 9px 9px; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; user-select: none; transition: color .15s, border-color .15s; }
+    .tenant-tab:hover { color: var(--text-main); }
+    .tenant-tab.active { color: var(--text-main); font-weight: 600; border-bottom-color: var(--bic-orange); }
+    .tenant-tab .bic-badge { display: inline-block; background: #9ca3af; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px; transition: background .15s; }
+    .tenant-tab.active .bic-badge { background: var(--bic-orange); }
+    .tenant-tab.vg .bic-badge { background: #374151; }
+    .tenant-tab.vg.active .bic-badge { background: var(--bic-orange); }
+    .tenant-tab-sep { width: 1px; background: var(--bic-border); margin: 8px 6px; flex-shrink: 0; }
     .dash-icard-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 9px; }
     .dash-icard-section { display: flex; flex-direction: column; gap: 4px; }
     .dash-icard-slabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; }
@@ -2149,14 +2222,8 @@
 <!-- ═══════════════════════════════════════════════════════════ SIDEBAR -->
 <aside id="sidebar">
   <div class="sidebar-logo">
-    <div class="tenant-selector-wrap" id="tenant-selector-wrap">
-      <div class="tenant-selector" id="tenant-selector">
-        <div class="bic-badge" id="tenant-badge">BIC</div>
-        <div class="portal-name" id="tenant-label">Portal Sellout</div>
-        <span class="tenant-chevron" id="tenant-chevron" style="display:none">▼</span>
-      </div>
-      <div class="tenant-dropdown" id="tenant-dropdown"></div>
-    </div>
+    <div class="bic-badge" id="tenant-badge">BIC</div>
+    <div class="portal-name" id="tenant-label">Portal Sellout</div>
     <div class="portal-sub" id="portal-sub">Dados de distribuidores</div>
   </div>
 
@@ -2166,64 +2233,62 @@
   </div>
 
   <nav class="sidebar-nav" id="sidebar-nav" style="visibility:hidden">
-    <div class="nav-section-label">Módulos</div>
+    <div class="nav-section-label" id="nav-modules-label">Módulos</div>
 
     <div class="nav-item active" data-module="comparativo">
       <span class="nav-icon">📊</span>
-      Comparativo de Sellout
+      <span class="nav-label">Comparativo de Sellout</span>
     </div>
 
     <div class="nav-item" data-module="batalha">
       <span class="nav-icon">🎯</span>
-      Batalha Naval
+      <span class="nav-label">Batalha Naval</span>
     </div>
 
     <div class="nav-item" data-module="inatividade">
       <span class="nav-icon">💤</span>
-      Dias sem Venda
+      <span class="nav-label">Dias sem Venda</span>
     </div>
 
     <div class="nav-item" data-module="historico">
       <span class="nav-icon">📅</span>
-      Histórico de Vendas
+      <span class="nav-label">Histórico de Vendas</span>
     </div>
 
     <div class="nav-item" data-module="depara">
       <span class="nav-icon">🔄</span>
-      Análise De → Para
+      <span class="nav-label">Análise De → Para</span>
     </div>
 
     <div class="nav-item" data-module="distribuidores">
       <span class="nav-icon">🏢</span>
-      Distribuidores
+      <span class="nav-label">Distribuidores</span>
     </div>
 
     <div class="nav-item" data-module="paliativos">
       <span class="nav-icon">⚙️</span>
-      Paliativos MTrix
+      <span class="nav-label">Paliativos MTrix</span>
     </div>
 
     <div class="nav-item" data-module="usuarios">
       <span class="nav-icon">👥</span>
-      Usuários
+      <span class="nav-label">Usuários</span>
     </div>
 
-    <div class="nav-item" data-module="ranking">
-      <span class="nav-icon">🏆</span>
-      Ranking de Distribuidores
-      <span class="soon-badge">Em breve</span>
+    <div class="nav-item" data-module="dashboard" id="dashboard-nav-item" style="display:none">
+      <span class="nav-icon">🧭</span>
+      <span class="nav-label">Painel Geral</span>
     </div>
 
-    <div class="nav-item" data-module="evolucao">
-      <span class="nav-icon">📈</span>
-      Evolução Histórica
-      <span class="soon-badge">Em breve</span>
+    <div class="nav-item" data-module="alertas" id="alertas-nav-item" style="display:none">
+      <span class="nav-icon">🔔</span>
+      <span class="nav-label">Alertas Slack</span>
     </div>
 
     <div class="nav-section-label" id="admin-nav-section" style="display:none">Admin</div>
     <div class="nav-item" data-module="admin-users" id="admin-nav-item" style="display:none">
       <span class="nav-icon">🔐</span>
-      Gestão de Acesso
+      <span class="nav-label">Gestão de Acesso</span>
     </div>
   </nav>
 
@@ -2242,7 +2307,9 @@
 
 <!-- ═══════════════════════════════════════════════════════════ MAIN -->
 <div id="main">
+  <div class="tenant-tabs" id="tenant-tabs"></div>
   <div class="topbar">
+    <button class="sb-toggle" id="sb-toggle" title="Expandir/recolher menu" aria-label="Expandir/recolher menu">☰</button>
     <h1 id="topbar-title">Comparativo de Sellout</h1>
     <div class="topbar-sub" id="topbar-sub"></div>
   </div>
@@ -2655,26 +2722,91 @@ function _setDashRef(ref) {
 
 function renderDashboard() {
   const area = document.getElementById('content-area');
-  area.innerHTML = `<div class="dash-wrap" id="dash-wrap">
-    <div class="dash-loading">⏳ Carregando dados de todas as indústrias…</div>
-  </div>`;
+  area.innerHTML = `<div class="dash-wrap" id="dash-wrap"></div>`;
   _loadDashboard(false);
+}
+
+let _dashLoadSeq = 0;
+
+function _renderDashProgress(wrap, done, total, doneSet) {
+  const pct = Math.round((done / total) * 100);
+  const chips = DASH_TENANT_ORDER.map(t => {
+    const meta = TENANT_META[t];
+    const st = doneSet.has(t) ? 'done' : '';
+    return `<span class="dash-prog-chip ${st}">${doneSet.has(t) ? '✓' : '…'} ${meta.label}</span>`;
+  }).join('');
+  wrap.innerHTML = `
+    <div class="dash-progress">
+      <div class="dash-prog-head">
+        <span>Carregando dados das indústrias</span>
+        <span class="dash-prog-pct">${pct}%</span>
+      </div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${pct}%"></div></div>
+      <div class="dash-prog-sub">${done} de ${total} indústrias carregadas</div>
+      <div class="dash-prog-chips">${chips}</div>
+    </div>`;
 }
 
 async function _loadDashboard(force) {
   const wrap = document.getElementById('dash-wrap');
   if (!wrap) return;
+  const seq = ++_dashLoadSeq;
+  const total = DASH_TENANT_ORDER.length;
+  const doneSet = new Set();
+  const data = {};
+  let ts = null, periodo = null;
+  const alive = () => seq === _dashLoadSeq && document.getElementById('dash-wrap') === wrap;
+  _renderDashProgress(wrap, 0, total, doneSet);
+
+  // Uma requisição só; o backend devolve NDJSON, uma linha por indústria assim que termina
+  const handle = msg => {
+    if (msg.tenant) {
+      data[msg.tenant] = msg.data;
+      doneSet.add(msg.tenant);
+      if (alive()) _renderDashProgress(wrap, doneSet.size, total, doneSet);
+    } else if (msg.done) {
+      ts = msg.ts;
+      periodo = msg.periodo;
+    } else if (msg.data && msg.ts) {
+      // Backend sem suporte a stream (versão antiga) devolve tudo de uma vez
+      Object.assign(data, msg.data);
+      Object.keys(msg.data).forEach(t => doneSet.add(t));
+      ts = msg.ts;
+      periodo = msg.periodo;
+    }
+  };
+
   try {
-    const qs = new URLSearchParams();
+    const qs = new URLSearchParams({ stream: '1' });
     if (force)    qs.set('force', '1');
     if (_dashRef) qs.set('ref', _dashRef);
-    const r = await fetch(`/api/dashboard${qs.toString() ? '?' + qs : ''}`);
+    const r = await fetch(`/api/dashboard?${qs}`);
     if (!r.ok) throw new Error(await r.text());
-    _dashData = await r.json();
-    _renderDashContent(wrap);
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (value) buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line) handle(JSON.parse(line));
+      }
+      if (done) break;
+    }
+    if (buf.trim()) handle(JSON.parse(buf));
+    if (!ts) throw new Error('resposta incompleta do servidor');
   } catch (e) {
-    wrap.innerHTML = `<div class="dash-loading" style="color:var(--red)">Erro ao carregar dashboard: ${e.message}</div>`;
+    if (alive()) wrap.innerHTML = `<div class="dash-loading" style="color:var(--red)">Erro ao carregar dashboard: ${e.message}</div>`;
+    return;
   }
+
+  // Ignora se outro carregamento começou ou se o usuário saiu da tela
+  if (!alive()) return;
+  _dashData = { data, ts, periodo };
+  _renderDashContent(wrap);
 }
 
 function _renderDashContent(wrap) {
@@ -2720,6 +2852,7 @@ function _renderDashContent(wrap) {
       <span class="dash-ts">Atualizado em ${tsLabel}</span>
       ${periodoSel}
       <button class="dash-refresh-btn" onclick="_loadDashboard(true)">↻ Atualizar</button>
+      ${_currentUser?.isAdmin ? `<button class="dash-refresh-btn" onclick="navigateTo('alertas')">🔔 Alertas Slack</button>` : ''}
     </div>
     <div class="dash-kpi-row">
       <div class="dash-kpi ${totalAnomalias > 0 ? 'kpi-red' : 'kpi-green'}">
@@ -2871,10 +3004,16 @@ function _renderIndustryCard(tenant, d) {
   }
 
   return `<div class="dash-icard ${sevCls}" data-tenant="${tenant}">
-    <div class="dash-icard-hdr">
+    ${_userTenantList().includes(tenant)
+      ? `<div class="dash-icard-hdr link" onclick="switchTenant('${tenant}')" title="Abrir ${meta.label}">
       ${_mkBadge(meta.badge)}
       <span class="dash-icard-name">${meta.label}</span>
-    </div>
+      <span class="dash-icard-go">Abrir →</span>
+    </div>`
+      : `<div class="dash-icard-hdr">
+      ${_mkBadge(meta.badge)}
+      <span class="dash-icard-name">${meta.label}</span>
+    </div>`}
     <div class="dash-icard-body">
       <div class="dash-icard-section">
         <div class="dash-icard-slabel">Comparativo</div>
@@ -3575,7 +3714,9 @@ function navigateTo(mod) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   item.classList.add('active');
   document.getElementById('topbar-sub').textContent = '';
-  window.location.hash = mod;
+  _currentMod = mod;
+  const h = _routeHash(currentTenant, mod);
+  if (window.location.hash !== h) window.location.hash = h;
 
   if (mod === 'dashboard') {
     document.getElementById('topbar-title').textContent = 'Visão Geral';
@@ -3604,11 +3745,14 @@ function navigateTo(mod) {
   } else if (mod === 'batalha') {
     document.getElementById('topbar-title').textContent = 'Batalha Naval';
     renderBatalha();
+  } else if (mod === 'alertas') {
+    document.getElementById('topbar-title').textContent = 'Alertas Slack';
+    renderAlertas();
   } else if (mod === 'admin-users') {
     document.getElementById('topbar-title').textContent = 'Gestão de Acesso';
     renderAdminUsers();
   } else {
-    document.getElementById('topbar-title').textContent = item.querySelector('.nav-icon').nextSibling.textContent.trim();
+    document.getElementById('topbar-title').textContent = item.querySelector('.nav-label')?.textContent.trim() || mod;
     document.getElementById('content-area').innerHTML = `
       <div class="empty-state">
         <div class="icon">🔧</div>
@@ -7766,11 +7910,19 @@ const TENANT_CONFIG = {
   marilan:   { label: 'Marilan',          badge: 'MRL', subtitle: 'Marilan',          modules: ['comparativo','batalha','historico'] },
 };
 
+// Visão Geral: só Painel Geral + Gestão de Acesso (admin). Indústria: só os módulos do tenant.
 function applyTenantNav() {
-  const tenantMods = TENANT_CONFIG[currentTenant]?.modules || [];
+  const isDash  = currentTenant === 'dashboard';
+  const isAdmin = !!_currentUser?.isAdmin;
+  document.getElementById('nav-modules-label').textContent = isDash ? 'Visão Geral' : 'Módulos';
+  document.getElementById('dashboard-nav-item').style.display = isDash ? '' : 'none';
+  document.getElementById('admin-nav-section').style.display = (isDash && isAdmin) ? '' : 'none';
+  document.getElementById('admin-nav-item').style.display    = (isDash && isAdmin) ? '' : 'none';
+  document.getElementById('alertas-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
+  const tenantMods = isDash ? [] : (TENANT_CONFIG[currentTenant]?.modules || []);
   document.querySelectorAll('.nav-item[data-module]').forEach(item => {
     const mod = item.dataset.module;
-    if (mod === 'admin-users') return;
+    if (mod === 'admin-users' || mod === 'dashboard' || mod === 'alertas') return;
     // Verificar se módulo existe no tenant atual
     const inTenant = tenantMods.includes(mod);
     // Verificar permissão do usuário (null = acesso total)
@@ -7779,35 +7931,202 @@ function applyTenantNav() {
   });
 }
 
-function switchTenant(tenant) {
-  if (tenant !== 'dashboard' && !TENANT_CONFIG[tenant]) {
-    document.getElementById('tenant-dropdown').classList.remove('open');
-    return;
-  }
-  if (tenant === currentTenant) {
-    document.getElementById('tenant-dropdown').classList.remove('open');
-    return;
-  }
-  currentTenant = tenant;
+// ═══════════════════════════════════════════════════════════════════════
+//  ALERTAS SLACK (Visão Geral, admin)
+// ═══════════════════════════════════════════════════════════════════════
+const ALERTA_DESC = {
+  anomalias:      'Distribuidoras que entraram ou saíram do comparativo',
+  regressoes:     'Distribuidora/mês cujo valor caiu do arquivo anterior para o atual (meses fechados e em aberto)',
+  atrasos:        'Distribuidoras sem venda há mais de N dias, por indústria',
+  semAtualizacao: 'Distribuidoras cujo valor do mês em aberto ficou igual entre ontem e hoje',
+};
+let _alertaCfg = null;
 
-  const _userTenants = _currentUser?.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser?.tenants ?? ['bic']);
-  _buildTenantDropdown(_userTenants);
-  document.getElementById('tenant-dropdown').classList.remove('open');
+async function renderAlertas() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `<div class="dist-loading-box"><div class="spinner" style="width:28px;height:28px;border-width:3px"></div></div>`;
+  try {
+    const r = await fetch('/api/alertas/config');
+    if (!r.ok) throw new Error((await r.json()).error || r.status);
+    _alertaCfg = await r.json();
+  } catch (e) {
+    area.innerHTML = `<div class="error-banner"><strong>Erro ao carregar alertas:</strong> ${escHtml(e.message)}</div>`;
+    return;
+  }
+  const c = _alertaCfg;
+  const tipoChecks = (name, marcados) => Object.entries(c.tipos).map(([k, label]) => `
+    <label class="al-check">
+      <input type="checkbox" name="${name}" value="${k}" ${marcados.includes(k) ? 'checked' : ''}>
+      <span><strong>${label}</strong><small>${ALERTA_DESC[k].replace('N dias', `${c.atrasoMinDias} dias`)}</small></span>
+    </label>`).join('');
+  const tenantChips = DASH_TENANT_ORDER.map(t => `
+    <label class="al-chip"><input type="checkbox" name="al-tenant" value="${t}" checked><span>${TENANT_META[t].label}</span></label>`).join('');
+  const ult = c.ultimoAuto;
+  const ultTxt = !ult ? 'Ainda não houve disparo automático.'
+    : ult.erro ? `⚠️ ${new Date(ult.ts).toLocaleString('pt-BR')} — erro: ${escHtml(ult.erro)}`
+    : `✓ ${new Date(ult.ts).toLocaleString('pt-BR')} — ${ult.industrias} indústria(s), ${ult.ocorrencias} ocorrência(s)`;
+
+  area.innerHTML = `
+  <div class="al-wrap">
+    ${!c.webhookConfigurado ? `<div class="al-warn">⚠️ O Slack ainda não está conectado. Cole a URL do webhook em <strong>Configuração</strong> abaixo para os alertas serem enviados.</div>` : ''}
+
+    <section class="al-card">
+      <h2>Disparo manual</h2>
+      <p class="al-sub">Escolha o que verificar e envie para <strong>#anomalia-bic-system</strong>. Use “Pré-visualizar” para ver a mensagem antes.</p>
+      <div class="al-quick">
+        <button class="al-btn primary" onclick="_alertaDisparar(Object.keys(_alertaCfg.tipos), true)">🚀 Disparar todos</button>
+        ${Object.entries(c.tipos).map(([k, label]) => `<button class="al-btn" onclick="_alertaDisparar(['${k}'], true)">Só ${label.toLowerCase()}</button>`).join('')}
+      </div>
+      <details class="al-adv">
+        <summary>Personalizar seleção</summary>
+        <div class="al-grid">${tipoChecks('al-tipo', Object.keys(c.tipos))}</div>
+        <div class="al-label">Indústrias</div>
+        <div class="al-chips">${tenantChips}</div>
+        <div class="al-actions">
+          <button class="al-btn" onclick="_alertaDisparar(null, false)">👁 Pré-visualizar</button>
+          <button class="al-btn primary" onclick="_alertaDisparar(null, true)">Enviar seleção ao Slack</button>
+        </div>
+      </details>
+      <div id="al-result"></div>
+    </section>
+
+    <section class="al-card">
+      <h2>Disparo automático</h2>
+      <p class="al-sub">Enviado ao fim da atualização diária das cargas (tarefa “BIC Monitor - Atualizar relatórios”, 8h). Só avisa indústrias com arquivo novo desde o último aviso.</p>
+      <label class="al-switch"><input type="checkbox" id="al-auto-ativo" ${c.autoAtivo ? 'checked' : ''}> Disparo automático ativo</label>
+      <div class="al-label">O que enviar no automático</div>
+      <div class="al-grid">${tipoChecks('al-auto-tipo', c.autoTipos)}</div>
+      <div class="al-row">
+        <label class="al-field">Atraso mínimo (dias)
+          <input type="number" id="al-atraso" min="1" max="90" value="${c.atrasoMinDias}">
+        </label>
+      </div>
+      <div class="al-last">Último disparo automático: ${ultTxt}</div>
+    </section>
+
+    <section class="al-card">
+      <h2>Configuração do Slack</h2>
+      <p class="al-sub">${c.webhookConfigurado ? `Conectado (webhook terminando em <code>${escHtml(c.webhookFinal)}</code>). Cole uma nova URL só se quiser trocar.` : 'Cole aqui a URL do Incoming Webhook do canal #anomalia-bic-system.'}</p>
+      <label class="al-field wide">URL do webhook
+        <input type="url" id="al-webhook" placeholder="https://hooks.slack.com/services/…" autocomplete="off">
+      </label>
+    </section>
+
+    <div class="al-save">
+      <span id="al-save-msg"></span>
+      <button class="al-btn primary" onclick="_alertaSalvar()">Salvar configuração</button>
+    </div>
+  </div>`;
+}
+
+async function _alertaDisparar(tipos, enviar) {
+  const out = document.getElementById('al-result');
+  const sel = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(i => i.value);
+  const tenants = tipos ? [] : sel('al-tenant');
+  tipos = tipos || sel('al-tipo');
+  if (!tipos.length) { out.innerHTML = `<div class="al-msg err">Selecione ao menos um tipo.</div>`; return; }
+  if (enviar && !_alertaCfg.webhookConfigurado) { out.innerHTML = `<div class="al-msg err">Configure o webhook do Slack antes de enviar.</div>`; return; }
+  const nomes = tipos.map(t => _alertaCfg.tipos[t]).join(', ');
+  if (enviar && !confirm(`Enviar ao Slack: ${nomes}?`)) return;
+
+  document.querySelectorAll('.al-btn').forEach(b => b.disabled = true);
+  out.innerHTML = `<div class="al-msg">⏳ ${enviar ? 'Verificando e enviando' : 'Verificando'} (${nomes})…</div>`;
+  try {
+    const r = await fetch('/api/alertas/disparar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipos, tenants, enviar }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    const total = j.resumo.reduce((s, x) => s + x.total, 0);
+    out.innerHTML = `
+      <div class="al-msg ok">${j.enviado ? '✓ Enviado ao Slack' : 'Pré-visualização'} — ${total} ocorrência(s) em ${j.resumo.filter(x => x.total).length} indústria(s)${j.mensagens.length > 1 ? ` · ${j.mensagens.length} mensagens` : ''}</div>
+      ${j.mensagens.map(m => `<pre class="al-preview">${escHtml(m)}</pre>`).join('')}`;
+  } catch (e) {
+    out.innerHTML = `<div class="al-msg err">Erro: ${escHtml(e.message)}</div>`;
+  } finally {
+    document.querySelectorAll('.al-btn').forEach(b => b.disabled = false);
+  }
+}
+
+async function _alertaSalvar() {
+  const msg = document.getElementById('al-save-msg');
+  const body = {
+    autoAtivo: document.getElementById('al-auto-ativo').checked,
+    autoTipos: [...document.querySelectorAll('input[name="al-auto-tipo"]:checked')].map(i => i.value),
+    atrasoMinDias: Number(document.getElementById('al-atraso').value),
+  };
+  const wh = document.getElementById('al-webhook').value.trim();
+  if (wh) body.webhookUrl = wh;
+  msg.className = ''; msg.textContent = 'Salvando…';
+  try {
+    const r = await fetch('/api/alertas/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    await renderAlertas();
+    const m = document.getElementById('al-save-msg');
+    m.className = 'ok'; m.textContent = '✓ Configuração salva';
+  } catch (e) {
+    msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
+  }
+}
+
+// ── Rotas na URL: #/visao-geral, #/visao-geral/admin-users, #/bic/comparativo ──
+let _currentMod = null;
+let _tenantSeq  = 0;
+
+function _routeHash(tenant, mod) {
+  if (tenant === 'dashboard') return mod === 'dashboard' ? '#/visao-geral' : `#/visao-geral/${mod}`;
+  return `#/${tenant}/${mod}`;
+}
+
+function _parseHash() {
+  const [t, m] = window.location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  if (t && TENANT_CONFIG[t]) return { tenant: t, mod: m || 'comparativo' };
+  // visao-geral (ou hash antigo tipo #admin-users)
+  const mod = (t === 'visao-geral' || t === 'dashboard' || !t) ? (m || 'dashboard') : t;
+  return { tenant: 'dashboard', mod };
+}
+
+function _applyRoute() {
+  if (!_currentUser) return;
+  let { tenant, mod } = _parseHash();
+  if (tenant !== 'dashboard' && !_userTenantList().includes(tenant)) { tenant = 'dashboard'; mod = 'dashboard'; }
+  if (tenant === currentTenant) {
+    if (mod !== _currentMod && !navigateTo(mod)) navigateTo(tenant === 'dashboard' ? 'dashboard' : 'comparativo');
+    return;
+  }
+  switchTenant(tenant, mod);
+}
+
+function switchTenant(tenant, mod) {
+  if (tenant !== 'dashboard' && !TENANT_CONFIG[tenant]) return;
+  if (tenant === currentTenant) {
+    // Na Visão Geral, clicar na aba de novo volta ao painel (ex.: saindo da Gestão de Acesso)
+    if (tenant === 'dashboard') navigateTo('dashboard');
+    return;
+  }
+  const seq = ++_tenantSeq;
+  currentTenant = tenant;
+  _buildTenantTabs();
+  applyTenantNav();
 
   if (tenant === 'dashboard') {
-    document.getElementById('tenant-badge').textContent = 'VG';
-    document.getElementById('tenant-label').textContent = 'Visão Geral';
-    document.getElementById('portal-sub').textContent = 'Todas as indústrias';
-    document.getElementById('sidebar-nav').style.visibility = 'hidden';
-    document.querySelector('.sidebar-update').style.display = 'none';
-    window.location.hash = 'dashboard';
-    renderDashboard();
+    _setSidebarDashboard();
+    if (!mod || !navigateTo(mod)) navigateTo('dashboard');
     return;
   }
 
-  // Indústria — restaura sidebar
-  document.getElementById('sidebar-nav').style.visibility = '';
+  // Indústria — restaura data de atualização
   document.querySelector('.sidebar-update').style.display = '';
+  document.getElementById('last-update-badge').textContent = 'Carregando…';
+  document.getElementById('topbar-title').textContent = TENANT_CONFIG[tenant].label;
+  document.getElementById('topbar-sub').textContent = '';
+  document.getElementById('content-area').innerHTML = `
+    <div class="dist-loading-box">
+      <div class="spinner" style="width:28px;height:28px;border-width:3px"></div>
+      <div style="font-size:13px;color:var(--text-muted)">Carregando ${TENANT_CONFIG[tenant].label}…</div>
+    </div>`;
 
   // Reset tenant-specific states
   state.files = [];
@@ -7827,38 +8146,45 @@ function switchTenant(tenant) {
   document.getElementById('tenant-label').textContent = cfg.subtitle;
   document.getElementById('portal-sub').textContent = cfg.label === 'BIC' ? 'Dados de distribuidores' : cfg.subtitle;
 
-  // Re-filter nav
-  applyTenantNav();
-
-  // Load files for new tenant and navigate to comparativo
+  // Carrega arquivos do tenant e abre o módulo pedido (ou comparativo)
+  const go = () => {
+    if (seq !== _tenantSeq) return; // usuário já trocou de aba
+    if (!mod || !navigateTo(mod)) navigateTo('comparativo');
+  };
   fetchFiles().then(files => {
+    if (seq !== _tenantSeq) return;
     state.files = files;
     const badge = document.getElementById('last-update-badge');
     if (badge) badge.textContent = files.length ? files[0].dateFormatted : 'Sem arquivos';
-    navigateTo('comparativo');
-  }).catch(() => {
-    navigateTo('comparativo');
-  });
+    go();
+  }).catch(go);
 }
 
-function _buildTenantDropdown(userTenants) {
-  const dropdown = document.getElementById('tenant-dropdown');
-  if (!dropdown) return;
-  const dashActive = currentTenant === 'dashboard' ? ' active' : '';
-  const industryHtml = userTenants.filter(t => TENANT_CONFIG[t]).map(t => {
-    const cfg = TENANT_CONFIG[t];
-    const active = t === currentTenant ? ' active' : '';
-    return `<div class="tenant-option${active}" onclick="switchTenant('${t}')">
-      <div class="bic-badge">${cfg.badge}</div>
-      <span>${cfg.label}</span>
+function _userTenantList() {
+  if (!_currentUser) return [];
+  return _currentUser.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser.tenants ?? ['bic']);
+}
+
+function _buildTenantTabs() {
+  const bar = document.getElementById('tenant-tabs');
+  if (!bar) return;
+  const allowed = _userTenantList();
+  const tab = (key, badge, label, extra = '') =>
+    `<div class="tenant-tab${extra}${key === currentTenant ? ' active' : ''}" onclick="switchTenant('${key}')">
+      <span class="bic-badge">${badge}</span><span>${label}</span>
     </div>`;
-  }).join('');
-  dropdown.innerHTML =
-    `<div class="tenant-option vg-option${dashActive}" onclick="switchTenant('dashboard')">
-      <div class="bic-badge">VG</div>
-      <span>Visão Geral</span>
-    </div>
-    <div class="tenant-option-separator"></div>` + industryHtml;
+  bar.innerHTML = tab('dashboard', 'VG', 'Visão Geral', ' vg') +
+    '<div class="tenant-tab-sep"></div>' +
+    DASH_TENANT_ORDER.filter(t => TENANT_CONFIG[t] && allowed.includes(t))
+      .map(t => tab(t, TENANT_CONFIG[t].badge, TENANT_CONFIG[t].label)).join('');
+  bar.querySelector('.tenant-tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+function _setSidebarDashboard() {
+  document.getElementById('tenant-badge').textContent = 'VG';
+  document.getElementById('tenant-label').textContent = 'Visão Geral';
+  document.getElementById('portal-sub').textContent = 'Todas as indústrias';
+  document.querySelector('.sidebar-update').style.display = 'none';
 }
 
 let _currentUser = null;
@@ -7875,47 +8201,22 @@ async function initAuth() {
     document.getElementById('sidebar-email').textContent = _currentUser.email;
     document.getElementById('sidebar-avatar').textContent = name.charAt(0).toUpperCase();
 
-    // Exibe admin nav se for admin
-    if (_currentUser.isAdmin) {
-      document.getElementById('admin-nav-section').style.display = '';
-      document.getElementById('admin-nav-item').style.display = '';
-    }
-
-    // Começa sempre no dashboard (visão geral cross-tenant)
-    const userTenants = _currentUser.isAdmin ? Object.keys(TENANT_CONFIG) : (_currentUser.tenants ?? ['bic']);
+    // Começa sempre na Visão Geral (cross-tenant)
     currentTenant = 'dashboard';
+    _setSidebarDashboard();
+    _buildTenantTabs();
+    applyTenantNav();
+    document.getElementById('sidebar-nav').style.visibility = '';
 
-    // Configura seletor para dashboard
-    document.getElementById('tenant-badge').textContent = 'VG';
-    document.getElementById('tenant-label').textContent = 'Visão Geral';
-    document.getElementById('portal-sub').textContent = 'Todas as indústrias';
-
-    // Chevron sempre visível (dashboard + indústrias)
-    document.getElementById('tenant-chevron').style.display = '';
-    _buildTenantDropdown(userTenants);
-    document.getElementById('tenant-selector').addEventListener('click', () => {
-      document.getElementById('tenant-dropdown').classList.toggle('open');
-    });
-    document.addEventListener('click', e => {
-      if (!document.getElementById('tenant-selector-wrap')?.contains(e.target)) {
-        document.getElementById('tenant-dropdown')?.classList.remove('open');
-      }
-    });
-
-    // No dashboard: oculta sidebar-update e sidebar-nav
-    document.querySelector('.sidebar-update').style.display = 'none';
-    // sidebar-nav permanece hidden (já está por padrão)
-
-    // Restaura módulos que não dependem de init() (ex: admin-users)
-    const hashMod = window.location.hash.replace('#', '');
-    if (hashMod === 'admin-users' && _currentUser.isAdmin) {
-      navigateTo('admin-users');
-    } else {
-      // Inicia no dashboard cross-tenant
-      renderDashboard();
-    }
-  } catch {
-    window.location.href = '/login';
+    // Abre a rota da URL (ex.: #/bic/comparativo) e acompanha voltar/avançar do navegador
+    window.addEventListener('hashchange', _applyRoute);
+    _applyRoute();
+  } catch (e) {
+    // Sem sessão → login; erro de código → mostra na tela em vez de mandar pro login
+    if (!_currentUser) { window.location.href = '/login'; return; }
+    console.error(e);
+    document.getElementById('content-area').innerHTML =
+      `<div class="error-banner"><strong>Erro ao iniciar o portal:</strong> ${e.message}</div>`;
   }
 }
 
@@ -8025,6 +8326,26 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
       pwdErr.textContent = err.message; pwdErr.style.display = 'block';
     } finally {
       saveBtn.disabled = false; saveBtn.textContent = 'Alterar senha';
+    }
+  });
+})();
+
+// ── Sidebar recolhível (padrão: recolhida) ──
+(function () {
+  let collapsed = true;
+  try { collapsed = localStorage.getItem('sidebarCollapsed') !== '0'; } catch {}
+  document.body.classList.toggle('sb-collapsed', collapsed);
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.title = item.querySelector('.nav-label')?.textContent.trim() || '';
+  });
+  document.getElementById('sb-toggle').addEventListener('click', () => {
+    const c = document.body.classList.toggle('sb-collapsed');
+    try { localStorage.setItem('sidebarCollapsed', c ? '1' : '0'); } catch {}
+  });
+  // Recolhida: clicar no avatar abre o perfil (o botão ✏️ fica oculto)
+  document.getElementById('sidebar-user').addEventListener('click', e => {
+    if (document.body.classList.contains('sb-collapsed') && !e.target.closest('#btn-edit-profile')) {
+      document.getElementById('btn-edit-profile').click();
     }
   });
 })();

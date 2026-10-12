@@ -46,7 +46,7 @@ function requireAuth(req, res, next) {
 
 // Aplica auth em todas as rotas /api exceto as públicas
 app.use('/api', (req, res, next) => {
-  if (['/login', '/logout', '/health'].includes(req.path)) return next();
+  if (['/login', '/logout', '/health', '/alertas/auto'].includes(req.path)) return next();
   requireAuth(req, res, next);
 });
 
@@ -2070,23 +2070,38 @@ function dashHistoricoSem2024(rows) {
     .sort();
 }
 
+async function dashListXlsx(drive, folderId) {
+  const r = await drive.files.list({
+    q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+    fields: 'files(id, name, createdTime)',
+    orderBy: 'createdTime desc',
+    pageSize: 1000,
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
+  });
+  return r.data.files || [];
+}
+
+// Dois arquivos mais recentes do comparativo (por data no nome), ignorando históricos
+async function dashComparativoPair(drive, folderId) {
+  const all = await dashListXlsx(drive, folderId);
+  const files = all
+    .filter(f => !/historico/i.test(f.name) && extractDateFromName(f.name))
+    .sort((a, b) => {
+      const da = extractDateFromName(a.name).iso;
+      const db = extractDateFromName(b.name).iso;
+      return db < da ? -1 : db > da ? 1 : 0;
+    });
+  return { curr: files[0] || null, prev: files[1] || null };
+}
+
 async function dashLoadTenant(tenant, periodo) {
   const noHolding = DASHBOARD_NO_HOLDING.has(tenant);
   const folders = getTenantFolders(tenant);
   const drive = getDriveClient(true);
   const result = { comparativo: null, batalha: null, historico: null };
 
-  const listFiles = async (folderId, extra = '') => {
-    const r = await drive.files.list({
-      q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false${extra}`,
-      fields: 'files(id, name, createdTime)',
-      orderBy: 'createdTime desc',
-      pageSize: 1000,
-      includeItemsFromAllDrives: true,
-      supportsAllDrives: true,
-    });
-    return r.data.files || [];
-  };
+  const listFiles = folderId => dashListXlsx(drive, folderId);
 
   // ── Comparativo ──
   try {
@@ -2154,6 +2169,35 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
   const force = req.query.force === '1';
   const periodo = dashPeriodo(req.query.ref);
   const cached = _dashCache[periodo.mesStr];
+
+  // ?stream=1 — NDJSON: uma linha por indústria assim que ela termina (frontend mostra progresso)
+  if (req.query.stream === '1') {
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('X-Accel-Buffering', 'no');
+    const send = obj => res.write(JSON.stringify(obj) + '\n');
+    send({ start: true, total: DASHBOARD_TENANTS.length });
+
+    if (!force && cached && (Date.now() - cached.ts) < DASH_CACHE_TTL) {
+      for (const t of DASHBOARD_TENANTS) send({ tenant: t, data: cached.payload.data[t] });
+      send({ done: true, ts: cached.payload.ts, periodo });
+      return res.end();
+    }
+    const data = {};
+    await Promise.all(DASHBOARD_TENANTS.map(async t => {
+      try {
+        data[t] = await dashLoadTenant(t, periodo);
+      } catch (e) {
+        data[t] = { comparativo: { error: e.message, anomalyCount: 0 }, batalha: { error: e.message }, historico: { error: e.message } };
+      }
+      send({ tenant: t, data: data[t] });
+    }));
+    const payload = { data, ts: new Date().toISOString() };
+    _dashCache[periodo.mesStr] = { payload, ts: Date.now() };
+    send({ done: true, ts: payload.ts, periodo });
+    return res.end();
+  }
+
   if (!force && cached && (Date.now() - cached.ts) < DASH_CACHE_TTL) {
     return res.json({ ...cached.payload, periodo });
   }
@@ -2171,6 +2215,375 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
     _dashCache[periodo.mesStr] = { payload, ts: Date.now() };
     res.json({ ...payload, periodo });
   } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Alertas Slack ────────────────────────────────────────────────────────────
+// Config em Firestore: system_config/alertas_slack
+//   { webhookUrl, autoAtivo, autoTipos[], atrasoMinDias, autoToken, autoArquivos{tenant: fileId}, ultimoAuto{...} }
+// Disparo automático: bic_monitor/backend/scripts/atualizar-todos.js chama POST /api/alertas/auto ao fim das cargas.
+
+const ALERTA_TIPOS = {
+  anomalias:      'Anomalias no comparativo',
+  regressoes:     'Regressões de valor',
+  atrasos:        'Atraso de vendas',
+  semAtualizacao: 'Sem atualização',
+};
+const ALERTA_CFG_DEFAULT = {
+  webhookUrl: '',
+  autoAtivo: true,
+  autoTipos: ['anomalias', 'regressoes'],
+  atrasoMinDias: 10,
+};
+const ALERTA_REGRESSAO_MIN = 1;    // R$ — ignora ruído de arredondamento
+const ALERTA_MAX_LINHAS    = 100;  // por tabela na mensagem
+
+async function alertaGetCfg() {
+  const db  = getFirebaseAdmin().firestore();
+  const doc = await db.collection('system_config').doc('alertas_slack').get();
+  return { ...ALERTA_CFG_DEFAULT, ...(doc.exists ? doc.data() : {}) };
+}
+
+async function alertaSetCfg(patch) {
+  const db = getFirebaseAdmin().firestore();
+  await db.collection('system_config').doc('alertas_slack').set(patch, { merge: true });
+}
+
+function alertaHoje() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t).value;
+  const iso = `${get('year')}-${get('month')}-${get('day')}`;
+  return { iso, mes: iso.slice(0, 7) };
+}
+
+// Soma vendaValor por distribuidor (customer) + mês
+function alertaSomaPorDistMes(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    const dist = (r.customer || r.holding || '').trim();
+    const mes  = String(r.anoMes || '').trim();
+    if (!dist || !mes) continue;
+    const k = dist + '||' + mes;
+    map.set(k, (map.get(k) || 0) + Number(r.vendaValor || 0));
+  }
+  return map;
+}
+
+// Distribuidor/mês cujo valor caiu do arquivo anterior para o atual (sumir = cair para 0)
+function alertaRegressoes(prevRows, currRows, mesAberto) {
+  const prev = alertaSomaPorDistMes(prevRows);
+  const curr = alertaSomaPorDistMes(currRows);
+  const out = [];
+  for (const [k, vPrev] of prev) {
+    const vCurr = curr.get(k) || 0;
+    if (vPrev - vCurr < ALERTA_REGRESSAO_MIN) continue;
+    const [dist, mes] = k.split('||');
+    out.push({ dist, mes, aberto: mes === mesAberto, prev: vPrev, curr: vCurr, diff: vCurr - vPrev });
+  }
+  return out.sort((a, b) => a.diff - b.diff);
+}
+
+// Distribuidores cujo valor do mês em aberto não mudou entre o arquivo anterior e o atual
+function alertaSemAtualizacao(prevRows, currRows, mesAberto) {
+  const prev = alertaSomaPorDistMes(prevRows.filter(r => String(r.anoMes).trim() === mesAberto));
+  const curr = alertaSomaPorDistMes(currRows.filter(r => String(r.anoMes).trim() === mesAberto));
+  const out = [];
+  for (const [k, vCurr] of curr) {
+    if (!prev.has(k)) continue;
+    if (Math.abs(vCurr - prev.get(k)) < 0.01) out.push({ dist: k.split('||')[0], valor: vCurr });
+  }
+  return out.sort((a, b) => a.dist.localeCompare(b.dist));
+}
+
+// Dias desde a última venda (qualquer mês do arquivo da Batalha Naval) acima do limite; ignora [DESCONTINUADO]
+function alertaAtrasos(bnRows, hojeIso, minDias) {
+  const last = new Map();
+  for (const r of bnRows) {
+    const name = r.PARTNER_NAME || '';
+    const valor = Number(r.VENDA_VALOR_BRUTO || r.VENDA_VALOR || 0);
+    if (!name || !r.VENDA_DATA || !valor || /DESCONTINUADO/i.test(name)) continue;
+    const d = String(r.VENDA_DATA).slice(0, 10);
+    if (!last.has(name) || d > last.get(name)) last.set(name, d);
+  }
+  const hoje = Date.parse(hojeIso + 'T00:00:00Z');
+  const out = [];
+  for (const [dist, d] of last) {
+    const dias = Math.round((hoje - Date.parse(d + 'T00:00:00Z')) / 86400000);
+    if (dias > minDias) out.push({ dist, ultimaVenda: d, dias });
+  }
+  return out.sort((a, b) => b.dias - a.dias);
+}
+
+// Coleta os alertas de uma indústria. skipFileId: pula se o comparativo atual já foi avisado.
+// auto=true: sempre lê o comparativo para controlar o que já foi avisado, mesmo só com "atrasos".
+async function alertaColetarTenant(tenant, tipos, cfg, { skipFileId, auto = false } = {}) {
+  const drive   = getDriveClient(true);
+  const folders = getTenantFolders(tenant);
+  const hoje    = alertaHoje();
+  const res     = { tenant, erros: [] };
+
+  const precisaComp = tipos.some(t => t !== 'atrasos');
+  if (precisaComp || auto) {
+    try {
+      const { curr, prev } = await dashComparativoPair(drive, folders.comparativo);
+      if (!curr) throw new Error('sem arquivos de comparativo');
+      res.currFileId = curr.id;
+      res.currDate   = extractDateFromName(curr.name).formatted;
+      res.currIso    = extractDateFromName(curr.name).iso;
+      if (skipFileId && skipFileId === curr.id) { res.jaAvisado = true; return res; }
+      if (!precisaComp) return alertaColetarAtrasos(res, drive, folders, hoje, cfg); // só atrasos
+      if (!prev) throw new Error('só existe um arquivo de comparativo');
+      res.prevDate = extractDateFromName(prev.name).formatted;
+      const [currRows, prevRows] = await Promise.all([dashDownloadParse(curr.id), dashDownloadParse(prev.id)]);
+      if (tipos.includes('anomalias')) {
+        const a = dashCompareAnomalies(prevRows, currRows, DASHBOARD_NO_HOLDING.has(tenant));
+        res.anomalias = { gone: a.gone, newH: a.newH };
+      }
+      if (tipos.includes('regressoes'))     res.regressoes     = alertaRegressoes(prevRows, currRows, hoje.mes);
+      if (tipos.includes('semAtualizacao')) res.semAtualizacao = alertaSemAtualizacao(prevRows, currRows, hoje.mes);
+    } catch (e) {
+      res.erros.push(`Comparativo: ${e.message}`);
+    }
+  }
+
+  if (tipos.includes('atrasos')) await alertaColetarAtrasos(res, drive, folders, hoje, cfg);
+  return res;
+}
+
+async function alertaColetarAtrasos(res, drive, folders, hoje, cfg) {
+  try {
+    if (!folders.batalha) throw new Error('pasta não configurada');
+    const files = await dashListXlsx(drive, folders.batalha);
+    if (!files.length) throw new Error('sem arquivo');
+    const rows = await dashDownloadParse(files[0].id, { sheetName: 'Dados', normalize: false });
+    res.atrasos = alertaAtrasos(rows, hoje.iso, cfg.atrasoMinDias);
+  } catch (e) {
+    res.erros.push(`Batalha Naval: ${e.message}`);
+  }
+  return res;
+}
+
+const _brl = v => (v < 0 ? '-' : '') + 'R$ ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
+const _fmtMes = m => { const [y, mm] = m.split('-'); return `${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][Number(mm) - 1]}/${y}`; };
+const _fmtData = iso => iso.split('-').reverse().join('/');
+const _corta = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
+
+function alertaContar(r) {
+  return (r.anomalias ? r.anomalias.gone.length + r.anomalias.newH.length : 0)
+    + (r.regressoes?.length || 0) + (r.atrasos?.length || 0) + (r.semAtualizacao?.length || 0);
+}
+
+// Uma tabela por tipo de alerta, com a indústria na 1ª coluna.
+// Retorna { cab, secoes: [{ titulo, colunas, alinhaDir[], linhas[][] }], avisos[] }
+function alertaMontarMensagem(resultados, tipos, { titulo, cfg }) {
+  const nome = t => TENANT_LABELS[t] || t;
+  const secoes = [];
+  const add = (tipo, tituloSec, colunas, alinhaDir, linhas) => {
+    if (!tipos.includes(tipo) || !linhas.length) return;
+    const extra = linhas.length - ALERTA_MAX_LINHAS;
+    secoes.push({ titulo: tituloSec, colunas, alinhaDir, linhas: linhas.slice(0, ALERTA_MAX_LINHAS), rodape: extra > 0 ? `… e mais ${extra}` : '' });
+  };
+
+  const regs = resultados.flatMap(r => (r.regressoes || []).map(x => ({ ...x, ind: nome(r.tenant) })))
+    .sort((a, b) => a.diff - b.diff);
+  add('regressoes', 'Regressões de valor',
+    ['Indústria', 'Distribuidor', 'Mês', 'Antes', 'Depois', 'Diferença'], [false, false, false, true, true, true],
+    regs.map(x => {
+      const pct = x.prev > 0 ? ` (${(x.diff / x.prev * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%)` : '';
+      return [x.ind, _corta(x.dist, 40), _fmtMes(x.mes), _brl(x.prev), _brl(x.curr), _brl(x.diff) + pct];
+    }));
+
+  add('anomalias', 'Anomalias no comparativo',
+    ['Indústria', 'Distribuidor', 'Situação'], [false, false, false],
+    resultados.flatMap(r => r.anomalias ? [
+      ...r.anomalias.gone.map(d => [nome(r.tenant), _corta(d, 40), 'Saiu']),
+      ...r.anomalias.newH.map(d => [nome(r.tenant), _corta(d, 40), 'Entrou']),
+    ] : []));
+
+  add('atrasos', `Atraso de vendas (> ${cfg.atrasoMinDias} dias)`,
+    ['Indústria', 'Distribuidor', 'Última venda', 'Dias'], [false, false, false, true],
+    resultados.flatMap(r => (r.atrasos || []).map(x => ({ ...x, ind: nome(r.tenant) })))
+      .sort((a, b) => a.ind.localeCompare(b.ind, 'pt-BR') || b.dias - a.dias)
+      .map(x => [x.ind, _corta(x.dist, 40), _fmtData(x.ultimaVenda), String(x.dias)]));
+
+  add('semAtualizacao', 'Sem atualização no mês aberto',
+    ['Indústria', 'Distribuidor', 'Valor do mês'], [false, false, true],
+    resultados.flatMap(r => (r.semAtualizacao || []).map(x => [nome(r.tenant), _corta(x.dist, 40), _brl(x.valor)])));
+
+  const avisos = resultados.flatMap(r => r.erros.map(e => `:warning: ${nome(r.tenant)}: ${e}`));
+  const cab = `:rotating_light: *${titulo}* — ${_fmtData(alertaHoje().iso)}`;
+  return { cab, secoes, avisos, mostrarTitulo: tipos.length > 1 };
+}
+
+function _alertaTabela(colunas, alinhaDir, linhas) {
+  const larg = colunas.map((c, i) => Math.max(c.length, ...linhas.map(l => l[i].length)));
+  const fmt = l => l.map((c, i) => alinhaDir[i] ? c.padStart(larg[i]) : c.padEnd(larg[i])).join('  ').trimEnd();
+  return [fmt(colunas), larg.map(n => '-'.repeat(n)).join('  '), ...linhas.map(fmt)];
+}
+
+// Monta as mensagens (até ~8000 caracteres cada); tabelas longas continuam na mensagem seguinte
+function alertaPaginar({ cab, secoes, avisos, mostrarTitulo }) {
+  const LIMITE = 8000; // Slack aceita até 40k no text; acima de ~8k fica ruim de ler
+  const partes = [];
+  for (const sec of secoes) {
+    const [h1, h2, ...rows] = _alertaTabela(sec.colunas, sec.alinhaDir, sec.linhas);
+    const titulo = mostrarTitulo ? `*${sec.titulo}*\n` : '';
+    let bloco = [];
+    let primeiro = true;
+    const fecha = () => {
+      partes.push((primeiro ? titulo : '') + '```\n' + [h1, h2, ...bloco].join('\n') + '\n```');
+      primeiro = false; bloco = [];
+    };
+    for (const row of rows) {
+      if ((titulo.length + h1.length * 2 + (bloco.length + 1) * (row.length + 1) + 10) > LIMITE - cab.length) fecha();
+      bloco.push(row);
+    }
+    if (sec.rodape) bloco.push(sec.rodape);
+    if (bloco.length) fecha();
+  }
+  if (avisos.length) partes.push(avisos.join('\n'));
+  if (!partes.length) partes.push(':white_check_mark: Nenhuma ocorrência encontrada.');
+
+  const msgs = [];
+  let atual = cab;
+  for (const p of partes) {
+    if ((atual + '\n\n' + p).length > LIMITE && atual !== cab) { msgs.push(atual); atual = p; }
+    else atual += '\n\n' + p;
+  }
+  msgs.push(atual);
+  return msgs;
+}
+
+async function alertaEnviarSlack(webhookUrl, msgs) {
+  if (!webhookUrl) throw new Error('Webhook do Slack não configurado (Alertas Slack → Configuração).');
+  for (const text of msgs) {
+    const r = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, mrkdwn: true }),
+    });
+    if (!r.ok) throw new Error(`Slack respondeu ${r.status}: ${await r.text()}`);
+  }
+}
+
+const TENANT_LABELS = {
+  bic: 'BIC', asa: 'Asa', bombril: 'Bombril', cicopal: 'Cicopal', fini: 'Fini', fruki: 'Fruki',
+  gallo: 'Gallo', gtex: 'Gtex', kibon: 'Kibon', peccin: 'Peccin', pepsico: 'Pepsico',
+  mdias: 'M Dias', mdiassaud: 'M Dias Saudáveis', marilan: 'Marilan',
+};
+
+function alertaValidarTipos(tipos) {
+  const ok = (Array.isArray(tipos) ? tipos : []).filter(t => ALERTA_TIPOS[t]);
+  if (!ok.length) throw new Error('Selecione ao menos um tipo de alerta.');
+  return ok;
+}
+
+function alertaValidarTenants(tenants) {
+  if (!Array.isArray(tenants) || !tenants.length) return DASHBOARD_TENANTS;
+  return DASHBOARD_TENANTS.filter(t => tenants.includes(t));
+}
+
+// GET /api/alertas/config
+app.get('/api/alertas/config', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const cfg = await alertaGetCfg();
+    res.json({
+      tipos: ALERTA_TIPOS,
+      autoAtivo: cfg.autoAtivo,
+      autoTipos: cfg.autoTipos,
+      atrasoMinDias: cfg.atrasoMinDias,
+      webhookConfigurado: !!cfg.webhookUrl,
+      webhookFinal: cfg.webhookUrl ? '…' + cfg.webhookUrl.slice(-6) : '',
+      ultimoAuto: cfg.ultimoAuto || null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/alertas/config — { autoAtivo, autoTipos, atrasoMinDias, webhookUrl? }
+app.put('/api/alertas/config', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { autoAtivo, autoTipos, atrasoMinDias, webhookUrl } = req.body || {};
+    const patch = {};
+    if (typeof autoAtivo === 'boolean') patch.autoAtivo = autoAtivo;
+    if (Array.isArray(autoTipos)) patch.autoTipos = autoTipos.filter(t => ALERTA_TIPOS[t]);
+    if (atrasoMinDias !== undefined) {
+      const n = Number(atrasoMinDias);
+      if (!Number.isInteger(n) || n < 1 || n > 90) return res.status(400).json({ error: 'Dias de atraso deve ser entre 1 e 90.' });
+      patch.atrasoMinDias = n;
+    }
+    if (typeof webhookUrl === 'string' && webhookUrl.trim()) {
+      if (!/^https:\/\/hooks\.slack\.com\/services\//.test(webhookUrl.trim())) {
+        return res.status(400).json({ error: 'URL inválida — deve começar com https://hooks.slack.com/services/' });
+      }
+      patch.webhookUrl = webhookUrl.trim();
+    }
+    await alertaSetCfg(patch);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/alertas/disparar — { tipos[], tenants?[], enviar: boolean }  (enviar=false → só prévia)
+app.post('/api/alertas/disparar', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const tipos   = alertaValidarTipos(req.body?.tipos);
+    const tenants = alertaValidarTenants(req.body?.tenants);
+    const cfg     = await alertaGetCfg();
+    const resultados = await Promise.all(tenants.map(t => alertaColetarTenant(t, tipos, cfg)));
+    const msgs = alertaPaginar(alertaMontarMensagem(resultados, tipos, { titulo: 'Alerta BIC System (manual)', cfg }));
+    if (req.body?.enviar) await alertaEnviarSlack(cfg.webhookUrl, msgs);
+    res.json({
+      enviado: !!req.body?.enviar,
+      mensagens: msgs,
+      resumo: resultados.map(r => ({ tenant: r.tenant, total: alertaContar(r), erros: r.erros })),
+    });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// POST /api/alertas/auto — chamado pelo agendamento diário do bic_monitor (header x-alertas-token)
+// Só considera indústrias cujo comparativo mudou desde o último aviso automático.
+app.post('/api/alertas/auto', async (req, res) => {
+  try {
+    const cfg   = await alertaGetCfg();
+    const token = req.headers['x-alertas-token'];
+    const valido = (process.env.ALERTAS_TOKEN && token === process.env.ALERTAS_TOKEN) || (cfg.autoToken && token === cfg.autoToken);
+    if (!valido) return res.status(401).json({ error: 'Token inválido' });
+
+    if (!cfg.autoAtivo || !cfg.autoTipos?.length) {
+      return res.json({ enviado: false, motivo: 'Disparo automático desativado' });
+    }
+    const force = req.query.force === '1';
+    const avisados = force ? {} : (cfg.autoArquivos || {});
+    const resultados = await Promise.all(DASHBOARD_TENANTS.map(t =>
+      alertaColetarTenant(t, cfg.autoTipos, cfg, { skipFileId: avisados[t], auto: true })));
+    const novos = resultados.filter(r => !r.jaAvisado);
+
+    const hoje = alertaHoje();
+    // Indústria cujo comparativo mais recente não é de hoje: a carga não chegou
+    for (const r of novos) {
+      if (r.currIso && r.currIso !== hoje.iso) r.erros.push(`Carga de hoje não encontrada (último arquivo: ${r.currDate})`);
+    }
+    if (!novos.length) {
+      return res.json({ enviado: false, motivo: 'Nenhum arquivo novo desde o último aviso' });
+    }
+    const msgs = alertaPaginar(alertaMontarMensagem(novos, cfg.autoTipos, { titulo: 'Alerta BIC System — carga diária', cfg }));
+    await alertaEnviarSlack(cfg.webhookUrl, msgs);
+
+    const autoArquivos = { ...(cfg.autoArquivos || {}) };
+    for (const r of novos) if (r.currFileId) autoArquivos[r.tenant] = r.currFileId;
+    const ultimoAuto = { ts: new Date().toISOString(), industrias: novos.length, ocorrencias: novos.reduce((s, r) => s + alertaContar(r), 0) };
+    await alertaSetCfg({ autoArquivos, ultimoAuto });
+    res.json({ enviado: true, ...ultimoAuto });
+  } catch (e) {
+    try { await alertaSetCfg({ ultimoAuto: { ts: new Date().toISOString(), erro: e.message } }); } catch {}
     res.status(500).json({ error: e.message });
   }
 });

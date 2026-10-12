@@ -36,9 +36,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Só o system pode embutir o monitor
+// Só o system pode embutir o monitor. O system (site público) chamando o localhost precisa do
+// aceite de "rede local" no Chrome; para o modelo antigo (Private Network Access) liberamos aqui.
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${SYSTEM_ORIGINS.join(' ')}`);
+  if (req.get('Access-Control-Request-Private-Network') && SYSTEM_ORIGINS.includes(req.get('origin'))) {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
   next();
 });
 

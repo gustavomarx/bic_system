@@ -8141,26 +8141,23 @@ async function renderMonitor() {
   let sso;
   try {
     sso = await _monitorSSO();
-    await fetch(`${sso.base}/health`, { signal: AbortSignal.timeout(4000) });
   } catch (e) {
-    const base = sso?.base || 'http://localhost:3001';
-    area.innerHTML = `
-      <div class="al-wrap"><section class="al-card">
-        <h2>BIC Monitor fora do ar</h2>
-        <p class="al-sub">${sso ? `Não consegui falar com o monitor em <code>${escHtml(base)}</code>.` : 'Erro: ' + escHtml(e.message)}
-        O monitor roda nesta máquina (Oracle, proxy do Postgres e BigQuery locais) — ele não abre de outro computador.</p>
-        <p class="al-sub">Para iniciar: <code>cd bic_system/monitor/backend &amp;&amp; node server.js</code></p>
-        <button class="al-btn primary" onclick="renderMonitor()">Tentar de novo</button>
-      </section></div>`;
+    area.innerHTML = `<div class="al-wrap"><div class="error-banner"><strong>Erro ao abrir o BIC Monitor:</strong> ${escHtml(e.message)}</div></div>`;
     return;
   }
+  // Sem checagem prévia: do site publicado, falar com o localhost depende do aceite de
+  // "rede local" do Chrome, e quem dispara o pedido é o próprio iframe.
   area.innerHTML = `
     <div class="mon-wrap">
       <div class="mon-bar">
-        <span>Conectado ao monitor em <code>${escHtml(sso.base)}</code></span>
-        <button class="al-btn" onclick="_monitorNovaAba()">↗ Abrir em nova aba</button>
+        <span>Monitor desta máquina em <code>${escHtml(sso.base)}</code> · se não carregar, aceite o pedido de <b>acesso à rede local</b> do navegador
+          ou inicie o monitor (<code>cd bic_system/monitor/backend &amp;&amp; node server.js</code>).</span>
+        <span style="display:flex;gap:8px;flex-shrink:0">
+          <button class="al-btn" onclick="renderMonitor()">↻ Recarregar</button>
+          <button class="al-btn" onclick="_monitorNovaAba()">↗ Abrir em nova aba</button>
+        </span>
       </div>
-      <iframe class="mon-frame" src="${escHtml(sso.url)}&embed=1" title="BIC Monitor"></iframe>
+      <iframe class="mon-frame" src="${escHtml(sso.url)}&embed=1" title="BIC Monitor" allow="local-network-access"></iframe>
     </div>`;
 }
 

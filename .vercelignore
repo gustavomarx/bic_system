@@ -1,0 +1,2 @@
+# O BIC Monitor roda localmente (Oracle, proxy do Postgres, BigQuery) — não sobe para a Vercel
+monitor/

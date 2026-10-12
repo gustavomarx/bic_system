@@ -15,16 +15,87 @@ const app    = express();
 const PORT   = process.env.PORT || 3001;
 const upload = multer({ storage: multer.memoryStorage() });
 
-app.use(cors());
+// ─────────────────────────────────────────
+//  Acesso — o monitor só abre pelo BIC System (admin, Visão Geral → BIC Monitor)
+//  • navegador: /auth/sso?t=<token de 2 min assinado pelo system> → cookie de sessão
+//  • system chamando a API: Authorization: Bearer <token do system>
+//  • agendamento diário (scripts/atualizar-todos.js): header x-monitor-token
+// ─────────────────────────────────────────
+const jwt = require('jsonwebtoken');
+const MON_SECRET     = process.env.SYSTEM_JWT_SECRET || '';
+const MON_TOKEN      = process.env.MONITOR_TOKEN || '';
+const SYSTEM_ORIGINS = (process.env.SYSTEM_ORIGINS || 'https://bic-system.vercel.app,http://localhost:3004')
+  .split(',').map(s => s.trim()).filter(Boolean);
+const SESSAO_COOKIE  = 'monitor_sess';
+const SESSAO_MS      = 12 * 60 * 60 * 1000;
+const _ssoUsados     = new Map();   // jti → expira em (token de entrada vale uma vez)
+
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || SYSTEM_ORIGINS.includes(origin)),
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-monitor-token'],
+}));
 app.use(express.json());
 
-// ─────────────────────────────────────────
-//  Servir frontend estático (raiz do projeto)
-// ─────────────────────────────────────────
-app.use(express.static(path.join(__dirname, '..')));
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+// Só o system pode embutir o monitor
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${SYSTEM_ORIGINS.join(' ')}`);
+  next();
 });
+
+function lerCookie(req, nome) {
+  const m = (req.headers.cookie || '').split(';').map(c => c.trim()).find(c => c.startsWith(nome + '='));
+  return m ? decodeURIComponent(m.slice(nome.length + 1)) : null;
+}
+
+function verificar(token, audience) {
+  if (!MON_SECRET || !token) return null;
+  try {
+    const p = jwt.verify(token, MON_SECRET, { audience });
+    return p && p.isAdmin ? p : null;
+  } catch (_) { return null; }
+}
+
+const PAGINA_RESTRITA = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>BIC Monitor</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#11121f;color:#e8eaf0;font-family:'Segoe UI',system-ui,sans-serif}
+.c{max-width:420px;text-align:center;padding:32px;border:1px solid #2a2c42;border-radius:12px;background:#191a2b}
+b{color:#F47920}a{color:#F47920}</style></head><body><div class="c"><h2>Acesso restrito</h2>
+<p>O BIC Monitor abre pelo <b>BIC System</b>, com usuário administrador:<br>Visão Geral → <b>BIC Monitor</b>.</p>
+<p><a href="https://bic-system.vercel.app/#/visao-geral/monitor">Abrir o BIC System</a></p></div></body></html>`;
+
+app.get('/auth/sso', (req, res) => {
+  const p = verificar(String(req.query.t || ''), 'bic-monitor');
+  const agora = Date.now();
+  for (const [k, exp] of _ssoUsados) if (exp < agora) _ssoUsados.delete(k);
+  if (!p || !p.jti || _ssoUsados.has(p.jti)) return res.status(401).send(PAGINA_RESTRITA);
+  _ssoUsados.set(p.jti, p.exp * 1000);
+
+  const sessao = jwt.sign({ email: p.email, name: p.name, isAdmin: true }, MON_SECRET, { audience: 'bic-monitor-sess', expiresIn: SESSAO_MS / 1000 });
+  // SameSite=None + Partitioned: funciona embutido no system (iframe) e em aba própria
+  res.cookie(SESSAO_COOKIE, sessao, { httpOnly: true, secure: true, sameSite: 'none', partitioned: true, maxAge: SESSAO_MS, path: '/' });
+  res.redirect(req.query.embed ? '/?embed=1' : '/');
+});
+
+app.get('/auth/sair', (req, res) => {
+  res.clearCookie(SESSAO_COOKIE, { httpOnly: true, secure: true, sameSite: 'none', partitioned: true, path: '/' });
+  res.send(PAGINA_RESTRITA);
+});
+
+app.use((req, res, next) => {
+  if (req.path === '/health' || req.path.startsWith('/auth/')) return next();
+  if (MON_TOKEN && req.get('x-monitor-token') === MON_TOKEN) return next();
+  const bearer = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const user = (bearer && verificar(bearer, 'bic-monitor')) || verificar(lerCookie(req, SESSAO_COOKIE), 'bic-monitor-sess');
+  if (user) { req.user = user; return next(); }
+  if (req.method === 'GET' && req.accepts(['html', 'json']) === 'html') return res.status(401).send(PAGINA_RESTRITA);
+  res.status(401).json({ error: 'Acesso restrito: abra o monitor pelo BIC System (admin).' });
+});
+
+// ─────────────────────────────────────────
+//  Frontend — só os arquivos da interface (nunca backend/, .env ou credenciais)
+// ─────────────────────────────────────────
+const FRONT_DIR = path.join(__dirname, '..');
+app.get('/', (req, res) => res.sendFile(path.join(FRONT_DIR, 'index.html')));
+app.get(/^\/(index\.html|integracoes\.js|[\w-]+\.png)$/, (req, res) => res.sendFile(path.join(FRONT_DIR, req.params[0])));
 
 // ─────────────────────────────────────────
 //  PostgreSQL — pool de conexão

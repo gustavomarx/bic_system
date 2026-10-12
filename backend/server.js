@@ -38,6 +38,8 @@ function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Não autenticado' });
   try {
     req.user = jwt.verify(token, JWT_SECRET);
+    // tokens com audience são do BIC Monitor (mesma chave) — não valem como sessão do system
+    if (req.user.aud) throw new Error('token de outro serviço');
     next();
   } catch {
     res.clearCookie('token').status(401).json({ error: 'Sessão expirada' });
@@ -144,6 +146,19 @@ function requireAdmin(req, res, next) {
   if (!req.user?.isAdmin) return res.status(403).json({ error: 'Acesso restrito a administradores' });
   next();
 }
+
+// ─── BIC Monitor (monitor/, roda nesta máquina na porta 3001) ────────────────
+// Gera um token de entrada de 2 min, uso único, só para admin. O monitor valida com o mesmo
+// JWT_SECRET (SYSTEM_JWT_SECRET no .env dele) e abre a sessão própria.
+app.get('/api/monitor/sso', requireAuth, requireAdmin, (req, res) => {
+  const base  = (process.env.MONITOR_URL || 'http://localhost:3001').replace(/\/$/, '');
+  const token = jwt.sign(
+    { email: req.user.email, name: req.user.name, isAdmin: true },
+    JWT_SECRET,
+    { audience: 'bic-monitor', expiresIn: '2m', jwtid: require('crypto').randomUUID() },
+  );
+  res.json({ base, token, url: `${base}/auth/sso?t=${encodeURIComponent(token)}` });
+});
 
 // GET /api/admin/users — lista todos os usuários Firebase Auth
 app.get('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
@@ -2360,7 +2375,7 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
 // ─── Alertas Slack ────────────────────────────────────────────────────────────
 // Config em Firestore: system_config/alertas_slack
 //   { webhookUrl, autoAtivo, autoTipos[], atrasoMinDias, autoToken, autoArquivos{tenant: fileId}, ultimoAuto{...} }
-// Disparo automático: bic_monitor/backend/scripts/atualizar-todos.js chama POST /api/alertas/auto ao fim das cargas.
+// Disparo automático: monitor/backend/scripts/atualizar-todos.js chama POST /api/alertas/auto ao fim das cargas.
 
 const ALERTA_TIPOS = {
   anomalias:      'Anomalias no comparativo',
@@ -2686,7 +2701,7 @@ app.post('/api/alertas/disparar', requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
-// POST /api/alertas/auto — chamado pelo agendamento diário do bic_monitor (header x-alertas-token)
+// POST /api/alertas/auto — chamado pelo agendamento diário do monitor (monitor/backend/scripts) (header x-alertas-token)
 // Só considera indústrias cujo comparativo mudou desde o último aviso automático.
 app.post('/api/alertas/auto', async (req, res) => {
   try {

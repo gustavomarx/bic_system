@@ -15127,7 +15127,11 @@ function sbSyncActive() {
   switchTenant = function(t) { _switchTenantOrig(t); sbBuildNav(); };
 
   var KEY = 'monitorSidebarCollapsed';
-  try { if (localStorage.getItem(KEY) === '0') document.body.classList.remove('sb-collapsed'); } catch (_) {}
+  // Embutido no BIC System (?embed=1): o menu começa recolhido para não competir com o do system
+  var embutido = /[?&]embed=1/.test(location.search);
+  if (!embutido) {
+    try { if (localStorage.getItem(KEY) === '0') document.body.classList.remove('sb-collapsed'); } catch (_) {}
+  }
   document.getElementById('sbToggle').onclick = function() {
     var c = document.body.classList.toggle('sb-collapsed');
     try { localStorage.setItem(KEY, c ? '1' : '0'); } catch (_) {}

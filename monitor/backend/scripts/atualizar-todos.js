@@ -13,6 +13,8 @@ const BACKEND_DIR = path.join(__dirname, '..');
 require('dotenv').config({ path: path.join(BACKEND_DIR, '.env') });
 
 const BASE_URL = `http://localhost:${process.env.PORT || 3001}`;
+// O servidor exige login; o agendamento se identifica com MONITOR_TOKEN (.env)
+const HDR_MONITOR = { 'x-monitor-token': process.env.MONITOR_TOKEN || '' };
 const TIMEOUT_MS = 20 * 60 * 1000; // por cliente
 
 const CLIENTES = [
@@ -76,7 +78,7 @@ async function garantirBackend() {
 
 // ── SSE ──────────────────────────────────
 async function atualizar(cliente) {
-  const res = await fetch(`${BASE_URL}${cliente.rota}/atualizar-tudo`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const res = await fetch(`${BASE_URL}${cliente.rota}/atualizar-tudo`, { headers: HDR_MONITOR, signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const decoder = new TextDecoder();

@@ -248,6 +248,11 @@
     .sb-toggle { background: none; border: 1px solid var(--bic-border); border-radius: 6px; width: 30px; height: 30px; font-size: 15px; line-height: 1; color: var(--text-muted); cursor: pointer; flex-shrink: 0; transition: background .15s, color .15s; }
     .sb-toggle:hover { background: var(--bic-gray); color: var(--text-main); }
 
+    /* ── BIC Monitor embutido ───────────────────────────────── */
+    .mon-wrap { display: flex; flex-direction: column; height: 100%; min-height: calc(100vh - 110px); }
+    .mon-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 20px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--bic-border); background: #fff; }
+    .mon-frame { flex: 1; width: 100%; border: 0; background: #11121f; min-height: calc(100vh - 150px); }
+
     /* ── Usuários (Visão Geral) ─────────────────────────────── */
     .nav-item.nav-sub { padding-left: 34px; font-size: 13px; }
     .nav-item.nav-sub .nav-icon { font-size: 13px; }
@@ -2309,6 +2314,10 @@
       <span class="nav-icon">🔐</span>
       <span class="nav-label">Gestão de Acesso</span>
     </div>
+    <div class="nav-item" data-module="monitor" id="monitor-nav-item" style="display:none">
+      <span class="nav-icon">🖥️</span>
+      <span class="nav-label">BIC Monitor</span>
+    </div>
   </nav>
 
   <div class="sidebar-footer">
@@ -3773,6 +3782,9 @@ function navigateTo(mod) {
   } else if (mod === 'admin-users') {
     document.getElementById('topbar-title').textContent = 'Gestão de Acesso';
     renderAdminUsers();
+  } else if (mod === 'monitor') {
+    document.getElementById('topbar-title').textContent = 'BIC Monitor';
+    renderMonitor();
   } else {
     document.getElementById('topbar-title').textContent = item.querySelector('.nav-label')?.textContent.trim() || mod;
     document.getElementById('content-area').innerHTML = `
@@ -7290,12 +7302,14 @@ function _atualizarSelecaoHoldings() {
 }
 
 // Coordenadores vêm do BigQuery pelo BIC Monitor, que roda localmente (porta 3001)
-const MONITOR_URL = 'http://localhost:3001';
 async function atualizarCoordenadoresBQ() {
   const btn = document.getElementById('btn-coord-bq');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Consultando BigQuery…'; }
+  let base = 'http://localhost:3001';
   try {
-    const r = await fetch(`${MONITOR_URL}/geral/coordenadores`, { method: 'POST' });
+    const sso = await _monitorSSO();
+    base = sso.base;
+    const r = await fetch(`${base}/geral/coordenadores`, { method: 'POST', headers: { Authorization: `Bearer ${sso.token}` } });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.status);
     alert(`✓ Coordenadores ${j.skipped ? 'sem mudança' : 'atualizados'}\n${j.linhas} vínculos · ${j.arquivo}`);
@@ -7303,7 +7317,7 @@ async function atualizarCoordenadoresBQ() {
     renderHoldings();
   } catch (err) {
     alert(err instanceof TypeError
-      ? 'Não consegui falar com o BIC Monitor em ' + MONITOR_URL + '.\nAbra o monitor nesta máquina e tente de novo (ou use o botão "Coordenadores (BigQuery)" na tela de Usuários do monitor).'
+      ? 'Não consegui falar com o BIC Monitor em ' + base + '.\nAbra o monitor nesta máquina e tente de novo (ou use o botão "Coordenadores (BigQuery)" na tela de Usuários do monitor).'
       : 'Erro: ' + err.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '📥 Atualizar coordenadores'; }
@@ -8096,10 +8110,11 @@ function applyTenantNav() {
   document.getElementById('admin-nav-section').style.display = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('admin-nav-item').style.display    = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('alertas-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
+  document.getElementById('monitor-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
   const tenantMods = isDash ? ['usuarios', 'usuarios-email'] : (TENANT_CONFIG[currentTenant]?.modules || []);
   document.querySelectorAll('.nav-item[data-module]').forEach(item => {
     const mod = item.dataset.module;
-    if (mod === 'admin-users' || mod === 'dashboard' || mod === 'alertas') return;
+    if (mod === 'admin-users' || mod === 'dashboard' || mod === 'alertas' || mod === 'monitor') return;
     // Verificar se módulo existe no tenant atual
     const inTenant = tenantMods.includes(mod);
     // Verificar permissão do usuário (null = acesso total)
@@ -8108,6 +8123,51 @@ function applyTenantNav() {
   });
   // Envio de e-mail (submenu de Usuários) é só para admin
   if (!isAdmin) document.getElementById('usuarios-email-nav-item').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  BIC MONITOR (Visão Geral, admin) — embute o monitor local (porta 3001)
+// ═══════════════════════════════════════════════════════════════════════
+async function _monitorSSO() {
+  const r = await fetch('/api/monitor/sso');
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;   // { base, token, url }
+}
+
+async function renderMonitor() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `<div class="dist-loading-box"><div class="spinner" style="width:28px;height:28px;border-width:3px"></div></div>`;
+  let sso;
+  try {
+    sso = await _monitorSSO();
+    await fetch(`${sso.base}/health`, { signal: AbortSignal.timeout(4000) });
+  } catch (e) {
+    const base = sso?.base || 'http://localhost:3001';
+    area.innerHTML = `
+      <div class="al-wrap"><section class="al-card">
+        <h2>BIC Monitor fora do ar</h2>
+        <p class="al-sub">${sso ? `Não consegui falar com o monitor em <code>${escHtml(base)}</code>.` : 'Erro: ' + escHtml(e.message)}
+        O monitor roda nesta máquina (Oracle, proxy do Postgres e BigQuery locais) — ele não abre de outro computador.</p>
+        <p class="al-sub">Para iniciar: <code>cd bic_system/monitor/backend &amp;&amp; node server.js</code></p>
+        <button class="al-btn primary" onclick="renderMonitor()">Tentar de novo</button>
+      </section></div>`;
+    return;
+  }
+  area.innerHTML = `
+    <div class="mon-wrap">
+      <div class="mon-bar">
+        <span>Conectado ao monitor em <code>${escHtml(sso.base)}</code></span>
+        <button class="al-btn" onclick="_monitorNovaAba()">↗ Abrir em nova aba</button>
+      </div>
+      <iframe class="mon-frame" src="${escHtml(sso.url)}&embed=1" title="BIC Monitor"></iframe>
+    </div>`;
+}
+
+async function _monitorNovaAba() {
+  const w = window.open('', '_blank');
+  try { w.location = (await _monitorSSO()).url; }
+  catch (e) { w.close(); alert('Erro: ' + e.message); }
 }
 
 // ═══════════════════════════════════════════════════════════════════════

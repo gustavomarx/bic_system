@@ -2534,20 +2534,26 @@ function alertaContar(r) {
 function alertaMontarMensagem(resultados, tipos, { titulo, cfg }) {
   const nome = t => TENANT_LABELS[t] || t;
   const secoes = [];
-  const add = (tipo, tituloSec, colunas, alinhaDir, linhas) => {
+  const add = (tipo, tituloSec, colunas, alinhaDir, linhas, { sempreTitulo = false } = {}) => {
     if (!tipos.includes(tipo) || !linhas.length) return;
     const extra = linhas.length - ALERTA_MAX_LINHAS;
-    secoes.push({ titulo: tituloSec, colunas, alinhaDir, linhas: linhas.slice(0, ALERTA_MAX_LINHAS), rodape: extra > 0 ? `… e mais ${extra}` : '' });
+    secoes.push({ titulo: tituloSec, colunas, alinhaDir, linhas: linhas.slice(0, ALERTA_MAX_LINHAS), rodape: extra > 0 ? `… e mais ${extra}` : '', sempreTitulo });
   };
 
-  const regs = resultados.flatMap(r => (r.regressoes || []).map(x => ({ ...x, ind: nome(r.tenant) })))
-    .sort((a, b) => a.diff - b.diff);
-  add('regressoes', 'Regressões de valor',
-    ['Indústria', 'Distribuidor', 'Mês', 'Antes', 'Depois', 'Diferença'], [false, false, false, true, true, true],
-    regs.map(x => {
-      const pct = x.prev > 0 ? ` (${(x.diff / x.prev * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%)` : '';
-      return [x.ind, _corta(x.dist, 40), _fmtMes(x.mes), _brl(x.prev), _brl(x.curr), _brl(x.diff) + pct];
-    }));
+  // Regressões: uma tabela por mês, do mais antigo para o mais recente
+  const regs = resultados.flatMap(r => (r.regressoes || []).map(x => ({ ...x, ind: nome(r.tenant) })));
+  const mesesReg = [...new Set(regs.map(x => x.mes))].sort();
+  for (const mes of mesesReg) {
+    const doMes = regs.filter(x => x.mes === mes).sort((a, b) => a.diff - b.diff);
+    const total = doMes.reduce((s, x) => s + x.diff, 0);
+    add('regressoes', `Regressões de valor — ${_fmtMes(mes)}${doMes[0].aberto ? ' (mês aberto)' : ''} · ${doMes.length} · total ${_brl(total)}`,
+      ['Indústria', 'Distribuidor', 'Antes', 'Depois', 'Diferença'], [false, false, true, true, true],
+      doMes.map(x => {
+        const pct = x.prev > 0 ? ` (${(x.diff / x.prev * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%)` : '';
+        return [x.ind, _corta(x.dist, 40), _brl(x.prev), _brl(x.curr), _brl(x.diff) + pct];
+      }),
+      { sempreTitulo: true });
+  }
 
   add('anomalias', 'Anomalias no comparativo',
     ['Indústria', 'Distribuidor', 'Situação'], [false, false, false],
@@ -2583,7 +2589,7 @@ function alertaPaginar({ cab, secoes, avisos, mostrarTitulo }) {
   const partes = [];
   for (const sec of secoes) {
     const [h1, h2, ...rows] = _alertaTabela(sec.colunas, sec.alinhaDir, sec.linhas);
-    const titulo = mostrarTitulo ? `*${sec.titulo}*\n` : '';
+    const titulo = mostrarTitulo || sec.sempreTitulo ? `*${sec.titulo}*\n` : '';
     let bloco = [];
     let primeiro = true;
     const fecha = () => {

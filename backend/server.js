@@ -2390,6 +2390,7 @@ const ALERTA_CFG_DEFAULT = {
   atrasoMinDias: 10,
 };
 const ALERTA_REGRESSAO_MIN = 1;    // R$ — ignora ruído de arredondamento
+const ALERTA_REGRESSAO_PCT_MES_ABERTO = 0.5; // mês aberto: só quedas acima de 50%
 const ALERTA_MAX_LINHAS    = 100;  // por tabela na mensagem
 
 async function alertaGetCfg() {
@@ -2434,7 +2435,9 @@ function alertaRegressoes(prevRows, currRows, mesAberto) {
     const vCurr = curr.get(k) || 0;
     if (vPrev - vCurr < ALERTA_REGRESSAO_MIN) continue;
     const [dist, mes] = k.split('||');
-    out.push({ dist, mes, aberto: mes === mesAberto, prev: vPrev, curr: vCurr, diff: vCurr - vPrev });
+    const aberto = mes === mesAberto;
+    if (aberto && (vPrev - vCurr) / vPrev <= ALERTA_REGRESSAO_PCT_MES_ABERTO) continue;
+    out.push({ dist, mes, aberto, prev: vPrev, curr: vCurr, diff: vCurr - vPrev });
   }
   return out.sort((a, b) => a.diff - b.diff);
 }

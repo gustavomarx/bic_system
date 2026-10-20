@@ -2374,7 +2374,7 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
 
 // ─── Alertas Slack ────────────────────────────────────────────────────────────
 // Config em Firestore: system_config/alertas_slack
-//   { webhookUrl, autoAtivo, autoTipos[], atrasoMinDias, autoToken, autoArquivos{tenant: fileId}, ultimoAuto{...} }
+//   { webhookUrl, autoAtivo, autoTipos[], atrasoMinDias, atrasoMaxDias, autoToken, autoArquivos{tenant: fileId}, ultimoAuto{...} }
 // Disparo automático: monitor/backend/scripts/atualizar-todos.js chama POST /api/alertas/auto ao fim das cargas.
 
 const ALERTA_TIPOS = {
@@ -2388,6 +2388,7 @@ const ALERTA_CFG_DEFAULT = {
   autoAtivo: true,
   autoTipos: ['anomalias', 'regressoes'],
   atrasoMinDias: 10,
+  atrasoMaxDias: null, // null = sem limite
 };
 const ALERTA_REGRESSAO_MIN = 1;    // R$ — ignora ruído de arredondamento
 const ALERTA_REGRESSAO_PCT_MES_ABERTO = 0.5; // mês aberto: só quedas acima de 50%
@@ -2454,8 +2455,8 @@ function alertaSemAtualizacao(prevRows, currRows, mesAberto) {
   return out.sort((a, b) => a.dist.localeCompare(b.dist));
 }
 
-// Dias desde a última venda (qualquer mês do arquivo da Batalha Naval) acima do limite; ignora [DESCONTINUADO]
-function alertaAtrasos(bnRows, hojeIso, minDias) {
+// Dias desde a última venda (qualquer mês do arquivo da Batalha Naval) entre minDias e maxDias (inclusive; maxDias null = sem limite); ignora [DESCONTINUADO]
+function alertaAtrasos(bnRows, hojeIso, minDias, maxDias) {
   const last = new Map();
   for (const r of bnRows) {
     const name = r.PARTNER_NAME || '';
@@ -2468,7 +2469,7 @@ function alertaAtrasos(bnRows, hojeIso, minDias) {
   const out = [];
   for (const [dist, d] of last) {
     const dias = Math.round((hoje - Date.parse(d + 'T00:00:00Z')) / 86400000);
-    if (dias > minDias) out.push({ dist, ultimaVenda: d, dias });
+    if (dias >= minDias && (maxDias == null || dias <= maxDias)) out.push({ dist, ultimaVenda: d, dias });
   }
   return out.sort((a, b) => b.dias - a.dias);
 }
@@ -2515,7 +2516,7 @@ async function alertaColetarAtrasos(res, drive, folders, hoje, cfg) {
     const files = await dashListXlsx(drive, folders.batalha);
     if (!files.length) throw new Error('sem arquivo');
     const rows = await dashDownloadParse(files[0].id, { sheetName: 'Dados', normalize: false });
-    res.atrasos = alertaAtrasos(rows, hoje.iso, cfg.atrasoMinDias);
+    res.atrasos = alertaAtrasos(rows, hoje.iso, cfg.atrasoMinDias, cfg.atrasoMaxDias);
   } catch (e) {
     res.erros.push(`Batalha Naval: ${e.message}`);
   }
@@ -2525,6 +2526,7 @@ async function alertaColetarAtrasos(res, drive, folders, hoje, cfg) {
 const _brl = v => (v < 0 ? '-' : '') + 'R$ ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
 const _fmtMes = m => { const [y, mm] = m.split('-'); return `${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][Number(mm) - 1]}/${y}`; };
 const _fmtData = iso => iso.split('-').reverse().join('/');
+const alertaFaixaAtraso = cfg => cfg.atrasoMaxDias != null ? `${cfg.atrasoMinDias} a ${cfg.atrasoMaxDias} dias` : `${cfg.atrasoMinDias}+ dias`;
 const _corta = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
 
 function alertaContar(r) {
@@ -2565,7 +2567,7 @@ function alertaMontarMensagem(resultados, tipos, { titulo, cfg }) {
       ...r.anomalias.newH.map(d => [nome(r.tenant), _corta(d, 40), 'Entrou']),
     ] : []));
 
-  add('atrasos', `Atraso de vendas (> ${cfg.atrasoMinDias} dias)`,
+  add('atrasos', `Atraso de vendas (${alertaFaixaAtraso(cfg)})`,
     ['Indústria', 'Distribuidor', 'Última venda', 'Dias'], [false, false, false, true],
     resultados.flatMap(r => (r.atrasos || []).map(x => ({ ...x, ind: nome(r.tenant) })))
       .sort((a, b) => a.ind.localeCompare(b.ind, 'pt-BR') || b.dias - a.dias)
@@ -2657,6 +2659,7 @@ app.get('/api/alertas/config', requireAuth, requireAdmin, async (req, res) => {
       autoAtivo: cfg.autoAtivo,
       autoTipos: cfg.autoTipos,
       atrasoMinDias: cfg.atrasoMinDias,
+      atrasoMaxDias: cfg.atrasoMaxDias ?? null,
       webhookConfigurado: !!cfg.webhookUrl,
       webhookFinal: cfg.webhookUrl ? '…' + cfg.webhookUrl.slice(-6) : '',
       ultimoAuto: cfg.ultimoAuto || null,
@@ -2666,10 +2669,10 @@ app.get('/api/alertas/config', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/alertas/config — { autoAtivo, autoTipos, atrasoMinDias, webhookUrl? }
+// PUT /api/alertas/config — { autoAtivo, autoTipos, atrasoMinDias, atrasoMaxDias (null = sem limite), webhookUrl? }
 app.put('/api/alertas/config', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { autoAtivo, autoTipos, atrasoMinDias, webhookUrl } = req.body || {};
+    const { autoAtivo, autoTipos, atrasoMinDias, atrasoMaxDias, webhookUrl } = req.body || {};
     const patch = {};
     if (typeof autoAtivo === 'boolean') patch.autoAtivo = autoAtivo;
     if (Array.isArray(autoTipos)) patch.autoTipos = autoTipos.filter(t => ALERTA_TIPOS[t]);
@@ -2678,6 +2681,18 @@ app.put('/api/alertas/config', requireAuth, requireAdmin, async (req, res) => {
       if (!Number.isInteger(n) || n < 1 || n > 90) return res.status(400).json({ error: 'Dias de atraso deve ser entre 1 e 90.' });
       patch.atrasoMinDias = n;
     }
+    if (atrasoMaxDias !== undefined) {
+      if (atrasoMaxDias === null || atrasoMaxDias === '') patch.atrasoMaxDias = null;
+      else {
+        const n = Number(atrasoMaxDias);
+        if (!Number.isInteger(n) || n < 1 || n > 365) return res.status(400).json({ error: 'Atraso máximo deve ser entre 1 e 365 dias (ou vazio para sem limite).' });
+        patch.atrasoMaxDias = n;
+      }
+    }
+    const cfgAtual = await alertaGetCfg();
+    const min = patch.atrasoMinDias ?? cfgAtual.atrasoMinDias;
+    const max = 'atrasoMaxDias' in patch ? patch.atrasoMaxDias : cfgAtual.atrasoMaxDias;
+    if (max != null && max < min) return res.status(400).json({ error: 'Atraso máximo deve ser maior ou igual ao mínimo.' });
     if (typeof webhookUrl === 'string' && webhookUrl.trim()) {
       if (!/^https:\/\/hooks\.slack\.com\/services\//.test(webhookUrl.trim())) {
         return res.status(400).json({ error: 'URL inválida — deve começar com https://hooks.slack.com/services/' });

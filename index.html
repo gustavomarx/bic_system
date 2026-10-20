@@ -8173,7 +8173,7 @@ async function _monitorNovaAba() {
 const ALERTA_DESC = {
   anomalias:      'Distribuidoras que entraram ou saíram do comparativo',
   regressoes:     'Distribuidora/mês cujo valor caiu do arquivo anterior para o atual (meses fechados e em aberto)',
-  atrasos:        'Distribuidoras sem venda há mais de N dias, por indústria',
+  atrasos:        'Distribuidoras sem venda há N dias, por indústria',
   semAtualizacao: 'Distribuidoras cujo valor do mês em aberto ficou igual entre ontem e hoje',
 };
 let _alertaCfg = null;
@@ -8193,7 +8193,7 @@ async function renderAlertas() {
   const tipoChecks = (name, marcados) => Object.entries(c.tipos).map(([k, label]) => `
     <label class="al-check">
       <input type="checkbox" name="${name}" value="${k}" ${marcados.includes(k) ? 'checked' : ''}>
-      <span><strong>${label}</strong><small>${ALERTA_DESC[k].replace('N dias', `${c.atrasoMinDias} dias`)}</small></span>
+      <span><strong>${label}</strong><small>${ALERTA_DESC[k].replace('N dias', c.atrasoMaxDias != null ? `${c.atrasoMinDias} a ${c.atrasoMaxDias} dias` : `${c.atrasoMinDias}+ dias`)}</small></span>
     </label>`).join('');
   const tenantChips = DASH_TENANT_ORDER.map(t => `
     <label class="al-chip"><input type="checkbox" name="al-tenant" value="${t}" checked><span>${TENANT_META[t].label}</span></label>`).join('');
@@ -8235,6 +8235,9 @@ async function renderAlertas() {
       <div class="al-row">
         <label class="al-field">Atraso mínimo (dias)
           <input type="number" id="al-atraso" min="1" max="90" value="${c.atrasoMinDias}">
+        </label>
+        <label class="al-field">Atraso máximo (dias)
+          <input type="number" id="al-atraso-max" min="1" max="365" placeholder="sem limite" value="${c.atrasoMaxDias ?? ''}">
         </label>
       </div>
       <div class="al-last">Último disparo automático: ${ultTxt}</div>
@@ -8291,6 +8294,7 @@ async function _alertaSalvar() {
     autoAtivo: document.getElementById('al-auto-ativo').checked,
     autoTipos: [...document.querySelectorAll('input[name="al-auto-tipo"]:checked')].map(i => i.value),
     atrasoMinDias: Number(document.getElementById('al-atraso').value),
+    atrasoMaxDias: document.getElementById('al-atraso-max').value.trim() === '' ? null : Number(document.getElementById('al-atraso-max').value),
   };
   const wh = document.getElementById('al-webhook').value.trim();
   if (wh) body.webhookUrl = wh;

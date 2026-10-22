@@ -5,7 +5,10 @@
 //  2. Roda scripts/atualizar-todos.js <cliente> (sem disparar alertas no Slack)
 //  3. Confere que há arquivo novo de hoje em cada pasta e manda os antigos para a lixeira do Drive
 //  Se a atualização falhar, devolve os nomes originais e não apaga nada.
+//  Se o arquivo novo vier com menos da metade do tamanho do atual (fonte incompleta), mantém o atual
+//  e descarta o novo — use --forcar quando a queda for real.
 //  Uso: node scripts/refazer-cliente.js <cliente> [cliente ...]   (ex.: peccin marilan)
+//       node scripts/refazer-cliente.js todos
 // ─────────────────────────────────────────
 const path = require('path');
 const { spawn } = require('child_process');
@@ -15,10 +18,16 @@ const BACKEND_DIR = path.join(__dirname, '..');
 require('dotenv').config({ path: path.join(BACKEND_DIR, '.env') });
 
 // Variáveis das pastas: <PREFIXO>_GOOGLE_DRIVE_{COMPARATIVO,BATALHA,HISTORICO}_FOLDER_ID; o BIC não tem prefixo
-const PASTAS_BIC = { comparativo: 'GOOGLE_DRIVE_FOLDER_ID', batalha: 'GOOGLE_DRIVE_BATALHA_FOLDER_ID', historico: 'GOOGLE_DRIVE_HISTORICO_FOLDER_ID' };
+const PASTAS_FIXAS = {
+  bic:   { comparativo: 'GOOGLE_DRIVE_FOLDER_ID', batalha: 'GOOGLE_DRIVE_BATALHA_FOLDER_ID', historico: 'GOOGLE_DRIVE_HISTORICO_FOLDER_ID' },
+  geral: { usuarios: 'GOOGLE_DRIVE_USUARIOS_FOLDER_ID' },
+};
+const LIMITE_ENCOLHIMENTO = 0.5; // arquivo novo com menos da metade do tamanho do atual → mantém o atual
+let forcar = false;
+const TODOS = ['bic', 'mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'pepsico', 'peccin', 'geral'];
 
 function pastasDoCliente(cliente) {
-  const nomes = cliente === 'bic' ? PASTAS_BIC : {
+  const nomes = PASTAS_FIXAS[cliente] || {
     comparativo: `${cliente.toUpperCase()}_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID`,
     batalha:     `${cliente.toUpperCase()}_GOOGLE_DRIVE_BATALHA_FOLDER_ID`,
     historico:   `${cliente.toUpperCase()}_GOOGLE_DRIVE_HISTORICO_FOLDER_ID`,
@@ -53,7 +62,7 @@ function getDrive() {
 async function arquivosDeHoje(drive, folderId, hoje) {
   const r = await drive.files.list({
     q: `'${folderId}' in parents and trashed = false and (name contains '${hoje.br}' or name contains '${hoje.compacto}')`,
-    fields: 'files(id, name, createdTime)',
+    fields: 'files(id, name, createdTime, size)',
     pageSize: 100, supportsAllDrives: true, includeItemsFromAllDrives: true,
   });
   return r.data.files || [];
@@ -98,9 +107,31 @@ async function refazer(drive, cliente, hoje) {
 
   // 3. Garante arquivo novo em cada pasta antes de apagar os antigos
   const idsAntigos = new Set(atuais.map(f => f.id));
+  const novosPorTipo = {};
   for (const [tipo, folderId] of Object.entries(pastas)) {
     const novos = (await arquivosDeHoje(drive, folderId, hoje)).filter(f => !idsAntigos.has(f.id) && !f.name.includes('[OLD]'));
     if (!novos.length) throw new Error(`atualização terminou mas não há arquivo novo de hoje em "${tipo}" — antigos mantidos como [OLD], nada foi apagado`);
+    novosPorTipo[tipo] = novos;
+  }
+
+  // 3b. Trava de volume: arquivo novo bem menor que o atual = fonte voltou incompleta.
+  //     Mantém o atual, descarta o novo. --forcar ignora a trava.
+  if (!forcar) {
+    const encolheu = [];
+    for (const f of atuais.filter(a => !a.name.includes('[OLD]'))) { // compara só com o arquivo vigente
+      const novo = novosPorTipo[f.tipo][0];
+      if (Number(f.size) > 0 && Number(novo.size) < Number(f.size) * LIMITE_ENCOLHIMENTO) {
+        encolheu.push(`${f.tipo}: ${Math.round(f.size / 1024)} KB → ${Math.round(novo.size / 1024)} KB`);
+      }
+    }
+    if (encolheu.length) {
+      for (const novos of Object.values(novosPorTipo)) {
+        for (const n of novos) await drive.files.update({ fileId: n.id, requestBody: { trashed: true, name: comOld(n.name) }, supportsAllDrives: true });
+      }
+      for (const f of atuais) await renomear(drive, f.id, f.name);
+      throw new Error(`carga nova muito menor que a atual (${encolheu.join('; ')}) — mantida a atual, a nova foi para a lixeira. ` +
+        `Se a queda for real, rode de novo com --forcar.`);
+    }
   }
 
   // 4. Antigos → lixeira (recuperável pelo Drive)
@@ -119,9 +150,12 @@ async function refazer(drive, cliente, hoje) {
 }
 
 (async () => {
-  const clientes = process.argv.slice(2).map(s => s.toLowerCase());
+  let clientes = process.argv.slice(2).map(s => s.toLowerCase());
+  forcar = clientes.includes('--forcar');
+  clientes = clientes.filter(c => c !== '--forcar');
+  if (clientes.includes('todos')) clientes = TODOS;
   if (!clientes.length) {
-    console.log('Uso: node scripts/refazer-cliente.js <cliente> [cliente ...]   (ex.: peccin marilan)');
+    console.log('Uso: node scripts/refazer-cliente.js <cliente> [cliente ...] | todos   (ex.: peccin marilan)');
     process.exit(1);
   }
   const drive = getDrive();

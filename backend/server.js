@@ -2765,6 +2765,122 @@ app.post('/api/alertas/auto', async (req, res) => {
   }
 });
 
+// ─── Armazenamento do Drive (Visão Geral, admin) ─────────────────────────────
+// Inventário por ambiente/pasta e exclusão manual. Nada é apagado automaticamente.
+// Pastas: todas as variáveis <PREFIXO>_GOOGLE_DRIVE_<TIPO>_FOLDER_ID do .env (sem prefixo = BIC).
+
+function armPastas() {
+  const out = [];
+  for (const [k, v] of Object.entries(process.env)) {
+    const m = k.match(/^(?:([A-Z0-9]+)_)?GOOGLE_DRIVE_(?:([A-Z_]+)_)?FOLDER_ID$/);
+    if (!m || !v) continue;
+    out.push({ ambiente: (m[1] || 'BIC').toLowerCase(), tipo: (m[2] || 'COMPARATIVO').toLowerCase(), id: v });
+  }
+  return out;
+}
+
+async function armListar(drive, q) {
+  const files = [];
+  let pageToken;
+  do {
+    const r = await drive.files.list({
+      q, pageToken, pageSize: 1000,
+      fields: 'nextPageToken, files(id, name, size, createdTime, parents)',
+      supportsAllDrives: true, includeItemsFromAllDrives: true, corpora: 'allDrives',
+    });
+    files.push(...(r.data.files || []));
+    pageToken = r.data.nextPageToken;
+  } while (pageToken);
+  return files;
+}
+
+// Itens na lixeira não aparecem na busca por pasta — busca geral e filtra pelos pais
+async function armLixeira(drive, folderIds) {
+  const set = new Set(folderIds);
+  return (await armListar(drive, 'trashed = true')).filter(f => (f.parents || []).some(p => set.has(p)));
+}
+
+const armArquivo = f => ({ id: f.id, name: f.name, size: Number(f.size || 0), createdTime: f.createdTime, old: f.name.includes('[OLD]') });
+
+// GET /api/armazenamento — resumo por ambiente (o front pede um ambiente por vez: ?ambiente=)
+app.get('/api/armazenamento', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const pastas = armPastas();
+    const ambientes = [...new Set(pastas.map(p => p.ambiente))].sort();
+    const amb = String(req.query.ambiente || '');
+    if (!amb) return res.json({ ambientes: ambientes.map(a => ({ id: a, label: TENANT_LABELS[a] || a })) });
+    const doAmb = pastas.filter(p => p.ambiente === amb);
+    if (!doAmb.length) return res.status(404).json({ error: 'Ambiente não encontrado.' });
+
+    const drive = getDriveClient(true);
+    const lixo  = await armLixeira(drive, doAmb.map(p => p.id));
+    const resumo = await Promise.all(doAmb.map(async p => {
+      const ativos = await armListar(drive, `'${p.id}' in parents and trashed = false`);
+      const lix = lixo.filter(f => f.parents.includes(p.id));
+      const soma = a => a.reduce((s, f) => s + Number(f.size || 0), 0);
+      const datas = ativos.map(f => f.createdTime).sort();
+      return {
+        tipo: p.tipo,
+        arquivos: ativos.length, bytes: soma(ativos),
+        old: ativos.filter(f => f.name.includes('[OLD]')).length, oldBytes: soma(ativos.filter(f => f.name.includes('[OLD]'))),
+        lixeira: lix.length, lixeiraBytes: soma(lix),
+        maisAntigo: datas[0] || null, maisNovo: datas.at(-1) || null,
+      };
+    }));
+    res.json({ ambiente: amb, label: TENANT_LABELS[amb] || amb, pastas: resumo.sort((a, b) => b.bytes - a.bytes) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/armazenamento/arquivos?ambiente=&tipo=&lixeira=1 — arquivos de uma pasta (mais antigos primeiro)
+app.get('/api/armazenamento/arquivos', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const p = armPastas().find(x => x.ambiente === req.query.ambiente && x.tipo === req.query.tipo);
+    if (!p) return res.status(404).json({ error: 'Pasta não encontrada.' });
+    const drive = getDriveClient(true);
+    const files = req.query.lixeira === '1'
+      ? await armLixeira(drive, [p.id])
+      : await armListar(drive, `'${p.id}' in parents and trashed = false`);
+    res.json({ arquivos: files.map(armArquivo).sort((a, b) => a.createdTime.localeCompare(b.createdTime)) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/armazenamento/excluir — { ids[], definitivo } · só arquivos das pastas configuradas
+app.post('/api/armazenamento/excluir', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? [...new Set(req.body.ids.map(String))] : [];
+    const definitivo = req.body?.definitivo === true;
+    if (!ids.length) return res.status(400).json({ error: 'Nenhum arquivo selecionado.' });
+    if (ids.length > 2000) return res.status(400).json({ error: 'Máximo de 2000 arquivos por vez.' });
+
+    const permitidas = new Set(armPastas().map(p => p.id));
+    const drive = getDriveClient(false);
+    const ok = [], erros = [];
+    const fila = [...ids];
+    const worker = async () => {
+      for (let id = fila.shift(); id; id = fila.shift()) {
+        try {
+          const f = (await drive.files.get({ fileId: id, fields: 'id, name, size, parents', supportsAllDrives: true })).data;
+          if (!(f.parents || []).some(p => permitidas.has(p))) throw new Error('fora das pastas do sistema');
+          if (definitivo) await drive.files.delete({ fileId: id, supportsAllDrives: true });
+          else await drive.files.update({ fileId: id, requestBody: { trashed: true }, supportsAllDrives: true });
+          ok.push({ id, name: f.name, size: Number(f.size || 0) });
+        } catch (e) {
+          erros.push({ id, erro: e.message });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 8 }, worker));
+    console.log(`[Armazenamento] ${req.user?.email || '?'} ${definitivo ? 'excluiu definitivamente' : 'mandou para a lixeira'} ${ok.length} arquivo(s); ${erros.length} erro(s).`);
+    res.json({ excluidos: ok.length, bytes: ok.reduce((s, f) => s + f.size, 0), erros });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // SPA fallback — qualquer rota desconhecida serve o index.html (requer auth)
 app.get('*', (req, res) => {
   const token = req.cookies?.token;

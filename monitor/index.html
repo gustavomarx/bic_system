@@ -5439,7 +5439,7 @@ function renderResults() {
   document.getElementById('cardAnomaliesSub').textContent =
     r.anomalyCount > 0 ? 'Holdings anômalas detectadas' : 'Nenhuma anomalia';
 
-  var pct = r.totalPrev !== 0 ? ((r.totalDiff / r.totalPrev) * 100).toFixed(2).replace('.', ',') : '—';
+  var pct = r.totalPrev !== 0 ? ((r.totalDiff / Math.abs(r.totalPrev)) * 100).toFixed(2).replace('.', ',') : '—';
   document.getElementById('cardDiffSub').textContent = pct + '% variação total';
 
   // ── Month table
@@ -5884,7 +5884,7 @@ function generatePDFDoc() {
   // ── SEÇÃO 1 — VISÃO GERAL
   sectionTitle('Seção 1 — Visão Geral');
 
-  var varPct = r.totalPrev !== 0 ? (r.totalDiff / r.totalPrev) * 100 : (r.totalCurr !== 0 ? 100 : 0);
+  var varPct = r.totalPrev !== 0 ? (r.totalDiff / Math.abs(r.totalPrev)) * 100 : (r.totalCurr !== 0 ? 100 : 0);
   var kpis = [
     { label: 'Total Anterior',       value: fmtBRL(r.totalPrev),    color: C.text },
     { label: 'Total Atual',          value: fmtBRL(r.totalCurr),    color: r.totalDiff >= 0 ? C.green : C.red },
@@ -6099,7 +6099,7 @@ function buildReportData() {
   var r = state.result;
 
   // Variação %
-  var varPct = r.totalPrev !== 0 ? (r.totalDiff / r.totalPrev) * 100 : (r.totalCurr !== 0 ? 100 : 0);
+  var varPct = r.totalPrev !== 0 ? (r.totalDiff / Math.abs(r.totalPrev)) * 100 : (r.totalCurr !== 0 ? 100 : 0);
 
   // Meses fechados alterados
   var closedAltered = r.monthData.filter(function(m) { return m.status === 'closed-changed'; });

@@ -280,6 +280,35 @@
     .al-btn.primary { background: var(--bic-orange); border-color: var(--bic-orange); color: #fff; }
     .al-btn.primary:hover { filter: brightness(.95); }
     .al-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .al-btn.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
+    .arm-wrap { max-width: 1100px; }
+    .arm-table-wrap, .arm-list { overflow-x: auto; }
+    .arm-list { max-height: 460px; overflow-y: auto; border: 1px solid var(--bic-border); border-radius: 8px; }
+    .arm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .arm-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #9ca3af; padding: 8px 10px; border-bottom: 1px solid var(--bic-border); background: #fff; position: sticky; top: 0; }
+    .arm-table td { padding: 8px 10px; border-bottom: 1px solid #f1f3f7; white-space: nowrap; }
+    .arm-table .r { text-align: right; }
+    .arm-table tfoot td { font-weight: 700; border-top: 2px solid var(--bic-border); }
+    .arm-amb { cursor: pointer; }
+    .arm-amb:hover, .arm-sub tr:hover { background: var(--bic-gray); }
+    .arm-caret { display: inline-block; width: 14px; color: var(--text-muted); }
+    .arm-load { color: var(--text-muted); font-size: 12px; }
+    .arm-det > td { padding: 0 0 6px 24px; background: #fafbfc; }
+    .arm-sub { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .arm-sub td { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f3f7; }
+    .arm-sub tr.sel, .arm-table tr.sel { background: #fff4ec; }
+    .arm-files-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .arm-tabs, .arm-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .arm-tools { margin-bottom: 10px; }
+    .arm-antes { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text-muted); }
+    .arm-antes input { border: 1.5px solid #dde3ed; border-radius: 8px; padding: 6px 8px; font-size: 13px; }
+    .arm-tag { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+    .arm-tag.vig { background: #f0fdf4; color: #166534; }
+    .arm-tag.old { background: #fef3c7; color: #92400e; }
+    .arm-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; }
+    .arm-bar .al-btn { margin-left: auto; }
+    .arm-def { font-size: 12.5px; color: var(--text-muted); display: flex; gap: 6px; align-items: center; }
+    .arm-table td.err { color: #991b1b; }
     .al-adv { margin-top: 14px; border-top: 1px solid #f3f4f6; padding-top: 12px; }
     .al-adv summary { font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none; }
     .al-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 12px; }
@@ -2318,6 +2347,10 @@
       <span class="nav-icon">🖥️</span>
       <span class="nav-label">BIC Monitor</span>
     </div>
+    <div class="nav-item" data-module="armazenamento" id="armazenamento-nav-item" style="display:none">
+      <span class="nav-icon">🗄️</span>
+      <span class="nav-label">Armazenamento Drive</span>
+    </div>
   </nav>
 
   <div class="sidebar-footer">
@@ -2637,7 +2670,7 @@ function compare(prevRows, currRows) {
       const vPrev = p ? p.total : 0;
       const vCurr = c ? c.total : 0;
       const varAbs = vCurr - vPrev;
-      const varPct = vPrev !== 0 ? (varAbs / vPrev) * 100 : null;
+      const varPct = vPrev !== 0 ? (varAbs / Math.abs(vPrev)) * 100 : null;
 
       let hStatus;
       if (!p && c)       { hStatus = 'new';  anomalies.newH.push(h); }
@@ -2676,7 +2709,7 @@ function compare(prevRows, currRows) {
     holdingRows.sort((a, b) => Math.abs(b.varAbs) - Math.abs(a.varAbs));
 
     const mVarAbs = mTotalCurr - mTotalPrev;
-    const mVarPct = mTotalPrev !== 0 ? (mVarAbs / mTotalPrev) * 100 : null;
+    const mVarPct = mTotalPrev !== 0 ? (mVarAbs / Math.abs(mTotalPrev)) * 100 : null;
     const mStatus = mVarAbs > 0 ? 'up' : mVarAbs < 0 ? 'down' : 'equal';
 
     totalPrev += mTotalPrev;
@@ -2702,7 +2735,7 @@ function compare(prevRows, currRows) {
   anomalies.newH  = [...new Set(anomalies.newH)];
 
   const totalVarAbs = totalCurr - totalPrev;
-  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / totalPrev) * 100 : null;
+  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / Math.abs(totalPrev)) * 100 : null;
   const holdingsDown = [...new Set(
     monthRows.flatMap(m => m.holdings.filter(h => h.status === 'down').map(h => h.holding))
   )].length;
@@ -3268,7 +3301,7 @@ function applyHoldingFilter(r, query) {
     const mPrev = holdings.reduce((s, h) => s + h.prev, 0);
     const mCurr = holdings.reduce((s, h) => s + h.curr, 0);
     const varAbs = mCurr - mPrev;
-    const varPct = mPrev !== 0 ? (varAbs / mPrev) * 100 : null;
+    const varPct = mPrev !== 0 ? (varAbs / Math.abs(mPrev)) * 100 : null;
     const status = varAbs > 0 ? 'up' : varAbs < 0 ? 'down' : 'equal';
     totalPrev += mPrev;
     totalCurr += mCurr;
@@ -3276,7 +3309,7 @@ function applyHoldingFilter(r, query) {
   }
 
   const totalVarAbs = totalCurr - totalPrev;
-  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / totalPrev) * 100 : null;
+  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / Math.abs(totalPrev)) * 100 : null;
   const holdingsDown = [...new Set(
     filteredMonths.flatMap(m => m.holdings.filter(h => h.status === 'down').map(h => h.holding))
   )].length;
@@ -3306,7 +3339,7 @@ function applyCustomerFilter(r, query) {
       const hPrev = customers.reduce((s, c) => s + c.prev, 0);
       const hCurr = customers.reduce((s, c) => s + c.curr, 0);
       const hVarAbs = hCurr - hPrev;
-      const hVarPct = hPrev !== 0 ? (hVarAbs / hPrev) * 100 : null;
+      const hVarPct = hPrev !== 0 ? (hVarAbs / Math.abs(hPrev)) * 100 : null;
       const hStatus = hVarAbs > 0 ? 'up' : hVarAbs < 0 ? 'down' : 'equal';
       holdings.push({ ...hRow, customers, prev: hPrev, curr: hCurr, varAbs: hVarAbs, varPct: hVarPct, status: hStatus });
     }
@@ -3314,7 +3347,7 @@ function applyCustomerFilter(r, query) {
     const mPrev = holdings.reduce((s, h) => s + h.prev, 0);
     const mCurr = holdings.reduce((s, h) => s + h.curr, 0);
     const varAbs = mCurr - mPrev;
-    const varPct = mPrev !== 0 ? (varAbs / mPrev) * 100 : null;
+    const varPct = mPrev !== 0 ? (varAbs / Math.abs(mPrev)) * 100 : null;
     const status = varAbs > 0 ? 'up' : varAbs < 0 ? 'down' : 'equal';
     totalPrev += mPrev;
     totalCurr += mCurr;
@@ -3322,7 +3355,7 @@ function applyCustomerFilter(r, query) {
   }
 
   const totalVarAbs = totalCurr - totalPrev;
-  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / totalPrev) * 100 : null;
+  const totalVarPct = totalPrev !== 0 ? (totalVarAbs / Math.abs(totalPrev)) * 100 : null;
   const holdingsDown = [...new Set(
     filteredMonths.flatMap(m => m.holdings.filter(h => h.status === 'down').map(h => h.holding))
   )].length;
@@ -3785,6 +3818,9 @@ function navigateTo(mod) {
   } else if (mod === 'monitor') {
     document.getElementById('topbar-title').textContent = 'BIC Monitor';
     renderMonitor();
+  } else if (mod === 'armazenamento') {
+    document.getElementById('topbar-title').textContent = 'Armazenamento Drive';
+    renderArmazenamento();
   } else {
     document.getElementById('topbar-title').textContent = item.querySelector('.nav-label')?.textContent.trim() || mod;
     document.getElementById('content-area').innerHTML = `
@@ -8111,10 +8147,11 @@ function applyTenantNav() {
   document.getElementById('admin-nav-item').style.display    = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('alertas-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('monitor-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
+  document.getElementById('armazenamento-nav-item').style.display = (isDash && isAdmin) ? '' : 'none';
   const tenantMods = isDash ? ['usuarios', 'usuarios-email'] : (TENANT_CONFIG[currentTenant]?.modules || []);
   document.querySelectorAll('.nav-item[data-module]').forEach(item => {
     const mod = item.dataset.module;
-    if (mod === 'admin-users' || mod === 'dashboard' || mod === 'alertas' || mod === 'monitor') return;
+    if (mod === 'admin-users' || mod === 'dashboard' || mod === 'alertas' || mod === 'monitor' || mod === 'armazenamento') return;
     // Verificar se módulo existe no tenant atual
     const inTenant = tenantMods.includes(mod);
     // Verificar permissão do usuário (null = acesso total)
@@ -8308,6 +8345,225 @@ async function _alertaSalvar() {
     m.className = 'ok'; m.textContent = '✓ Configuração salva';
   } catch (e) {
     msg.className = 'err'; msg.textContent = 'Erro: ' + e.message;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  ARMAZENAMENTO DRIVE (Visão Geral, admin) — inventário e exclusão manual
+// ═══════════════════════════════════════════════════════════════════════
+const _arm = { ambientes: [], resumo: {}, aberto: null, pasta: null, arquivos: [], lixeira: false, sel: new Set() };
+const _armMB = b => b >= 1048576 || b === 0
+  ? (b / 1048576).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' MB'
+  : Math.max(1, Math.round(b / 1024)).toLocaleString('pt-BR') + ' KB';
+const _armData = iso => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
+const _armTipo = t => ({ comparativo: 'Comparativo', batalha: 'Batalha Naval', historico: 'Histórico', inativ: 'Inatividade',
+  depara: 'De-Para', depara_upload: 'De-Para (upload)', usuarios: 'Usuários', dist: 'Distribuidores', log: 'Log' }[t] || t);
+
+async function renderArmazenamento() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `<div class="dist-loading-box"><div class="spinner" style="width:28px;height:28px;border-width:3px"></div></div>`;
+  try {
+    const r = await fetch('/api/armazenamento');
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    _arm.ambientes = j.ambientes;
+  } catch (e) {
+    area.innerHTML = `<div class="error-banner"><strong>Erro ao carregar:</strong> ${escHtml(e.message)}</div>`;
+    return;
+  }
+  _arm.resumo = {}; _arm.aberto = null; _arm.pasta = null;
+  area.innerHTML = `
+  <div class="al-wrap arm-wrap">
+    <section class="al-card">
+      <h2>Arquivos no Drive por ambiente</h2>
+      <p class="al-sub">Clique num ambiente para ver as pastas e numa pasta para escolher o que excluir. Nada é apagado automaticamente.
+        Itens na lixeira continuam ocupando espaço até serem excluídos definitivamente.</p>
+      <div class="arm-table-wrap"><table class="arm-table">
+        <thead><tr><th>Ambiente</th><th class="r">Arquivos</th><th class="r">Tamanho</th><th class="r">[OLD]</th><th class="r">Lixeira</th><th>Mais antigo</th></tr></thead>
+        <tbody id="arm-body">${_arm.ambientes.map(a => `
+          <tr class="arm-amb" id="arm-amb-${a.id}" onclick="_armToggle('${a.id}')"><td><span class="arm-caret">▸</span> ${escHtml(a.label)}</td>
+            <td class="r" colspan="5"><span class="arm-load">carregando…</span></td></tr>
+          <tr class="arm-det" id="arm-det-${a.id}" style="display:none"><td colspan="6"></td></tr>`).join('')}
+        </tbody>
+        <tfoot><tr id="arm-total"><td>Total</td><td class="r" colspan="5">—</td></tr></tfoot>
+      </table></div>
+    </section>
+    <section class="al-card" id="arm-files" style="display:none"></section>
+  </div>`;
+
+  // Carrega os ambientes em paralelo (4 por vez)
+  const fila = _arm.ambientes.map(a => a.id);
+  const worker = async () => {
+    for (let id = fila.shift(); id; id = fila.shift()) {
+      try {
+        const r = await fetch('/api/armazenamento?ambiente=' + encodeURIComponent(id));
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || r.status);
+        _arm.resumo[id] = j;
+      } catch (e) {
+        _arm.resumo[id] = { erro: e.message };
+      }
+      _armLinha(id);
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, worker));
+  _armTotal();
+}
+
+function _armSoma(pastas) {
+  return pastas.reduce((t, p) => ({
+    arquivos: t.arquivos + p.arquivos, bytes: t.bytes + p.bytes, old: t.old + p.old, oldBytes: t.oldBytes + p.oldBytes,
+    lixeira: t.lixeira + p.lixeira, lixeiraBytes: t.lixeiraBytes + p.lixeiraBytes,
+    maisAntigo: !t.maisAntigo || (p.maisAntigo && p.maisAntigo < t.maisAntigo) ? p.maisAntigo : t.maisAntigo,
+  }), { arquivos: 0, bytes: 0, old: 0, oldBytes: 0, lixeira: 0, lixeiraBytes: 0, maisAntigo: null });
+}
+
+const _armCels = s => `<td class="r">${s.arquivos.toLocaleString('pt-BR')}</td><td class="r"><strong>${_armMB(s.bytes)}</strong></td>
+  <td class="r">${s.old ? `${s.old} · ${_armMB(s.oldBytes)}` : '—'}</td><td class="r">${s.lixeira ? `${s.lixeira} · ${_armMB(s.lixeiraBytes)}` : '—'}</td>
+  <td>${_armData(s.maisAntigo)}</td>`;
+
+function _armLinha(id) {
+  const tr = document.getElementById('arm-amb-' + id);
+  if (!tr) return;
+  const a = _arm.ambientes.find(x => x.id === id);
+  const r = _arm.resumo[id];
+  const caret = `<td><span class="arm-caret">${_arm.aberto === id ? '▾' : '▸'}</span> ${escHtml(a.label)}</td>`;
+  tr.innerHTML = r.erro ? `${caret}<td class="r err" colspan="5">Erro: ${escHtml(r.erro)}</td>` : caret + _armCels(_armSoma(r.pastas));
+  const det = document.getElementById('arm-det-' + id);
+  if (_arm.aberto === id && r.pastas) {
+    det.style.display = '';
+    det.firstElementChild.innerHTML = `<table class="arm-sub">${r.pastas.map(p => `
+      <tr class="${_arm.pasta?.ambiente === id && _arm.pasta?.tipo === p.tipo ? 'sel' : ''}" onclick="_armAbrirPasta('${id}','${p.tipo}')">
+        <td>${_armTipo(p.tipo)}</td>${_armCels(p)}</tr>`).join('')}</table>`;
+  } else det.style.display = 'none';
+}
+
+function _armTotal() {
+  const tudo = Object.values(_arm.resumo).filter(r => r.pastas).flatMap(r => r.pastas);
+  document.getElementById('arm-total').innerHTML = `<td>Total</td>${_armCels(_armSoma(tudo))}`;
+}
+
+function _armToggle(id) {
+  if (!_arm.resumo[id]?.pastas) return;
+  const ant = _arm.aberto;
+  _arm.aberto = ant === id ? null : id;
+  if (ant) _armLinha(ant);
+  if (_arm.aberto) _armLinha(id);
+}
+
+async function _armAbrirPasta(ambiente, tipo, lixeira = false) {
+  _arm.pasta = { ambiente, tipo }; _arm.lixeira = lixeira; _arm.sel = new Set(); _arm.arquivos = [];
+  _armLinha(ambiente);
+  const box = document.getElementById('arm-files');
+  box.style.display = '';
+  box.innerHTML = `<div class="al-msg">⏳ Carregando arquivos…</div>`;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const r = await fetch(`/api/armazenamento/arquivos?ambiente=${encodeURIComponent(ambiente)}&tipo=${encodeURIComponent(tipo)}${lixeira ? '&lixeira=1' : ''}`);
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    _arm.arquivos = j.arquivos;
+  } catch (e) {
+    box.innerHTML = `<div class="al-msg err">Erro: ${escHtml(e.message)}</div>`;
+    return;
+  }
+  // Arquivo vigente (o mais novo sem [OLD]) — é o que o sistema lê; não pode ser excluído por aqui
+  if (!lixeira) {
+    const vig = [..._arm.arquivos].reverse().find(f => !f.old);
+    if (vig) vig.vigente = true;
+  }
+  _armRenderArquivos();
+}
+
+function _armRenderArquivos() {
+  const box = document.getElementById('arm-files');
+  const { ambiente, tipo } = _arm.pasta;
+  const label = _arm.ambientes.find(a => a.id === ambiente)?.label || ambiente;
+  const lista = _arm.arquivos;
+  const selBytes = lista.filter(f => _arm.sel.has(f.id)).reduce((s, f) => s + f.size, 0);
+  box.innerHTML = `
+    <div class="arm-files-head">
+      <h2>${escHtml(label)} · ${_armTipo(tipo)} ${_arm.lixeira ? '· Lixeira' : ''}</h2>
+      <div class="arm-tabs">
+        <button class="al-btn ${_arm.lixeira ? '' : 'primary'}" onclick="_armAbrirPasta('${ambiente}','${tipo}',false)">Arquivos</button>
+        <button class="al-btn ${_arm.lixeira ? 'primary' : ''}" onclick="_armAbrirPasta('${ambiente}','${tipo}',true)">Lixeira</button>
+      </div>
+    </div>
+    ${!lista.length ? `<div class="al-msg">Nenhum arquivo${_arm.lixeira ? ' na lixeira' : ''}.</div>` : `
+    <div class="arm-tools">
+      ${_arm.lixeira ? `<button class="al-btn" onclick="_armMarcar('todos')">Marcar todos</button>` : `
+      <button class="al-btn" onclick="_armMarcar('old')">Marcar [OLD]</button>
+      <span class="arm-antes">Marcar anteriores a <input type="date" id="arm-antes"> <button class="al-btn" onclick="_armMarcar('antes')">Marcar</button></span>`}
+      <button class="al-btn" onclick="_armMarcar('nenhum')">Limpar seleção</button>
+    </div>
+    <div class="arm-list">
+      <table class="arm-table">
+        <thead><tr><th style="width:28px"></th><th>Arquivo</th><th>Criado em</th><th class="r">Tamanho</th></tr></thead>
+        <tbody>${lista.map(f => `
+          <tr class="${_arm.sel.has(f.id) ? 'sel' : ''}">
+            <td><input type="checkbox" ${f.vigente ? 'disabled title="Arquivo vigente — o sistema usa este"' : ''} ${_arm.sel.has(f.id) ? 'checked' : ''} onchange="_armSel('${f.id}', this.checked)"></td>
+            <td>${escHtml(f.name)} ${f.vigente ? '<span class="arm-tag vig">vigente</span>' : ''}${f.old ? '<span class="arm-tag old">OLD</span>' : ''}</td>
+            <td>${new Date(f.createdTime).toLocaleString('pt-BR')}</td><td class="r">${_armMB(f.size)}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="arm-bar">
+      <span><strong>${_arm.sel.size}</strong> selecionado(s) · ${_armMB(selBytes)}</span>
+      ${_arm.lixeira ? '<span class="arm-def">Itens da lixeira são excluídos definitivamente.</span>'
+        : '<label class="arm-def"><input type="checkbox" id="arm-definitivo"> Excluir definitivamente (não passa pela lixeira)</label>'}
+      <button class="al-btn danger" ${_arm.sel.size ? '' : 'disabled'} onclick="_armExcluir()">🗑 Excluir selecionados</button>
+    </div>
+    <div id="arm-result"></div>`}`;
+}
+
+function _armSel(id, on) {
+  on ? _arm.sel.add(id) : _arm.sel.delete(id);
+  _armRenderArquivos();
+}
+
+function _armMarcar(modo) {
+  const ok = f => !f.vigente;
+  if (modo === 'nenhum') _arm.sel = new Set();
+  else if (modo === 'todos') _arm.arquivos.filter(ok).forEach(f => _arm.sel.add(f.id));
+  else if (modo === 'old') _arm.arquivos.filter(f => ok(f) && f.old).forEach(f => _arm.sel.add(f.id));
+  else if (modo === 'antes') {
+    const d = document.getElementById('arm-antes').value;
+    if (!d) return alert('Escolha a data.');
+    _arm.arquivos.filter(f => ok(f) && f.createdTime.slice(0, 10) < d).forEach(f => _arm.sel.add(f.id));
+  }
+  _armRenderArquivos();
+}
+
+async function _armExcluir() {
+  const ids = [..._arm.sel];
+  if (!ids.length) return;
+  const definitivo = _arm.lixeira || !!document.getElementById('arm-definitivo')?.checked;
+  const bytes = _arm.arquivos.filter(f => _arm.sel.has(f.id)).reduce((s, f) => s + f.size, 0);
+  const { ambiente, tipo } = _arm.pasta;
+  const label = _arm.ambientes.find(a => a.id === ambiente)?.label || ambiente;
+  const msg = `${definitivo ? 'EXCLUIR DEFINITIVAMENTE' : 'Mandar para a lixeira'} ${ids.length} arquivo(s) (${_armMB(bytes)}) de ${label} · ${_armTipo(tipo)}?` +
+    (definitivo ? '\n\nNão dá para recuperar depois.' : '\n\nDá para recuperar pela lixeira do Drive.');
+  if (!confirm(msg)) return;
+  if (definitivo && prompt(`Para confirmar, digite EXCLUIR`) !== 'EXCLUIR') return;
+
+  document.querySelectorAll('#arm-files .al-btn').forEach(b => b.disabled = true);
+  document.getElementById('arm-result').innerHTML = `<div class="al-msg">⏳ Excluindo ${ids.length} arquivo(s)…</div>`;
+  try {
+    const r = await fetch('/api/armazenamento/excluir', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, definitivo }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    await _armAbrirPasta(ambiente, tipo, _arm.lixeira);
+    document.getElementById('arm-result').innerHTML = `<div class="al-msg ${j.erros.length ? 'err' : 'ok'}">
+      ✓ ${j.excluidos} arquivo(s) ${definitivo ? 'excluído(s) definitivamente' : 'na lixeira'} · ${_armMB(j.bytes)} liberados
+      ${j.erros.length ? `<br>⚠️ ${j.erros.length} erro(s): ${escHtml(j.erros.slice(0, 3).map(e => e.erro).join('; '))}` : ''}</div>`;
+    // Atualiza o resumo do ambiente
+    const rr = await fetch('/api/armazenamento?ambiente=' + encodeURIComponent(ambiente));
+    if (rr.ok) { _arm.resumo[ambiente] = await rr.json(); _armLinha(ambiente); _armTotal(); }
+  } catch (e) {
+    document.getElementById('arm-result').innerHTML = `<div class="al-msg err">Erro: ${escHtml(e.message)}</div>`;
+    document.querySelectorAll('#arm-files .al-btn').forEach(b => b.disabled = false);
   }
 }
 

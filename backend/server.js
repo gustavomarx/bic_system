@@ -2601,9 +2601,11 @@ function alertaPaginar({ cab, secoes, avisos, mostrarTitulo }) {
       partes.push((primeiro ? titulo : '') + '```\n' + [h1, h2, ...bloco].join('\n') + '\n```');
       primeiro = false; bloco = [];
     };
+    // Cada tabela vira um bloco do Slack (máx. 3000 caracteres): quebra em pedaços menores
+    let tam = h1.length + h2.length + 10;
     for (const row of rows) {
-      if ((titulo.length + h1.length * 2 + (bloco.length + 1) * (row.length + 1) + 10) > LIMITE - cab.length) fecha();
-      bloco.push(row);
+      if (bloco.length && tam + row.length + 1 > ALERTA_BLOCO_MAX) { fecha(); tam = h1.length + h2.length + 10; }
+      bloco.push(row); tam += row.length + 1;
     }
     if (sec.rodape) bloco.push(sec.rodape);
     if (bloco.length) fecha();
@@ -2614,20 +2616,41 @@ function alertaPaginar({ cab, secoes, avisos, mostrarTitulo }) {
   const msgs = [];
   let atual = cab;
   for (const p of partes) {
-    if ((atual + '\n\n' + p).length > LIMITE && atual !== cab) { msgs.push(atual); atual = p; }
+    const junto = atual + '\n\n' + p;
+    if ((junto.length > LIMITE || alertaBlocos(junto).length > 45) && atual !== cab) { msgs.push(atual); atual = p; }
     else atual += '\n\n' + p;
   }
   msgs.push(atual);
   return msgs;
 }
 
+const ALERTA_BLOCO_MAX = 2900;
+
+// Converte a mensagem em blocos do Slack: cada trecho de texto e cada tabela (```) num bloco próprio.
+// Vários ``` no mesmo "text" confundem o Slack (título vira código e tabela vira texto).
+function alertaBlocos(text) {
+  const blocos = [];
+  const sec = t => blocos.push({ type: 'section', text: { type: 'mrkdwn', text: t } });
+  text.split('```').forEach((seg, i) => {
+    if (i % 2) { sec('```' + seg.replace(/^\n/, '').replace(/\n$/, '') + '```'); return; }
+    let buf = '';
+    for (const linha of seg.trim().split('\n')) {
+      if (buf && buf.length + linha.length + 1 > ALERTA_BLOCO_MAX) { sec(buf); buf = ''; }
+      buf += (buf ? '\n' : '') + linha.slice(0, ALERTA_BLOCO_MAX);
+    }
+    if (buf.trim()) sec(buf);
+  });
+  return blocos;
+}
+
 async function alertaEnviarSlack(webhookUrl, msgs) {
   if (!webhookUrl) throw new Error('Webhook do Slack não configurado (Alertas Slack → Configuração).');
   for (const text of msgs) {
+    const blocks = alertaBlocos(text);
     const r = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, mrkdwn: true }),
+      body: JSON.stringify({ text: text.split('\n')[0], blocks }),
     });
     if (!r.ok) throw new Error(`Slack respondeu ${r.status}: ${await r.text()}`);
   }

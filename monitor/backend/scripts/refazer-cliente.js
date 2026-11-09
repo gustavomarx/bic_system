@@ -65,7 +65,8 @@ async function arquivosDeHoje(drive, folderId, hoje) {
     fields: 'files(id, name, createdTime, size)',
     pageSize: 100, supportsAllDrives: true, includeItemsFromAllDrives: true,
   });
-  return r.data.files || [];
+  // O "contains" do Drive casa por palavras soltas (05-11-2026 pega 11-05-2026): confere o nome exato
+  return (r.data.files || []).filter(f => f.name.includes(hoje.br) || f.name.includes(hoje.compacto));
 }
 
 const comOld = nome => {

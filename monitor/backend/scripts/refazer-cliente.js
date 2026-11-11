@@ -24,7 +24,7 @@ const PASTAS_FIXAS = {
 };
 const LIMITE_ENCOLHIMENTO = 0.5; // arquivo novo com menos da metade do tamanho do atual → mantém o atual
 let forcar = false;
-const TODOS = ['bic', 'mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'pepsico', 'peccin', 'geral'];
+const TODOS = ['bic', 'mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'unilever', 'peccin', 'geral'];
 
 function pastasDoCliente(cliente) {
   const nomes = PASTAS_FIXAS[cliente] || {

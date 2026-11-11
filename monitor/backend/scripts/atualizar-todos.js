@@ -30,7 +30,7 @@ const CLIENTES = [
   { nome: 'Gtex',             rota: '/gtex' },
   { nome: 'M Dias Saudáveis', rota: '/mdiassaud' },
   { nome: 'Kibon',            rota: '/kibon' },
-  { nome: 'Pepsico',          rota: '/pepsico' },
+  { nome: 'Unilever',          rota: '/unilever' },
   { nome: 'Peccin',           rota: '/peccin' },
   { nome: 'Geral',            rota: '/geral' },  // extrações sem vínculo de indústria (usuários)
 ];

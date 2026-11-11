@@ -2,7 +2,9 @@
 
 > Documento de referência técnica cobrindo o **BIC System Portal** (dashboard) e o **BIC Monitor** (gerador de dados), suas integrações, módulos, stacks e fluxo de dados.
 >
-> **Multitenant** (adicionado 2026-06-17): suporta 12 tenants. Seletor no topo do sidebar. Permissões por tenant nas custom claims Firebase (`tenants: ['bic','mdias',...]`).
+> **Multitenant** (adicionado 2026-06-17): suporta 14 tenants + **Visão Geral** (dashboard).
+>
+> **Monitor dentro do system** (2026-10-12): o bic_monitor foi incorporado em `bic_system/monitor/` (git subtree, com histórico). Continua rodando **localmente** na porta 3001 (Oracle, proxy do Postgres e BigQuery desta máquina) e é aberto pelo system em Visão Geral → **BIC Monitor**, só para admin, via SSO. A pasta `workspace/bic_monitor` e o repo GitHub `bic_monitor` ficaram obsoletos. Seletor no topo do sidebar. Permissões por tenant nas custom claims Firebase (`tenants: ['bic','mdias',...]`).
 
 ---
 
@@ -15,7 +17,7 @@ O ecossistema é composto por dois sistemas Node.js que trabalham em conjunto:
 | **bic_system** | 3004 | Portal de visualização de dados de sellout para distribuidores |
 | **bic_monitor** | 3001 | Coleta dados do Oracle, gera snapshots e alimenta o portal |
 
-O **bic_monitor** é a fonte de dados — ele consulta o Oracle, gera arquivos XLSX e os salva no Google Drive. O **bic_system** lê esses arquivos do Drive e os apresenta como dashboard interativo.
+O **bic_monitor** (pasta `monitor/`) é a fonte de dados — ele consulta Oracle, Postgres e BigQuery, gera arquivos XLSX e os salva no Google Drive. O **bic_system** lê esses arquivos do Drive e os apresenta como dashboard interativo. Só o system vai para a Vercel (`.vercelignore` contém `monitor/`).
 
 ---
 
@@ -45,6 +47,8 @@ O **bic_monitor** é a fonte de dados — ele consulta o Oracle, gera arquivos X
                                                    (distribuidores)
 ```
 
+Além do Oracle, o monitor lê o **Postgres** `organizations` (proxy 127.0.0.1:6543 — usuários Geral) e o **BigQuery** `bigdata.partner_user_permission` (coordenadores, manual). O system abre o monitor por **SSO (JWT) + iframe** (ver módulo 12).
+
 ---
 
 ## Stack Tecnológica
@@ -67,7 +71,9 @@ O **bic_monitor** é a fonte de dados — ele consulta o Oracle, gera arquivos X
 |--------|-----------|
 | Runtime | Node.js + Express |
 | Banco principal | Oracle DB (`oracledb ^6.5.1`, modo thin, TLS sem wallet) |
-| Banco secundário | PostgreSQL (`pg ^8.20.0`) |
+| Banco secundário | PostgreSQL (`pg ^8.20.0`) via Cloud SQL Auth Proxy (127.0.0.1:6543, IAM `gustavo@sellers.com.br`, sem senha) |
+| BigQuery | `@google-cloud/bigquery` (ADC do gcloud, projeto `flow-prod-303615`) — só coordenadores, manual |
+| Auth | `jsonwebtoken` (SSO vindo do system) |
 | Upload | `multer ^1.4.5-lts.1` |
 | Google API | `googleapis ^144.0.0` |
 | Excel | `xlsx ^0.18.5` |
@@ -89,8 +95,21 @@ bic_system/
 │   ├── .env                         # configurado localmente (não versionado)
 │   ├── .env.example
 │   └── credentials/                 # service-account.json, gmail-tokens.json (não versionados)
-└── frontend/
-    └── (imagens: ftp.png, sellers.png)
+├── frontend/
+│   └── (imagens: ftp.png, sellers.png)
+├── .vercelignore                    # contém monitor/ (monitor não vai para a Vercel)
+└── monitor/                         # BIC Monitor (ex-repo bic_monitor), roda local na 3001
+    ├── index.html                   # UI do monitor (dark, shell no padrão do system)
+    ├── integracoes.js
+    ├── PROJETO.md
+    ├── .gitignore                   # .env, credentials/, logs/, node_modules/
+    └── backend/
+        ├── server.js                # API Express do monitor
+        ├── .env / .env.example      # .env fora do git
+        ├── credentials/             # service-account.json (fora do git)
+        ├── logs/
+        └── scripts/
+            └── atualizar-todos.js   # tarefa diária (Windows, 8h): todas as indústrias + Geral + alertas Slack
 ```
 
 ---
@@ -99,7 +118,7 @@ bic_system/
 
 - Login via **Firebase Auth** (email/senha) na tela `/login`
 - Backend verifica ID token Firebase → gera **JWT** salvo em cookie `httpOnly`
-- Middleware `requireAuth` valida JWT em todas as rotas `/api`
+- Middleware `requireAuth` valida JWT em todas as rotas `/api` — recusa tokens com `aud` (tokens do BIC Monitor usam a mesma chave e não valem como sessão do system)
 - Middleware `requireAdmin` restringe rotas sensíveis ao email definido em `ADMIN_EMAILS`
 - Módulos por usuário: custom claims Firebase (`modules: string[]` ou `null` = acesso total)
 - **Hash navigation** (`#modulo`) → ao carregar, redireciona direto para o módulo se tiver permissão
@@ -231,47 +250,43 @@ Rastreia soluções paliativas por holding a partir de Google Doc.
 
 ---
 
-### 8. Usuários
+### 8. Usuários (Visão Geral) — reformulado 2026-10-12
 
-Lista de usuários com três sub-abas.
+Saiu do tenant BIC e foi para a **Visão Geral**, cobrindo todas as indústrias. Itens no menu logo abaixo de "Painel Geral":
+- **Usuários** (`usuarios`) — lista com filtro por indústria (`#usu-ind`), chips de resumo, coluna Indústria quando "Todas", coluna Perfil. Não-admin só vê as indústrias dos seus tenants.
+- **Envio de E-mail** (`usuarios-email`, submenu, só admin) — tela separada.
 
-**APIs base:**
-- `GET /api/usuarios-arquivo` → metadata do XLSX mais recente no Drive
-- `GET /api/usuarios-dados?fileId=` → parseia abas Distribuidores / Indústria
+**Fonte:** `usuarios_DD-MM-AAAA.xlsx` (aba "Usuarios": Industria, Tipo, Empresa, Id_Organizacao, Nome, Id_Usuario, Email, Perfil, Tem_Permissao) gerado pelo monitor em `/geral/atualizar-tudo` na pasta `GOOGLE_DRIVE_USUARIOS_FOLDER_ID`. Leituras da pasta filtram pelo prefixo do nome (`usuarios_` / `coordenadores_`).
 
-**Sub-abas:**
-- **Distribuidores** — pesquisável, ordenável, filtro por permissão BI
-- **Indústria** — pesquisável, ordenável
-- **Holdings** — email em massa (ver seção abaixo)
+**Regra de vínculo distribuidora ↔ indústria** (monitor, `INDUSTRIAS_USUARIOS`): partnership ativa com a org da indústria **E** código da indústria em `project_list_array`/`project` (ou `group_name` só para mDiasBranco/mDiasBrancoSaudaveis; mBic no group_name é ignorado). 14 indústrias do portal + Ultracheese; Braveo fora. Sem VENDEDOR e sem e-mails @sellers.
 
-#### Sub-aba Holdings — Email em Massa (adicionado 2026-06-01)
+**APIs:**
+- `GET /api/usuarios-geral` → linhas filtradas pelas indústrias do usuário (sem `Id_Organizacao`)
+- `GET /api/usuarios-arquivo`, `GET /api/usuarios-dados?fileId=` → legado BIC (`usuariosBic` aceita formato novo e antigo)
 
-**Fluxo de dados:**
-1. Holdings vêm do sellout mais recente no Drive → `holding → [customers]`
-2. Customers cruzados com `Empresa` do XLSX de usuários → emails dos distribuidores
-3. Coordenadores de vendas importados via upload XLSX (`partner_name` → `vp_name` + `email`) salvos no Firestore (`system_config/coordenadores`)
-4. Gmail OAuth2 autenticado; token salvo no Firestore (`system_config/gmail_token`)
+#### Envio de E-mail em massa
+
+**Fluxo:** escolhe a **indústria** → carrega grupos por **customer**; na BIC também por **holding** (como era antes).
+- Só distribuidores com `Tem_Permissao = 'Sim'` (BI permitido), como na tela de usuários.
+- Coordenadores entram em CC automaticamente (casados pelo id da distribuidora; fallback pelo nome).
+
+**Coordenadores** (2026-10-12): vêm do BigQuery `bigdata.partner_user_permission`, consulta **só manual** feita pelo monitor (`POST /geral/coordenadores`). Gera `coordenadores_DD-MM-AAAA.xlsx` (Industria, Id_Industria, Id_Organizacao, Empresa, Nome, Email) na pasta dos usuários. O botão "📥 Atualizar coordenadores" do system pega um SSO e chama o monitor local com `Authorization: Bearer`. Se a indústria não tiver linhas no arquivo, usa o mapa antigo do Firestore (`system_config`).
 
 **APIs:**
 | Endpoint | Descrição |
 |---|---|
-| `GET /api/gmail/auth` | Inicia OAuth2 consent screen |
-| `GET /api/gmail/callback` | Salva token no Firestore |
-| `GET /api/gmail/status` | Verifica autenticação + email |
-| `POST /api/coordenadores/importar` | Upload XLSX de coordenadores (multer) |
-| `GET /api/coordenadores` | Retorna mapa atual do Firestore |
-| `GET /api/email-massa/holdings` | Cruza sellout + usuários + coordenadores |
-| `GET /api/email-massa/debug` | Diagnóstico de matching |
-| `POST /api/email-massa/enviar` | SSE — 1 email por holding |
+| `GET /api/gmail/auth` · `/callback` · `/status` | OAuth2 Gmail (token no Firestore `system_config/gmail_token`) |
+| `GET /api/email-massa/grupos?tenant&modo` | Grupos por customer ou holding (admin) |
+| `GET /api/email-massa/holdings` | Legado |
+| `GET /api/coordenadores?tenant` | `{fonte: 'bigquery'|'firestore', total, arquivo, importadoEm}` |
+| `POST /api/coordenadores/importar` | Upload XLSX manual (legado) |
+| `POST /api/email-massa/enviar` | SSE — 1 e-mail por grupo; aceita `modo` e `industria` |
 | `POST /api/validacao-mensal/importar` | Parseia CSV/XLSX de fechamento; retorna dados sem persistir |
 
 **Comportamento do envio:**
-- `TO`: todos os emails dos distribuidores da holding
-- `CC`: coordenadores de vendas (automático) + emails avulsos
-- `BCC`: emails avulsos ocultos
-- Tags dinâmicas substituídas no assunto e corpo: `{{holding}}`, `{{referencia}}`, `{{prazo}}`, `{{tabela_validacao}}`
-- Editor rich text (contenteditable) — preserva cola do Word/Docs/Outlook
-- Modo HTML raw (textarea) — usado para templates complexos; corpo lido do textarea quando em modo HTML
+- `TO`: e-mails dos distribuidores do grupo · `CC`: coordenadores + avulsos · `BCC`: avulsos ocultos
+- Tags: `{{holding}}`, `{{industria}}`, `{{referencia}}`, `{{prazo}}`, `{{tabela_validacao}}`
+- Editor rich text (contenteditable) ou modo HTML raw
 
 **Credenciais Gmail** (Google Cloud project: `storied-key-493919-a7`):
 ```
@@ -287,7 +302,7 @@ Também configuradas nas **Env Vars do Vercel**.
 Funcionalidade para envio de email com dados de fechamento por holding, permitindo que distribuidores validem seus números antes de confirmar na plataforma Sellers.
 
 **Fluxo:**
-1. Admin faz upload de CSV/XLSX com colunas: `HOLDING`, `Customer`, `Tipo de Operação`, `Venda Valor`
+1. Admin faz upload de CSV/XLSX com colunas: `HOLDING` (opcional), `Customer`, `Tipo de Operação`, `Venda Valor` — resposta inclui `totalCustomers`
 2. Backend parseia e retorna os dados — **sem salvar em banco** (in-memory por sessão)
 3. Frontend armazena em `usuariosState.validacaoMensal` com prompt de mês de referência
 4. No modal de email, botão "📋 Template Validação Mensal" preenche corpo + assunto
@@ -317,7 +332,7 @@ Funcionalidade para envio de email com dados de fechamento por holding, permitin
 - `parseBRLNum(str)` — detecta formato EN (`-859.59`) vs BR (`1.234,56`) antes de parsear
 - `formatBRL(str)` — formata como moeda BRL
 - `tipoLabel(tipo)` — mapeia UPPERCASE para labels PT-BR com acentos
-- `buildValidacaoTable(linhas, holdingName, referencia)` — gera HTML da tabela por holding
+- `buildValidacaoTable(linhas, nome, referencia, modo)` — gera HTML da tabela por holding ou, em modo customer, filtrando pelo customer (nome normalizado)
 
 ---
 
@@ -344,13 +359,32 @@ Acessível apenas para admins (`ADMIN_EMAILS`). Gerencia usuários Firebase Auth
 - `DELETE /api/admin/users/:uid`
 - `PATCH /api/admin/users/:uid/modules`
 
+### 12. BIC Monitor (Visão Geral, admin) — 2026-10-12
+
+Item **🖥️ BIC Monitor** (`monitor`) logo após "Gestão de Acesso", visível só para admin na Visão Geral. Abre o monitor local num iframe (`allow="local-network-access"`) com barra de Recarregar / "Abrir em nova aba".
+
+**SSO:**
+1. `GET /api/monitor/sso` (requireAuth + requireAdmin) assina JWT com `JWT_SECRET`, `aud: 'bic-monitor'`, 2 min, `jti` de uso único → `{ base, token, url }` (`base` = `MONITOR_URL`, padrão `http://localhost:3001`).
+2. Monitor `GET /auth/sso?t=` valida com `SYSTEM_JWT_SECRET` (= `JWT_SECRET` do system), queima o `jti` e grava cookie `monitor_sess` (`aud: 'bic-monitor-sess'`, 12h, httpOnly, secure, `sameSite: 'none'`, `partitioned`).
+3. Middleware do monitor aceita: `/health` e `/auth/*` livres; `x-monitor-token` (agendamento); `Bearer` com `aud bic-monitor` (chamadas do system); cookie de sessão. Senão "Acesso restrito" (HTML) ou 401.
+
+**Proteções:** CORS e CSP `frame-ancestors` restritos a `SYSTEM_ORIGINS`; header `Access-Control-Allow-Private-Network`; o monitor só serve `index.html`, `integracoes.js` e `*.png` (nada de `backend/`).
+
+**Chrome — Local Network Access:** na primeira vez pela Vercel o Chrome pede "acesso à rede local"; é preciso **Permitir** (vale também para o botão de coordenadores). Pelo `localhost:3004` não pede. O monitor só funciona nesta máquina, com o servidor rodando.
+
 ---
 
-## Multitenant — 12 Tenants
+### Alertas Slack (Visão Geral, admin)
+
+Alertas de anomalia no canal `#anomalia-bic-system`, config no Firestore. Disparados por `POST /api/alertas/auto` (token `ALERTAS_TOKEN`) ao final do `monitor/backend/scripts/atualizar-todos.js` (tarefa diária das 8h).
+
+---
+
+## Multitenant — 14 Tenants
 
 | Tenant | Badge | Módulos disponíveis |
 |--------|-------|---------------------|
-| `bic`       | BIC | comparativo, batalha, inatividade, historico, depara, distribuidores, paliativos, usuarios, ranking*, evolucao* |
+| `bic`       | BIC | comparativo, batalha, inatividade, historico, depara, distribuidores, paliativos, ranking*, evolucao* |
 | `asa`       | ASA | comparativo, batalha, historico |
 | `bombril`   | BOM | comparativo, batalha, historico |
 | `cicopal`   | CIC | comparativo, batalha, historico |
@@ -362,8 +396,10 @@ Acessível apenas para admins (`ADMIN_EMAILS`). Gerencia usuários Firebase Auth
 | `mdias`     | MD  | comparativo, batalha, historico |
 | `mdiassaud` | MDS | comparativo, batalha, historico |
 | `marilan`   | MRL | comparativo, batalha, historico |
+| `peccin`    | PCC | comparativo, batalha, historico |
+| `unilever`   | ULV | comparativo, batalha, historico |
 
-*em breve
+*em breve · **Visão Geral** (dashboard): Painel Geral, Usuários, Envio de E-mail*, Alertas*, Gestão de Acesso*, BIC Monitor* (*só admin)
 
 **Como funciona:**
 - Seletor de tenant no topo do sidebar (`.bic-badge` → dropdown dinâmico)
@@ -486,6 +522,28 @@ CLICKUP_BIC_LIST_ID=901325453294
 # Gmail OAuth2
 GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
+
+# BIC Monitor / alertas
+MONITOR_URL=http://localhost:3001   # opcional; base do monitor no SSO
+ALERTAS_TOKEN=                      # usado pelo atualizar-todos.js do monitor
+```
+
+## Variáveis de Ambiente — monitor `monitor/backend/.env` (fora do git)
+
+Ver `monitor/backend/.env.example`. Além de Oracle (`DB_*`, `<TENANT>_DB_*`) e pastas do Drive:
+```env
+PORT=3001
+PG_HOST=127.0.0.1        # Cloud SQL Auth Proxy
+PG_PORT=6543
+PG_DATABASE=organizations
+PG_USER=gustavo@sellers.com.br
+PG_PASSWORD=             # vazio (IAM)
+BIGQUERY_PROJECT_ID=flow-prod-303615
+SYSTEM_JWT_SECRET=       # = JWT_SECRET do system
+MONITOR_TOKEN=           # chave do agendamento (x-monitor-token)
+SYSTEM_ORIGINS=https://bic-system.vercel.app,http://localhost:3004
+BIC_SYSTEM_URL=          # para disparar /api/alertas/auto
+ALERTAS_TOKEN=
 ```
 
 ---
@@ -500,6 +558,8 @@ GMAIL_CLIENT_SECRET=
 | Histórico | `historico_DD-MM-YYYY.xlsx` |
 | Log de auditoria | `relatorio_DD-MM-YYYY.pdf` |
 | Cache distribuidores | `distribuidores.json` |
+| Usuários (todas as indústrias) | `usuarios_DD-MM-YYYY.xlsx` |
+| Coordenadores (BigQuery) | `coordenadores_DD-MM-YYYY.xlsx` |
 
 ---
 
@@ -519,7 +579,14 @@ GMAIL_CLIENT_SECRET=
 ```bash
 cd bic_system/backend && npm install && npm start
 # acesso: http://localhost:3004
+
+cd bic_system/monitor/backend && npm install && node server.js
+# monitor: http://localhost:3001 (acesso direto mostra "Acesso restrito"; entrar pelo system)
 ```
+
+- Proxy do Cloud SQL precisa estar rodando em 127.0.0.1:6543 (também às 8h, para a tarefa diária).
+- Tarefa do Windows **"BIC Monitor - Atualizar relatorios"** (8h) roda `bic_system/monitor/backend/scripts/atualizar-todos.js`.
+- `start-all.sh` e `iniciate.exe/services.py` já apontam para `bic_system/monitor/backend`.
 
 **Pré-requisitos:**
 - Node.js 18+
@@ -532,3 +599,4 @@ cd bic_system/backend && npm install && npm start
 - **Vercel** — deploy automático via push para `main` (GitHub: `gustavomarx/bic_system`)
 - URL produção: `https://bic-system.vercel.app`
 - Variáveis sensíveis configuradas no painel Vercel (incluindo JSONs de service account inline)
+- O monitor **não** é publicado (`.vercelignore`); roda só nesta máquina

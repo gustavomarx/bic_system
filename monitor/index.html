@@ -709,17 +709,17 @@
     .tenant-pip.mdiassaud  { background: #0d9488; }
     .tenant-pip.kibon      { background: #a21caf; }
     .tenant-pip.peccin     { background: #16a34a; }
-    .tenant-pip.pepsico    { background: #004B93; }
+    .tenant-pip.unilever    { background: #1F36C7; }
     .tenant-btn.active .tenant-pip { box-shadow: 0 0 0 2px rgba(255,255,255,0.25); }
     /* MDias update panel — mesmo estilo do BIC mas com ID próprio */
-    #mdiasUpdatePanel, #marilanUpdatePanel, #asaUpdatePanel, #bombrilUpdatePanel, #cicopalUpdatePanel, #finiUpdatePanel, #frukiUpdatePanel, #galloUpdatePanel, #gtexUpdatePanel, #mdiassaudUpdatePanel, #kibonUpdatePanel, #peccinUpdatePanel, #pepsicoUpdatePanel {
+    #mdiasUpdatePanel, #marilanUpdatePanel, #asaUpdatePanel, #bombrilUpdatePanel, #cicopalUpdatePanel, #finiUpdatePanel, #frukiUpdatePanel, #galloUpdatePanel, #gtexUpdatePanel, #mdiassaudUpdatePanel, #kibonUpdatePanel, #peccinUpdatePanel, #unileverUpdatePanel {
       position: fixed; bottom: 24px; right: 24px; z-index: 1000;
       background: var(--bg2); border: 1px solid var(--border2);
       border-radius: var(--radius); padding: 18px 20px; min-width: 340px; max-width: 400px;
       box-shadow: var(--shadow-lg);
       display: none; flex-direction: column; gap: 10px;
     }
-    #mdiasUpdatePanel.visible, #marilanUpdatePanel.visible, #asaUpdatePanel.visible, #bombrilUpdatePanel.visible, #cicopalUpdatePanel.visible, #finiUpdatePanel.visible, #frukiUpdatePanel.visible, #galloUpdatePanel.visible, #gtexUpdatePanel.visible, #mdiassaudUpdatePanel.visible, #kibonUpdatePanel.visible, #peccinUpdatePanel.visible, #pepsicoUpdatePanel.visible { display: flex; }
+    #mdiasUpdatePanel.visible, #marilanUpdatePanel.visible, #asaUpdatePanel.visible, #bombrilUpdatePanel.visible, #cicopalUpdatePanel.visible, #finiUpdatePanel.visible, #frukiUpdatePanel.visible, #galloUpdatePanel.visible, #gtexUpdatePanel.visible, #mdiassaudUpdatePanel.visible, #kibonUpdatePanel.visible, #peccinUpdatePanel.visible, #unileverUpdatePanel.visible { display: flex; }
 
     /* Painel "Atualizar Todos" */
     #allTenantsPanel {
@@ -760,7 +760,7 @@
     .all-tenant-badge.mdiassaud  { background: #0d9488; }
     .all-tenant-badge.kibon      { background: #a21caf; }
     .all-tenant-badge.peccin     { background: #16a34a; }
-    .all-tenant-badge.pepsico    { background: #004B93; }
+    .all-tenant-badge.unilever    { background: #1F36C7; }
     .all-tenant-badge.geral      { background: #475569; }
     .all-tenant-msg { font-size: 11px; color: var(--text2); min-height: 14px; }
     .btn-update-all-tenants {
@@ -1068,8 +1068,8 @@
       <button class="tenant-btn" id="tenantBtnPeccin" onclick="switchTenant('peccin')">
         <span class="tenant-pip peccin"></span> Peccin
       </button>
-      <button class="tenant-btn" id="tenantBtnPepsico" onclick="switchTenant('pepsico')">
-        <span class="tenant-pip pepsico"></span> Pepsico
+      <button class="tenant-btn" id="tenantBtnUnilever" onclick="switchTenant('unilever')">
+        <span class="tenant-pip unilever"></span> Unilever
       </button>
     </div>
   </div>
@@ -1345,22 +1345,22 @@
           <div class="upd-step-item" id="atS_peccin_7"><span class="upd-step-icon">⬜</span>Salvar histórico</div>
         </div>
       </div>
-      <!-- Pepsico -->
-      <div class="all-tenant-col" id="atCol_pepsico">
+      <!-- Unilever -->
+      <div class="all-tenant-col" id="atCol_unilever">
         <div class="all-tenant-col-header">
-          <span class="all-tenant-badge pepsico">PEP</span> Pepsico
-          <span id="atStatus_pepsico" style="margin-left:auto;font-size:11px;color:var(--text3);">aguardando</span>
+          <span class="all-tenant-badge unilever">ULV</span> Unilever
+          <span id="atStatus_unilever" style="margin-left:auto;font-size:11px;color:var(--text3);">aguardando</span>
         </div>
-        <div class="upd-bar-wrap"><div class="upd-bar" id="atBar_pepsico"></div></div>
-        <div class="all-tenant-msg" id="atMsg_pepsico"></div>
+        <div class="upd-bar-wrap"><div class="upd-bar" id="atBar_unilever"></div></div>
+        <div class="all-tenant-msg" id="atMsg_unilever"></div>
         <div class="upd-steps-list" style="max-height:160px;overflow-y:auto;">
-          <div class="upd-step-item" id="atS_pepsico_1"><span class="upd-step-icon">⬜</span>Conectar ao Oracle</div>
-          <div class="upd-step-item" id="atS_pepsico_2"><span class="upd-step-icon">⬜</span>Comparativo</div>
-          <div class="upd-step-item" id="atS_pepsico_3"><span class="upd-step-icon">⬜</span>Batalha Naval</div>
-          <div class="upd-step-item" id="atS_pepsico_4"><span class="upd-step-icon">⬜</span>Histórico</div>
-          <div class="upd-step-item" id="atS_pepsico_5"><span class="upd-step-icon">⬜</span>Salvar comparativo</div>
-          <div class="upd-step-item" id="atS_pepsico_6"><span class="upd-step-icon">⬜</span>Salvar Batalha Naval</div>
-          <div class="upd-step-item" id="atS_pepsico_7"><span class="upd-step-icon">⬜</span>Salvar histórico</div>
+          <div class="upd-step-item" id="atS_unilever_1"><span class="upd-step-icon">⬜</span>Conectar ao Oracle</div>
+          <div class="upd-step-item" id="atS_unilever_2"><span class="upd-step-icon">⬜</span>Comparativo</div>
+          <div class="upd-step-item" id="atS_unilever_3"><span class="upd-step-icon">⬜</span>Batalha Naval</div>
+          <div class="upd-step-item" id="atS_unilever_4"><span class="upd-step-icon">⬜</span>Histórico</div>
+          <div class="upd-step-item" id="atS_unilever_5"><span class="upd-step-icon">⬜</span>Salvar comparativo</div>
+          <div class="upd-step-item" id="atS_unilever_6"><span class="upd-step-icon">⬜</span>Salvar Batalha Naval</div>
+          <div class="upd-step-item" id="atS_unilever_7"><span class="upd-step-icon">⬜</span>Salvar histórico</div>
         </div>
       </div>
       <!-- GERAL (sem vínculo de indústria) -->
@@ -4355,125 +4355,125 @@
 
 </div><!-- /peccinSection -->
 
-<div id="pepsicoSection" style="display:none;">
+<div id="unileverSection" style="display:none;">
 
-  <!-- Painel de progresso Pepsico -->
-  <div id="pepsicoUpdatePanel">
+  <!-- Painel de progresso Unilever -->
+  <div id="unileverUpdatePanel">
     <div class="upd-title"><span class="icon icon-sm" style="color:var(--accent)">sync</span>
-      Atualizando Pepsico…
+      Atualizando Unilever…
     </div>
-    <div class="upd-bar-wrap"><div class="upd-bar" id="pepsicoUpdBar"></div></div>
-    <div class="upd-step" id="pepsicoUpdMsg"></div>
+    <div class="upd-bar-wrap"><div class="upd-bar" id="unileverUpdBar"></div></div>
+    <div class="upd-step" id="unileverUpdMsg"></div>
     <div class="upd-steps-list">
-      <div class="upd-step-item" id="pepsicoUpdS1"><span class="upd-step-icon">⬜</span>Conectar ao Oracle</div>
-      <div class="upd-step-item" id="pepsicoUpdS2"><span class="upd-step-icon">⬜</span>Consultar comparativo (Oracle)</div>
-      <div class="upd-step-item" id="pepsicoUpdS3"><span class="upd-step-icon">⬜</span>Consultar Batalha Naval (Oracle)</div>
-      <div class="upd-step-item" id="pepsicoUpdS4"><span class="upd-step-icon">⬜</span>Consultar histórico (Oracle)</div>
-      <div class="upd-step-item" id="pepsicoUpdS5"><span class="upd-step-icon">⬜</span>Salvar comparativo no Drive</div>
-      <div class="upd-step-item" id="pepsicoUpdS6"><span class="upd-step-icon">⬜</span>Salvar Batalha Naval no Drive</div>
-      <div class="upd-step-item" id="pepsicoUpdS7"><span class="upd-step-icon">⬜</span>Salvar histórico no Drive</div>
+      <div class="upd-step-item" id="unileverUpdS1"><span class="upd-step-icon">⬜</span>Conectar ao Oracle</div>
+      <div class="upd-step-item" id="unileverUpdS2"><span class="upd-step-icon">⬜</span>Consultar comparativo (Oracle)</div>
+      <div class="upd-step-item" id="unileverUpdS3"><span class="upd-step-icon">⬜</span>Consultar Batalha Naval (Oracle)</div>
+      <div class="upd-step-item" id="unileverUpdS4"><span class="upd-step-icon">⬜</span>Consultar histórico (Oracle)</div>
+      <div class="upd-step-item" id="unileverUpdS5"><span class="upd-step-icon">⬜</span>Salvar comparativo no Drive</div>
+      <div class="upd-step-item" id="unileverUpdS6"><span class="upd-step-icon">⬜</span>Salvar Batalha Naval no Drive</div>
+      <div class="upd-step-item" id="unileverUpdS7"><span class="upd-step-icon">⬜</span>Salvar histórico no Drive</div>
     </div>
   </div>
 
-  <!-- Navegação Pepsico -->
-  <div class="tab-nav" id="pepsicoTabNav">
-    <button class="tab-btn active" id="tabBtnPepsicoComparativo" onclick="pepsicoSwitch('comparativo')">
+  <!-- Navegação Unilever -->
+  <div class="tab-nav" id="unileverTabNav">
+    <button class="tab-btn active" id="tabBtnUnileverComparativo" onclick="unileverSwitch('comparativo')">
       <span class="icon icon-sm">bar_chart</span> Comparativo
     </button>
-    <button class="tab-btn" id="tabBtnPepsicoBatalha" onclick="pepsicoSwitch('batalha')">
+    <button class="tab-btn" id="tabBtnUnileverBatalha" onclick="unileverSwitch('batalha')">
       <span class="icon icon-sm">grid_on</span> Batalha Naval
     </button>
-    <button class="tab-btn" id="tabBtnPepsicoHistorico" onclick="pepsicoSwitch('historico')">
+    <button class="tab-btn" id="tabBtnUnileverHistorico" onclick="unileverSwitch('historico')">
       <span class="icon icon-sm">timeline</span> Histórico
     </button>
   </div>
 
-  <!-- ══ Pepsico TAB: Comparativo Sellout ══ -->
-  <div class="tab-panel active" id="tabPepsicoComparativo" data-modinfo="comp">
+  <!-- ══ Unilever TAB: Comparativo Sellout ══ -->
+  <div class="tab-panel active" id="tabUnileverComparativo" data-modinfo="comp">
     <div class="upload-section">
-      <div class="section-title">Carregar Relatórios — Pepsico</div>
+      <div class="section-title">Carregar Relatórios — Unilever</div>
       <div class="upload-row">
         <div class="upload-box-wrapper">
-          <div class="upload-box" id="pepsicoDropPrev"
-            ondragover="pepsicoHandleDrag(event,'prev')" ondragleave="pepsicoHandleDragLeave(event,'prev')" ondrop="pepsicoHandleDrop(event,'prev')">
-            <input type="file" id="pepsicoFilePrev" accept=".xlsx,.csv" onchange="pepsicoHandleFile(event,'prev')" />
-            <div class="box-loading-overlay" id="pepsicoBoxLoadingPrev">
+          <div class="upload-box" id="unileverDropPrev"
+            ondragover="unileverHandleDrag(event,'prev')" ondragleave="unileverHandleDragLeave(event,'prev')" ondrop="unileverHandleDrop(event,'prev')">
+            <input type="file" id="unileverFilePrev" accept=".xlsx,.csv" onchange="unileverHandleFile(event,'prev')" />
+            <div class="box-loading-overlay" id="unileverBoxLoadingPrev">
               <div class="box-spinner"></div>
               <div class="box-loading-label">Carregando…</div>
             </div>
             <div class="upload-icon"><span class="icon" style="font-size:32px;color:var(--text3);">folder_open</span></div>
-            <div class="file-info" id="pepsicoFileInfoPrev">
-              <div class="file-name" id="pepsicoFileNamePrev"></div>
-              <div class="file-date" id="pepsicoFileDatePrev"></div>
-              <div class="file-rows" id="pepsicoFileRowsPrev"></div>
+            <div class="file-info" id="unileverFileInfoPrev">
+              <div class="file-name" id="unileverFileNamePrev"></div>
+              <div class="file-date" id="unileverFileDatePrev"></div>
+              <div class="file-rows" id="unileverFileRowsPrev"></div>
             </div>
             <div class="upload-label">Anterior (arraste ou clique)</div>
-            <select class="drive-select" id="pepsicodriveSelectPrev" onchange="pepsicoFetchFromDriveById('prev')">
+            <select class="drive-select" id="unileverdriveSelectPrev" onchange="unileverFetchFromDriveById('prev')">
               <option value="">☁️ Selecionar data do Drive...</option>
             </select>
           </div>
-          <button class="btn btn-drive" onclick="pepsicoFetchLatestFromDrive('prev')">
+          <button class="btn btn-drive" onclick="unileverFetchLatestFromDrive('prev')">
             <span class="icon icon-sm">cloud_download</span> Buscar Anterior do Drive
           </button>
         </div>
         <div class="upload-box-wrapper">
-          <div class="upload-box" id="pepsicoDropCurr"
-            ondragover="pepsicoHandleDrag(event,'curr')" ondragleave="pepsicoHandleDragLeave(event,'curr')" ondrop="pepsicoHandleDrop(event,'curr')">
-            <input type="file" id="pepsicoFileCurr" accept=".xlsx,.csv" onchange="pepsicoHandleFile(event,'curr')" />
-            <div class="box-loading-overlay" id="pepsicoBoxLoadingCurr">
+          <div class="upload-box" id="unileverDropCurr"
+            ondragover="unileverHandleDrag(event,'curr')" ondragleave="unileverHandleDragLeave(event,'curr')" ondrop="unileverHandleDrop(event,'curr')">
+            <input type="file" id="unileverFileCurr" accept=".xlsx,.csv" onchange="unileverHandleFile(event,'curr')" />
+            <div class="box-loading-overlay" id="unileverBoxLoadingCurr">
               <div class="box-spinner"></div>
               <div class="box-loading-label">Carregando…</div>
             </div>
             <div class="upload-icon"><span class="icon" style="font-size:32px;color:var(--text3);">folder_open</span></div>
-            <div class="file-info" id="pepsicoFileInfoCurr">
-              <div class="file-name" id="pepsicoFileNameCurr"></div>
-              <div class="file-date" id="pepsicoFileDateCurr"></div>
-              <div class="file-rows" id="pepsicoFileRowsCurr"></div>
+            <div class="file-info" id="unileverFileInfoCurr">
+              <div class="file-name" id="unileverFileNameCurr"></div>
+              <div class="file-date" id="unileverFileDateCurr"></div>
+              <div class="file-rows" id="unileverFileRowsCurr"></div>
             </div>
             <div class="upload-label">Atual (arraste ou clique)</div>
-            <select class="drive-select" id="pepsicodriveSelectCurr" onchange="pepsicoFetchFromDriveById('curr')">
+            <select class="drive-select" id="unileverdriveSelectCurr" onchange="unileverFetchFromDriveById('curr')">
               <option value="">☁️ Selecionar data do Drive...</option>
             </select>
           </div>
-          <button class="btn btn-drive" onclick="pepsicoFetchLatestFromDrive('curr')">
+          <button class="btn btn-drive" onclick="unileverFetchLatestFromDrive('curr')">
             <span class="icon icon-sm">cloud_download</span> Buscar Atual do Drive
           </button>
         </div>
       </div>
       <div class="action-row">
-        <button class="btn btn-oracle" id="pepsicobnBtnOracle" onclick="pepsicoFetchFromOracle()" style="flex:1;justify-content:center;">
+        <button class="btn btn-oracle" id="unileverbnBtnOracle" onclick="unileverFetchFromOracle()" style="flex:1;justify-content:center;">
           <span class="icon icon-sm">cloud_download</span> Buscar Atual do Oracle
         </button>
-        <button class="btn btn-primary" id="pepsicobnBtnCompare" onclick="pepsicoRunComparison()" disabled style="flex:1;justify-content:center;">
+        <button class="btn btn-primary" id="unileverbnBtnCompare" onclick="unileverRunComparison()" disabled style="flex:1;justify-content:center;">
           <span class="icon icon-sm">compare_arrows</span> Comparar
         </button>
-        <button class="btn btn-reset" onclick="pepsicoResetAll()">
+        <button class="btn btn-reset" onclick="unileverResetAll()">
           <span class="icon icon-sm">restart_alt</span> Resetar
         </button>
       </div>
     </div>
-    <div id="pepsicoEmptyState" style="padding:56px;text-align:center;color:var(--text3);">
+    <div id="unileverEmptyState" style="padding:56px;text-align:center;color:var(--text3);">
       Carregue dois arquivos ou busque do Oracle para comparar.
     </div>
-    <div id="pepsicoResultSection" style="display:none;">
+    <div id="unileverResultSection" style="display:none;">
       <div class="cards">
-        <div class="card"><div class="card-label">Total Anterior</div><div class="card-value blue" id="pepsicoCardPrev">—</div></div>
-        <div class="card"><div class="card-label">Total Atual</div><div class="card-value blue" id="pepsicoCardCurr">—</div></div>
-        <div class="card"><div class="card-label">Diferença</div><div class="card-value" id="pepsicoCardDiff">—</div></div>
-        <div class="card"><div class="card-label">Fechados Alterados</div><div class="card-value orange" id="pepsicoCardClosedChanged">—</div></div>
+        <div class="card"><div class="card-label">Total Anterior</div><div class="card-value blue" id="unileverCardPrev">—</div></div>
+        <div class="card"><div class="card-label">Total Atual</div><div class="card-value blue" id="unileverCardCurr">—</div></div>
+        <div class="card"><div class="card-label">Diferença</div><div class="card-value" id="unileverCardDiff">—</div></div>
+        <div class="card"><div class="card-label">Fechados Alterados</div><div class="card-value orange" id="unileverCardClosedChanged">—</div></div>
       </div>
       <div class="filters-row">
-        <select class="drive-select" id="pepsicoFilterMonth" onchange="pepsicoApplyFilters()" style="width:150px;">
+        <select class="drive-select" id="unileverFilterMonth" onchange="unileverApplyFilters()" style="width:150px;">
           <option value="">Todos os meses</option>
         </select>
-        <select class="drive-select" id="pepsicoFilterType" onchange="pepsicoApplyFilters()" style="width:170px;">
+        <select class="drive-select" id="unileverFilterType" onchange="unileverApplyFilters()" style="width:170px;">
           <option value="">Todos os tipos</option>
           <option value="closed-changed">Fechados alterados</option>
           <option value="current">Apenas atuais</option>
         </select>
-        <input type="text" id="pepsicoFilterSearch" placeholder="Buscar distribuidora…" oninput="pepsicoApplyFilters()"
+        <input type="text" id="unileverFilterSearch" placeholder="Buscar distribuidora…" oninput="unileverApplyFilters()"
           style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text1);font-size:13px;" />
-        <span id="pepsicoRowCount" style="margin-left:auto;font-size:12px;color:var(--text3);font-weight:500;"></span>
+        <span id="unileverRowCount" style="margin-left:auto;font-size:12px;color:var(--text3);font-weight:500;"></span>
       </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -4486,67 +4486,67 @@
             <th style="padding:10px 12px;text-align:right;">%</th>
             <th style="padding:10px 12px;">Status</th>
           </tr></thead>
-          <tbody id="pepsicoResultTbody"></tbody>
+          <tbody id="unileverResultTbody"></tbody>
         </table>
       </div>
     </div>
-  </div><!-- /tabPepsicoComparativo -->
+  </div><!-- /tabUnileverComparativo -->
 
-  <!-- ══ Pepsico TAB: Batalha Naval ══ -->
-  <div class="tab-panel" id="tabPepsicoBatalha" data-modinfo="batalha">
+  <!-- ══ Unilever TAB: Batalha Naval ══ -->
+  <div class="tab-panel" id="tabUnileverBatalha" data-modinfo="batalha">
     <div class="bn-toolbar">
       <div class="bn-toolbar-group">
-        <select id="pepsicobnMesSel" class="bn-select" onchange="pepsicobnRender()">
+        <select id="unileverbnMesSel" class="bn-select" onchange="unileverbnRender()">
           <option value="">— selecione —</option>
         </select>
       </div>
-      <button id="pepsicobnBtnAtualizar" class="bn-btn-atualizar" onclick="pepsicobnAtualizar()">↻ Atualizar dados</button>
-      <span id="pepsicobnFileInfo" class="bn-file-info"></span>
+      <button id="unileverbnBtnAtualizar" class="bn-btn-atualizar" onclick="unileverbnAtualizar()">↻ Atualizar dados</button>
+      <span id="unileverbnFileInfo" class="bn-file-info"></span>
     </div>
-    <div id="pepsicobnStatus" class="bn-status">Carregando…</div>
-    <div id="pepsicobnGridWrap" class="bn-grid-wrap"></div>
-  </div><!-- /tabPepsicoBatalha -->
+    <div id="unileverbnStatus" class="bn-status">Carregando…</div>
+    <div id="unileverbnGridWrap" class="bn-grid-wrap"></div>
+  </div><!-- /tabUnileverBatalha -->
 
-  <!-- ══ Pepsico TAB: Histórico de Vendas ══ -->
-  <div class="tab-panel" id="tabPepsicoHistorico" data-modinfo="hist">
+  <!-- ══ Unilever TAB: Histórico de Vendas ══ -->
+  <div class="tab-panel" id="tabUnileverHistorico" data-modinfo="hist">
     <div class="inativ-header">
       <div style="display:flex;align-items:center;gap:8px;">
-        <h2><span class="icon icon-sm">timeline</span> Histórico de Vendas — Pepsico</h2>
-        <div style="display:flex;align-items:center;gap:4px;" id="pepsicoHistModoGroup">
-          <button class="btn btn-secondary dp-preset active" id="pepsicoHistModoBtnAno"
-            onclick="pepsicoHistSetModo('ano')" style="padding:4px 10px;font-size:12px;box-shadow:none;">Por Ano</button>
-          <button class="btn btn-secondary dp-preset" id="pepsicoHistModoBtnMes"
-            onclick="pepsicoHistSetModo('mes')" style="padding:4px 10px;font-size:12px;box-shadow:none;">Por Mês</button>
+        <h2><span class="icon icon-sm">timeline</span> Histórico de Vendas — Unilever</h2>
+        <div style="display:flex;align-items:center;gap:4px;" id="unileverHistModoGroup">
+          <button class="btn btn-secondary dp-preset active" id="unileverHistModoBtnAno"
+            onclick="unileverHistSetModo('ano')" style="padding:4px 10px;font-size:12px;box-shadow:none;">Por Ano</button>
+          <button class="btn btn-secondary dp-preset" id="unileverHistModoBtnMes"
+            onclick="unileverHistSetModo('mes')" style="padding:4px 10px;font-size:12px;box-shadow:none;">Por Mês</button>
         </div>
-        <button class="btn btn-oracle" id="pepsicoHistBtn" onclick="pepsicoFetchHistorico()">
-          <span id="pepsicoHistSpinner" class="oculos-loader" style="display:none;">
+        <button class="btn btn-oracle" id="unileverHistBtn" onclick="unileverFetchHistorico()">
+          <span id="unileverHistSpinner" class="oculos-loader" style="display:none;">
             <span class="oculos-circle"></span><span class="oculos-circle"></span>
           </span>
           <span class="icon icon-sm">cloud_download</span> Buscar do Oracle
         </button>
       </div>
-      <div class="inativ-controls" id="pepsicoHistControls" style="display:none;">
+      <div class="inativ-controls" id="unileverHistControls" style="display:none;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <input type="text" id="pepsicoHistFilter" placeholder="Buscar distribuidora…"
+          <input type="text" id="unileverHistFilter" placeholder="Buscar distribuidora…"
             style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text1);font-size:13px;width:220px;"
-            oninput="pepsicoRenderHistorico()">
-          <span id="pepsicoHistCount" style="font-size:12px;color:var(--text2);font-weight:600"></span>
+            oninput="unileverRenderHistorico()">
+          <span id="unileverHistCount" style="font-size:12px;color:var(--text2);font-weight:600"></span>
         </div>
       </div>
-      <div id="pepsicoHistTableWrap" style="overflow-x:auto;padding:0 0 8px;">
-        <div id="pepsicoHistEmpty" style="padding:48px;text-align:center;color:var(--text3);font-size:13px;">
+      <div id="unileverHistTableWrap" style="overflow-x:auto;padding:0 0 8px;">
+        <div id="unileverHistEmpty" style="padding:48px;text-align:center;color:var(--text3);font-size:13px;">
           <span class="icon" style="font-size:32px;color:var(--text3);display:block;margin-bottom:8px;">timeline</span>
           Clique em "Buscar do Oracle" para carregar o histórico completo.
         </div>
-        <table id="pepsicoHistTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px;">
-          <thead id="pepsicoHistThead"></thead>
-          <tbody id="pepsicoHistTbody"></tbody>
+        <table id="unileverHistTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px;">
+          <thead id="unileverHistThead"></thead>
+          <tbody id="unileverHistTbody"></tbody>
         </table>
       </div>
     </div>
-  </div><!-- /tabPepsicoHistorico -->
+  </div><!-- /tabUnileverHistorico -->
 
-</div><!-- /pepsicoSection -->
+</div><!-- /unileverSection -->
 
 </div><!-- /app -->
 </div><!-- /content-area -->
@@ -7947,7 +7947,7 @@ var _tenantConfig = {
   mdiassaud: { title: 'M Dias Saudáveis',  subtitle: 'Comparativo · Batalha Naval · Histórico de Vendas', updateLabel: 'Atualizar M Dias Saudáveis', updateFn: function() { runMdiasSaudUpdateAll(); },   onEnter: function() { mdiassaudLoadDriveFileList(); } },
   kibon:     { title: 'Kibon',             subtitle: 'Comparativo · Batalha Naval · Histórico de Vendas', updateLabel: 'Atualizar Kibon',           updateFn: function() { runKibonUpdateAll(); },        onEnter: function() { kibonLoadDriveFileList(); } },
   peccin:    { title: 'Peccin',           subtitle: 'Comparativo · Batalha Naval · Histórico de Vendas', updateLabel: 'Atualizar Peccin',          updateFn: function() { runPeccinUpdateAll(); },       onEnter: function() { peccinLoadDriveFileList(); } },
-  pepsico:   { title: 'Pepsico',           subtitle: 'Comparativo · Batalha Naval · Histórico de Vendas', updateLabel: 'Atualizar Pepsico',         updateFn: function() { runPepsicoUpdateAll(); },      onEnter: function() { pepsicoLoadDriveFileList(); } },
+  unilever:   { title: 'Unilever',           subtitle: 'Comparativo · Batalha Naval · Histórico de Vendas', updateLabel: 'Atualizar Unilever',         updateFn: function() { runUnileverUpdateAll(); },      onEnter: function() { unileverLoadDriveFileList(); } },
 };
 
 function switchTenant(t) {
@@ -7972,7 +7972,7 @@ function switchTenant(t) {
   document.getElementById('mdiassaudSection').style.display   = t === 'mdiassaud'  ? '' : 'none';
   document.getElementById('kibonSection').style.display       = t === 'kibon'      ? '' : 'none';
   document.getElementById('peccinSection').style.display      = t === 'peccin'     ? '' : 'none';
-  document.getElementById('pepsicoSection').style.display     = t === 'pepsico'    ? '' : 'none';
+  document.getElementById('unileverSection').style.display     = t === 'unilever'    ? '' : 'none';
   bicPanels.forEach(function(p) {
     var el = document.getElementById('tab' + p);
     if (el) el.style.display = isBic ? '' : 'none';
@@ -7988,7 +7988,7 @@ function switchTenant(t) {
   btn.onclick = cfg.updateFn;
 
   // Ativar botão de tenant
-  ['asa','bic','bombril','cicopal','fini','fruki','gallo','gtex','kibon','mdias','mdiassaud','marilan','peccin','pepsico'].forEach(function(id) {
+  ['asa','bic','bombril','cicopal','fini','fruki','gallo','gtex','kibon','mdias','mdiassaud','marilan','peccin','unilever'].forEach(function(id) {
     var el = document.getElementById('tenantBtn' + id.charAt(0).toUpperCase() + id.slice(1));
     if (el) el.classList.toggle('active', id === t);
   });
@@ -8513,7 +8513,7 @@ function runUpdateAllTenants() {
   btn.disabled = true;
 
   // Reset todos os steps e barras
-  ['asa','bic','bombril','cicopal','fini','fruki','gallo','gtex','kibon','mdias','mdiassaud','marilan','peccin','pepsico','geral'].forEach(function(t) {
+  ['asa','bic','bombril','cicopal','fini','fruki','gallo','gtex','kibon','mdias','mdiassaud','marilan','peccin','unilever','geral'].forEach(function(t) {
     document.getElementById('atBar_' + t).style.width      = '0%';
     document.getElementById('atBar_' + t).style.background = 'var(--accent)';
     document.getElementById('atMsg_' + t).textContent      = '';
@@ -8527,14 +8527,14 @@ function runUpdateAllTenants() {
   });
   panel.classList.add('visible');
 
-  var done   = { asa: false, bic: false, bombril: false, cicopal: false, fini: false, fruki: false, gallo: false, gtex: false, kibon: false, mdias: false, mdiassaud: false, marilan: false, peccin: false, pepsico: false, geral: false };
-  var errors = { asa: false, bic: false, bombril: false, cicopal: false, fini: false, fruki: false, gallo: false, gtex: false, kibon: false, mdias: false, mdiassaud: false, marilan: false, peccin: false, pepsico: false, geral: false };
+  var done   = { asa: false, bic: false, bombril: false, cicopal: false, fini: false, fruki: false, gallo: false, gtex: false, kibon: false, mdias: false, mdiassaud: false, marilan: false, peccin: false, unilever: false, geral: false };
+  var errors = { asa: false, bic: false, bombril: false, cicopal: false, fini: false, fruki: false, gallo: false, gtex: false, kibon: false, mdias: false, mdiassaud: false, marilan: false, peccin: false, unilever: false, geral: false };
 
   function checkAllDone() {
-    if (!done.asa || !done.bic || !done.bombril || !done.cicopal || !done.fini || !done.fruki || !done.gallo || !done.gtex || !done.kibon || !done.mdias || !done.mdiassaud || !done.marilan || !done.peccin || !done.pepsico || !done.geral) return;
+    if (!done.asa || !done.bic || !done.bombril || !done.cicopal || !done.fini || !done.fruki || !done.gallo || !done.gtex || !done.kibon || !done.mdias || !done.mdiassaud || !done.marilan || !done.peccin || !done.unilever || !done.geral) return;
     _allTenantsRunning = false;
     btn.disabled = false;
-    var hasError = errors.asa || errors.bic || errors.bombril || errors.cicopal || errors.fini || errors.fruki || errors.gallo || errors.gtex || errors.kibon || errors.mdias || errors.mdiassaud || errors.marilan || errors.peccin || errors.pepsico || errors.geral;
+    var hasError = errors.asa || errors.bic || errors.bombril || errors.cicopal || errors.fini || errors.fruki || errors.gallo || errors.gtex || errors.kibon || errors.mdias || errors.mdiassaud || errors.marilan || errors.peccin || errors.unilever || errors.geral;
     showToast(hasError ? '⚠️ Atualização concluída com erros.' : '✓ Todos os ambientes atualizados!',
       hasError ? 'error' : 'success', 6000);
   }
@@ -8614,7 +8614,7 @@ function runUpdateAllTenants() {
   connectTenant('gtex',      '/gtex/atualizar-tudo', 7);
   connectTenant('kibon',     '/kibon/atualizar-tudo', 7);
   connectTenant('peccin',    '/peccin/atualizar-tudo', 7);
-  connectTenant('pepsico',   '/pepsico/atualizar-tudo', 7);
+  connectTenant('unilever',   '/unilever/atualizar-tudo', 7);
   connectTenant('mdias',     '/mdias/atualizar-tudo', 7);
   connectTenant('mdiassaud', '/mdiassaud/atualizar-tudo', 7);
   connectTenant('marilan',   '/marilan/atualizar-tudo', 7);
@@ -14565,19 +14565,19 @@ function runPeccinUpdateAll() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  PEPSICO — Comparativo Sellout
+//  UNILEVER — Comparativo Sellout
 //  Nota: coluna de valor é VENDA_VALOR_BRUTO (não VENDA_VALOR)
 // ═══════════════════════════════════════════════════════════
 
-var pepsicoState = { prev: null, curr: null, result: null };
+var unileverState = { prev: null, curr: null, result: null };
 
-function pepsicoLoadDriveFileList() {
-  fetch(BACKEND + '/pepsico/listar-arquivos')
+function unileverLoadDriveFileList() {
+  fetch(BACKEND + '/unilever/listar-arquivos')
     .then(function(r) { return r.ok ? r.json() : []; })
     .catch(function() { return []; })
     .then(function(files) {
       ['Prev','Curr'].forEach(function(s) {
-        var sel = document.getElementById('pepsicodriveSelect' + s);
+        var sel = document.getElementById('unileverdriveSelect' + s);
         if (!sel) return;
         var cur = sel.value;
         sel.innerHTML = '<option value="">☁️ Selecionar data do Drive...</option>';
@@ -14591,7 +14591,7 @@ function pepsicoLoadDriveFileList() {
     });
 }
 
-function pepsicoNormalizeRows(rows) {
+function unileverNormalizeRows(rows) {
   return rows.map(function(r) {
     return {
       customer: (r.PARTNER_NAME || r.partner_name || r.customer || '').trim(),
@@ -14601,108 +14601,108 @@ function pepsicoNormalizeRows(rows) {
   });
 }
 
-function pepsicoUpdateUploadUI(slot, filename, dateStr, rowCount) {
+function unileverUpdateUploadUI(slot, filename, dateStr, rowCount) {
   var cap = function(s) { return s.charAt(0).toUpperCase() + s.slice(1); };
-  document.getElementById('pepsicoFileInfo' + cap(slot)).style.display = '';
-  document.getElementById('pepsicoFileName' + cap(slot)).textContent   = filename;
-  document.getElementById('pepsicoFileDate' + cap(slot)).textContent   = dateStr || '';
-  document.getElementById('pepsicoFileRows' + cap(slot)).textContent   = rowCount + ' linhas';
+  document.getElementById('unileverFileInfo' + cap(slot)).style.display = '';
+  document.getElementById('unileverFileName' + cap(slot)).textContent   = filename;
+  document.getElementById('unileverFileDate' + cap(slot)).textContent   = dateStr || '';
+  document.getElementById('unileverFileRows' + cap(slot)).textContent   = rowCount + ' linhas';
 }
 
-function pepsicoCheckBothLoaded() {
-  document.getElementById('pepsicobnBtnCompare').disabled = !(pepsicoState.prev && pepsicoState.curr);
+function unileverCheckBothLoaded() {
+  document.getElementById('unileverbnBtnCompare').disabled = !(unileverState.prev && unileverState.curr);
 }
 
-function pepsicoProcessFile(file, slot) {
+function unileverProcessFile(file, slot) {
   var cap = function(s) { return s.charAt(0).toUpperCase() + s.slice(1); };
-  document.getElementById('pepsicoBoxLoading' + cap(slot)).style.display = '';
+  document.getElementById('unileverBoxLoading' + cap(slot)).style.display = '';
   var reader = new FileReader();
   reader.onload = function(e) {
     try {
       var wb   = XLSX.read(e.target.result, { type: 'array' });
       var ws   = wb.Sheets[wb.SheetNames[0]];
-      var rows = pepsicoNormalizeRows(XLSX.utils.sheet_to_json(ws, { defval: null }));
-      pepsicoState[slot] = rows;
-      pepsicoUpdateUploadUI(slot, file.name, '', rows.length);
-      pepsicoCheckBothLoaded();
+      var rows = unileverNormalizeRows(XLSX.utils.sheet_to_json(ws, { defval: null }));
+      unileverState[slot] = rows;
+      unileverUpdateUploadUI(slot, file.name, '', rows.length);
+      unileverCheckBothLoaded();
     } catch(err) { showToast('Erro ao ler arquivo: ' + err.message, 'error'); }
-    finally { document.getElementById('pepsicoBoxLoading' + cap(slot)).style.display = 'none'; }
+    finally { document.getElementById('unileverBoxLoading' + cap(slot)).style.display = 'none'; }
   };
   reader.readAsArrayBuffer(file);
 }
 
-function pepsicoHandleFile(e, slot)     { if (e.target.files[0]) pepsicoProcessFile(e.target.files[0], slot); }
-function pepsicoHandleDrop(e, slot)     {
+function unileverHandleFile(e, slot)     { if (e.target.files[0]) unileverProcessFile(e.target.files[0], slot); }
+function unileverHandleDrop(e, slot)     {
   e.preventDefault();
   var cap = function(s) { return s.charAt(0).toUpperCase() + s.slice(1); };
-  document.getElementById('pepsicoDrop' + cap(slot)).classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) pepsicoProcessFile(e.dataTransfer.files[0], slot);
+  document.getElementById('unileverDrop' + cap(slot)).classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) unileverProcessFile(e.dataTransfer.files[0], slot);
 }
-function pepsicoHandleDrag(e, slot)     { e.preventDefault(); var cap = function(s){return s.charAt(0).toUpperCase()+s.slice(1);}; document.getElementById('pepsicoDrop' + cap(slot)).classList.add('drag-over'); }
-function pepsicoHandleDragLeave(e, slot){ var cap = function(s){return s.charAt(0).toUpperCase()+s.slice(1);}; document.getElementById('pepsicoDrop' + cap(slot)).classList.remove('drag-over'); }
+function unileverHandleDrag(e, slot)     { e.preventDefault(); var cap = function(s){return s.charAt(0).toUpperCase()+s.slice(1);}; document.getElementById('unileverDrop' + cap(slot)).classList.add('drag-over'); }
+function unileverHandleDragLeave(e, slot){ var cap = function(s){return s.charAt(0).toUpperCase()+s.slice(1);}; document.getElementById('unileverDrop' + cap(slot)).classList.remove('drag-over'); }
 
-async function pepsicoFetchLatestFromDrive(slot) {
+async function unileverFetchLatestFromDrive(slot) {
   var cap = function(s) { return s.charAt(0).toUpperCase() + s.slice(1); };
-  document.getElementById('pepsicoBoxLoading' + cap(slot)).style.display = '';
+  document.getElementById('unileverBoxLoading' + cap(slot)).style.display = '';
   try {
-    var r    = await fetch(BACKEND + '/pepsico/ultimo-arquivo');
+    var r    = await fetch(BACKEND + '/unilever/ultimo-arquivo');
     if (!r.ok) throw new Error(r.statusText);
     var data = await r.json();
-    var rows = pepsicoNormalizeRows(XLSX.utils.sheet_to_json(
+    var rows = unileverNormalizeRows(XLSX.utils.sheet_to_json(
       XLSX.read(Uint8Array.from(atob(data.buffer), c => c.charCodeAt(0)), { type: 'array' }).Sheets[
         XLSX.read(Uint8Array.from(atob(data.buffer), c => c.charCodeAt(0)), { type: 'array' }).SheetNames[0]
       ], { defval: null }
     ));
-    pepsicoState[slot] = rows;
-    pepsicoUpdateUploadUI(slot, data.filename, '', rows.length);
-    pepsicoCheckBothLoaded();
-  } catch(err) { showToast('Erro Drive Pepsico: ' + err.message, 'error'); }
-  finally { document.getElementById('pepsicoBoxLoading' + cap(slot)).style.display = 'none'; }
+    unileverState[slot] = rows;
+    unileverUpdateUploadUI(slot, data.filename, '', rows.length);
+    unileverCheckBothLoaded();
+  } catch(err) { showToast('Erro Drive Unilever: ' + err.message, 'error'); }
+  finally { document.getElementById('unileverBoxLoading' + cap(slot)).style.display = 'none'; }
 }
 
-async function pepsicoFetchFromDriveById(slot) {
+async function unileverFetchFromDriveById(slot) {
   var cap = function(s) { return s.charAt(0).toUpperCase() + s.slice(1); };
-  var sel = document.getElementById('pepsicodriveSelect' + cap(slot));
+  var sel = document.getElementById('unileverdriveSelect' + cap(slot));
   var fileId = sel ? sel.value : '';
   if (!fileId) return;
-  document.getElementById('pepsicoBoxLoading' + cap(slot)).style.display = '';
+  document.getElementById('unileverBoxLoading' + cap(slot)).style.display = '';
   try {
-    var r    = await fetch(BACKEND + '/pepsico/ultimo-arquivo?fileId=' + encodeURIComponent(fileId));
+    var r    = await fetch(BACKEND + '/unilever/ultimo-arquivo?fileId=' + encodeURIComponent(fileId));
     if (!r.ok) throw new Error(r.statusText);
     var data = await r.json();
-    var rows = pepsicoNormalizeRows(XLSX.utils.sheet_to_json(
+    var rows = unileverNormalizeRows(XLSX.utils.sheet_to_json(
       XLSX.read(Uint8Array.from(atob(data.buffer), c => c.charCodeAt(0)), { type: 'array' }).Sheets[
         XLSX.read(Uint8Array.from(atob(data.buffer), c => c.charCodeAt(0)), { type: 'array' }).SheetNames[0]
       ], { defval: null }
     ));
-    pepsicoState[slot] = rows;
-    pepsicoUpdateUploadUI(slot, data.filename, '', rows.length);
-    pepsicoCheckBothLoaded();
-  } catch(err) { showToast('Erro Drive Pepsico: ' + err.message, 'error'); }
-  finally { document.getElementById('pepsicoBoxLoading' + cap(slot)).style.display = 'none'; }
+    unileverState[slot] = rows;
+    unileverUpdateUploadUI(slot, data.filename, '', rows.length);
+    unileverCheckBothLoaded();
+  } catch(err) { showToast('Erro Drive Unilever: ' + err.message, 'error'); }
+  finally { document.getElementById('unileverBoxLoading' + cap(slot)).style.display = 'none'; }
 }
 
-async function pepsicoFetchFromOracle() {
-  var btn = document.getElementById('pepsicobnBtnOracle');
+async function unileverFetchFromOracle() {
+  var btn = document.getElementById('unileverbnBtnOracle');
   btn.disabled = true;
   btn.innerHTML = '<span class="icon icon-sm">hourglass_empty</span> Buscando…';
   try {
-    var r    = await fetch(BACKEND + '/pepsico/comparativo');
+    var r    = await fetch(BACKEND + '/unilever/comparativo');
     if (!r.ok) throw new Error(r.statusText);
     var rows = await r.json();
-    pepsicoState.curr = rows;
-    pepsicoUpdateUploadUI('curr', 'Oracle (atual)', '', rows.length);
-    pepsicoCheckBothLoaded();
-    pepsicoLoadDriveFileList();
-  } catch(err) { showToast('Erro Oracle Pepsico: ' + err.message, 'error'); }
+    unileverState.curr = rows;
+    unileverUpdateUploadUI('curr', 'Oracle (atual)', '', rows.length);
+    unileverCheckBothLoaded();
+    unileverLoadDriveFileList();
+  } catch(err) { showToast('Erro Oracle Unilever: ' + err.message, 'error'); }
   finally {
     btn.disabled = false;
     btn.innerHTML = '<span class="icon icon-sm">cloud_download</span> Buscar Atual do Oracle';
   }
 }
 
-function pepsicoRunComparison() {
-  var prev = pepsicoState.prev; var curr = pepsicoState.curr;
+function unileverRunComparison() {
+  var prev = unileverState.prev; var curr = unileverState.curr;
   if (!prev || !curr) return;
 
   var prevMap = {}; var currMap = {};
@@ -14723,33 +14723,33 @@ function pepsicoRunComparison() {
     result.push({ customer, anomes, prev: pv, curr: cv, diff, pct, status });
   });
 
-  pepsicoState.result = result;
-  document.getElementById('pepsicoCardPrev').textContent         = fmtBRL(totPrev);
-  document.getElementById('pepsicoCardCurr').textContent         = fmtBRL(totCurr);
-  var diffEl = document.getElementById('pepsicoCardDiff');
+  unileverState.result = result;
+  document.getElementById('unileverCardPrev').textContent         = fmtBRL(totPrev);
+  document.getElementById('unileverCardCurr').textContent         = fmtBRL(totCurr);
+  var diffEl = document.getElementById('unileverCardDiff');
   var totDiff = totCurr - totPrev;
   diffEl.textContent = (totDiff >= 0 ? '+' : '') + fmtBRL(totDiff);
   diffEl.className   = 'card-value ' + (totDiff >= 0 ? 'green' : 'red');
-  document.getElementById('pepsicoCardClosedChanged').textContent = closedChanged;
+  document.getElementById('unileverCardClosedChanged').textContent = closedChanged;
 
   var months = {};
   result.forEach(function(r) { if (r.anomes) months[r.anomes] = true; });
-  var mSel = document.getElementById('pepsicoFilterMonth');
+  var mSel = document.getElementById('unileverFilterMonth');
   mSel.innerHTML = '<option value="">Todos os meses</option>';
   Object.keys(months).sort().reverse().forEach(function(m) {
     var opt = document.createElement('option'); opt.value = m; opt.textContent = fmtMonth(m); mSel.appendChild(opt);
   });
 
-  document.getElementById('pepsicoEmptyState').style.display   = 'none';
-  document.getElementById('pepsicoResultSection').style.display = '';
-  pepsicoApplyFilters();
+  document.getElementById('unileverEmptyState').style.display   = 'none';
+  document.getElementById('unileverResultSection').style.display = '';
+  unileverApplyFilters();
 }
 
-function pepsicoApplyFilters() {
-  var result  = pepsicoState.result || [];
-  var month   = document.getElementById('pepsicoFilterMonth').value;
-  var type    = document.getElementById('pepsicoFilterType').value;
-  var search  = (document.getElementById('pepsicoFilterSearch').value || '').toLowerCase();
+function unileverApplyFilters() {
+  var result  = unileverState.result || [];
+  var month   = document.getElementById('unileverFilterMonth').value;
+  var type    = document.getElementById('unileverFilterType').value;
+  var search  = (document.getElementById('unileverFilterSearch').value || '').toLowerCase();
   var filtered = result.filter(function(r) {
     if (month  && r.anomes !== month) return false;
     if (type === 'closed-changed' && !(r.prev > 0 && r.curr !== r.prev)) return false;
@@ -14770,29 +14770,29 @@ function pepsicoApplyFilters() {
       '<td style="padding:8px 12px;color:' + col + '">' + r.status + '</td>' +
       '</tr>';
   }).join('');
-  document.getElementById('pepsicoResultTbody').innerHTML = html;
-  document.getElementById('pepsicoRowCount').textContent = filtered.length + ' registros';
+  document.getElementById('unileverResultTbody').innerHTML = html;
+  document.getElementById('unileverRowCount').textContent = filtered.length + ' registros';
 }
 
-function pepsicoResetAll() {
-  pepsicoState = { prev: null, curr: null, result: null };
+function unileverResetAll() {
+  unileverState = { prev: null, curr: null, result: null };
   ['Prev','Curr'].forEach(function(s) {
-    document.getElementById('pepsicoFileInfo' + s).style.display = 'none';
-    document.getElementById('pepsicoFileName' + s).textContent   = '';
-    document.getElementById('pepsicoFileDate' + s).textContent   = '';
-    document.getElementById('pepsicoFileRows' + s).textContent   = '';
-    document.getElementById('pepsicoFile' + s).value = '';
-    document.getElementById('pepsicodriveSelect' + s).value = '';
+    document.getElementById('unileverFileInfo' + s).style.display = 'none';
+    document.getElementById('unileverFileName' + s).textContent   = '';
+    document.getElementById('unileverFileDate' + s).textContent   = '';
+    document.getElementById('unileverFileRows' + s).textContent   = '';
+    document.getElementById('unileverFile' + s).value = '';
+    document.getElementById('unileverdriveSelect' + s).value = '';
   });
-  document.getElementById('pepsicobnBtnCompare').disabled = true;
-  document.getElementById('pepsicoResultSection').style.display = 'none';
-  document.getElementById('pepsicoEmptyState').style.display    = '';
+  document.getElementById('unileverbnBtnCompare').disabled = true;
+  document.getElementById('unileverResultSection').style.display = 'none';
+  document.getElementById('unileverEmptyState').style.display    = '';
 }
 
-function pepsicoSwitch(tab) {
+function unileverSwitch(tab) {
   ['comparativo','batalha','historico'].forEach(function(t) {
-    var panel = document.getElementById('tabPepsico' + cap(t));
-    var btn   = document.getElementById('tabBtnPepsico' + cap(t));
+    var panel = document.getElementById('tabUnilever' + cap(t));
+    var btn   = document.getElementById('tabBtnUnilever' + cap(t));
     if (!panel || !btn) return;
     if (t === tab) {
       panel.classList.add('active'); btn.classList.add('active');
@@ -14800,43 +14800,43 @@ function pepsicoSwitch(tab) {
       panel.classList.remove('active'); btn.classList.remove('active');
     }
   });
-  if (tab === 'batalha') pepsicobnInit();
+  if (tab === 'batalha') unileverbnInit();
 }
 
-var pepsicobnState = { loaded: false, allRows: [] };
+var unileverbnState = { loaded: false, allRows: [] };
 
-function pepsicobnInit() {
-  if (pepsicobnState.loaded) return;
-  pepsicobnCarregar();
+function unileverbnInit() {
+  if (unileverbnState.loaded) return;
+  unileverbnCarregar();
 }
 
-async function pepsicobnCarregar() {
-  var status = document.getElementById('pepsicobnStatus');
+async function unileverbnCarregar() {
+  var status = document.getElementById('unileverbnStatus');
   status.textContent = 'Carregando…';
-  document.getElementById('pepsicobnGridWrap').innerHTML = '';
+  document.getElementById('unileverbnGridWrap').innerHTML = '';
   try {
-    var r1   = await fetch(BACKEND + '/pepsico/batalha-naval-arquivo');
+    var r1   = await fetch(BACKEND + '/unilever/batalha-naval-arquivo');
     var info = await r1.json();
     if (!info.fileId) {
       status.textContent = 'Nenhum arquivo disponível. Clique em "Atualizar dados" para gerar.';
       return;
     }
-    document.getElementById('pepsicobnFileInfo').textContent = info.name || '';
-    var r2   = await fetch(BACKEND + '/pepsico/batalha-naval-dados?fileId=' + encodeURIComponent(info.fileId));
+    document.getElementById('unileverbnFileInfo').textContent = info.name || '';
+    var r2   = await fetch(BACKEND + '/unilever/batalha-naval-dados?fileId=' + encodeURIComponent(info.fileId));
     var data = await r2.json();
-    pepsicobnState.allRows = data.rows || [];
-    pepsicobnState.loaded  = true;
+    unileverbnState.allRows = data.rows || [];
+    unileverbnState.loaded  = true;
     status.textContent   = '';
-    pepsicobnRender();
+    unileverbnRender();
   } catch (err) {
     status.textContent = 'Erro: ' + err.message;
   }
 }
 
-function pepsicobnRender() {
-  var mes    = document.getElementById('pepsicobnMesSel').value;
-  var rows   = pepsicobnState.allRows;
-  var mesSel = document.getElementById('pepsicobnMesSel');
+function unileverbnRender() {
+  var mes    = document.getElementById('unileverbnMesSel').value;
+  var rows   = unileverbnState.allRows;
+  var mesSel = document.getElementById('unileverbnMesSel');
 
   if (mesSel.options.length <= 1) {
     var meses = {};
@@ -14851,7 +14851,7 @@ function pepsicobnRender() {
     }
   }
 
-  if (!mes) { document.getElementById('pepsicobnGridWrap').innerHTML = ''; return; }
+  if (!mes) { document.getElementById('unileverbnGridWrap').innerHTML = ''; return; }
 
   var filtered = rows.filter(function(r) { return r.VENDA_DATA && r.VENDA_DATA.startsWith(mes); });
   var dates = {}, partners = {};
@@ -14890,24 +14890,24 @@ function pepsicobnRender() {
     html += '</tr>';
   });
   html += '</tbody></table></div>';
-  document.getElementById('pepsicobnGridWrap').innerHTML = html;
-  document.getElementById('pepsicobnStatus').textContent = '';
+  document.getElementById('unileverbnGridWrap').innerHTML = html;
+  document.getElementById('unileverbnStatus').textContent = '';
 }
 
-async function pepsicobnAtualizar() {
-  var btn    = document.getElementById('pepsicobnBtnAtualizar');
-  var status = document.getElementById('pepsicobnStatus');
+async function unileverbnAtualizar() {
+  var btn    = document.getElementById('unileverbnBtnAtualizar');
+  var status = document.getElementById('unileverbnStatus');
   btn.disabled    = true;
   btn.textContent = '↻ Atualizando…';
   status.textContent = 'Consultando Oracle e salvando no Drive…';
   try {
-    var resp = await fetch(BACKEND + '/pepsico/batalha-naval-atualizar', { method: 'POST' });
+    var resp = await fetch(BACKEND + '/unilever/batalha-naval-atualizar', { method: 'POST' });
     var data = await resp.json();
     if (!resp.ok) throw new Error(data.error || resp.statusText);
     status.textContent = '✓ ' + data.fileName + ' (' + data.rowCount + ' registros). Recarregando…';
-    pepsicobnState.loaded = false;
-    document.getElementById('pepsicobnMesSel').innerHTML = '<option value="">— selecione —</option>';
-    await pepsicobnCarregar();
+    unileverbnState.loaded = false;
+    document.getElementById('unileverbnMesSel').innerHTML = '<option value="">— selecione —</option>';
+    await unileverbnCarregar();
   } catch (err) {
     status.textContent = 'Erro: ' + err.message;
   } finally {
@@ -14916,42 +14916,42 @@ async function pepsicobnAtualizar() {
   }
 }
 
-var pepsicoHistState = { rows: [], loaded: false, modo: 'ano' };
+var unileverHistState = { rows: [], loaded: false, modo: 'ano' };
 
-async function pepsicoFetchHistorico() {
-  if (pepsicoHistState.loaded) { pepsicoRenderHistorico(); return; }
-  var btn     = document.getElementById('pepsicoHistBtn');
-  var spinner = document.getElementById('pepsicoHistSpinner');
+async function unileverFetchHistorico() {
+  if (unileverHistState.loaded) { unileverRenderHistorico(); return; }
+  var btn     = document.getElementById('unileverHistBtn');
+  var spinner = document.getElementById('unileverHistSpinner');
   btn.disabled = true;
   spinner.style.display = '';
   try {
-    var r = await fetch(BACKEND + '/pepsico/historico-vendas');
+    var r = await fetch(BACKEND + '/unilever/historico-vendas');
     if (!r.ok) throw new Error(r.statusText);
     var data = await r.json();
-    pepsicoHistState.rows   = data;
-    pepsicoHistState.loaded = true;
-    document.getElementById('pepsicoHistControls').style.display = '';
-    document.getElementById('pepsicoHistEmpty').style.display    = 'none';
-    pepsicoRenderHistorico();
+    unileverHistState.rows   = data;
+    unileverHistState.loaded = true;
+    document.getElementById('unileverHistControls').style.display = '';
+    document.getElementById('unileverHistEmpty').style.display    = 'none';
+    unileverRenderHistorico();
   } catch (err) {
-    showToast('Erro Histórico Pepsico: ' + err.message, 'error');
+    showToast('Erro Histórico Unilever: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
     spinner.style.display = 'none';
   }
 }
 
-function pepsicoHistSetModo(modo) {
-  pepsicoHistState.modo = modo;
-  document.getElementById('pepsicoHistModoBtnAno').classList.toggle('active', modo === 'ano');
-  document.getElementById('pepsicoHistModoBtnMes').classList.toggle('active', modo === 'mes');
-  pepsicoRenderHistorico();
+function unileverHistSetModo(modo) {
+  unileverHistState.modo = modo;
+  document.getElementById('unileverHistModoBtnAno').classList.toggle('active', modo === 'ano');
+  document.getElementById('unileverHistModoBtnMes').classList.toggle('active', modo === 'mes');
+  unileverRenderHistorico();
 }
 
-function pepsicoRenderHistorico() {
-  var rows   = pepsicoHistState.rows;
-  var filter = document.getElementById('pepsicoHistFilter') ? document.getElementById('pepsicoHistFilter').value.toLowerCase() : '';
-  var modo   = pepsicoHistState.modo;
+function unileverRenderHistorico() {
+  var rows   = unileverHistState.rows;
+  var filter = document.getElementById('unileverHistFilter') ? document.getElementById('unileverHistFilter').value.toLowerCase() : '';
+  var modo   = unileverHistState.modo;
   if (filter) rows = rows.filter(function(r) { return r.partnerName.toLowerCase().indexOf(filter) !== -1; });
   var periods = {}, partners = {};
   rows.forEach(function(r) {
@@ -14966,9 +14966,9 @@ function pepsicoRenderHistorico() {
     var k = r.partnerName + '|||' + period;
     dataMap[k] = (dataMap[k] || 0) + r.valor;
   });
-  var thead = document.getElementById('pepsicoHistThead');
-  var tbody = document.getElementById('pepsicoHistTbody');
-  var table = document.getElementById('pepsicoHistTable');
+  var thead = document.getElementById('unileverHistThead');
+  var tbody = document.getElementById('unileverHistTbody');
+  var table = document.getElementById('unileverHistTable');
   if (!thead || !tbody || !table) return;
   var hHtml = '<tr><th style="text-align:left;padding:8px;background:var(--bg3);position:sticky;left:0;border:1px solid var(--border);">Distribuidora</th>';
   sortedPeriods.forEach(function(p) {
@@ -14989,29 +14989,29 @@ function pepsicoRenderHistorico() {
     bHtml += '<td style="text-align:right;padding:6px 8px;border:1px solid var(--border);font-weight:600;">' + fmtBRL(total) + '</td></tr>';
   });
   tbody.innerHTML = bHtml;
-  var countEl = document.getElementById('pepsicoHistCount');
+  var countEl = document.getElementById('unileverHistCount');
   if (countEl) countEl.textContent = sortedPartners.length + ' distribuidoras';
   table.style.display = '';
 }
 
 // ═══════════════════════════════════════════════════════════
-//  PEPSICO — Atualizar Tudo (SSE)
+//  UNILEVER — Atualizar Tudo (SSE)
 // ═══════════════════════════════════════════════════════════
 
-var _pepsicoUpdRunning = false;
+var _unileverUpdRunning = false;
 
-function runPepsicoUpdateAll() {
-  if (_pepsicoUpdRunning) return;
-  _pepsicoUpdRunning = true;
+function runUnileverUpdateAll() {
+  if (_unileverUpdRunning) return;
+  _unileverUpdRunning = true;
 
   var btn   = document.getElementById('btnUpdateCurrent');
-  var panel = document.getElementById('pepsicoUpdatePanel');
-  var bar   = document.getElementById('pepsicoUpdBar');
-  var msg   = document.getElementById('pepsicoUpdMsg');
+  var panel = document.getElementById('unileverUpdatePanel');
+  var bar   = document.getElementById('unileverUpdBar');
+  var msg   = document.getElementById('unileverUpdMsg');
   btn.disabled = true;
 
   [1,2,3,4,5,6,7].forEach(function(i) {
-    var el = document.getElementById('pepsicoUpdS' + i);
+    var el = document.getElementById('unileverUpdS' + i);
     if (!el) return;
     el.className = 'upd-step-item';
     el.querySelector('.upd-step-icon').textContent = '⬜';
@@ -15023,7 +15023,7 @@ function runPepsicoUpdateAll() {
 
   var activeStep = 0;
   function setStep(n, status) {
-    var el = document.getElementById('pepsicoUpdS' + n);
+    var el = document.getElementById('unileverUpdS' + n);
     if (!el) return;
     el.className = 'upd-step-item ' + status;
     if (status === 'done')   el.querySelector('.upd-step-icon').textContent = '✅';
@@ -15031,7 +15031,7 @@ function runPepsicoUpdateAll() {
     if (status === 'error')  el.querySelector('.upd-step-icon').textContent = '❌';
   }
 
-  var es = new EventSource(BACKEND + '/pepsico/atualizar-tudo');
+  var es = new EventSource(BACKEND + '/unilever/atualizar-tudo');
 
   es.onmessage = function(e) {
     var data;
@@ -15042,8 +15042,8 @@ function runPepsicoUpdateAll() {
       msg.textContent      = 'Erro: ' + data.error;
       bar.style.background = 'var(--red)';
       btn.disabled         = false;
-      _pepsicoUpdRunning   = false;
-      showToast('❌ Erro Pepsico: ' + data.error, 'error', 8000);
+      _unileverUpdRunning   = false;
+      showToast('❌ Erro Unilever: ' + data.error, 'error', 8000);
       setTimeout(function() { panel.classList.remove('visible'); }, 6000);
       return;
     }
@@ -15052,13 +15052,13 @@ function runPepsicoUpdateAll() {
       if (activeStep > 0) setStep(activeStep, 'done');
       bar.style.width      = '100%';
       bar.style.background = 'var(--green)';
-      msg.textContent      = 'Pepsico atualizado com sucesso!';
+      msg.textContent      = 'Unilever atualizado com sucesso!';
       btn.disabled         = false;
-      _pepsicoUpdRunning   = false;
-      showToast('✓ Pepsico atualizado!', 'success', 5000);
-      pepsicobnState.loaded   = false;
-      pepsicoHistState.loaded = false;
-      pepsicoLoadDriveFileList();
+      _unileverUpdRunning   = false;
+      showToast('✓ Unilever atualizado!', 'success', 5000);
+      unileverbnState.loaded   = false;
+      unileverHistState.loaded = false;
+      unileverLoadDriveFileList();
       setTimeout(function() { panel.classList.remove('visible'); }, 5000);
       return;
     }
@@ -15076,7 +15076,7 @@ function runPepsicoUpdateAll() {
     msg.textContent      = 'Conexão interrompida.';
     bar.style.background = 'var(--red)';
     btn.disabled         = false;
-    _pepsicoUpdRunning   = false;
+    _unileverUpdRunning   = false;
   };
 }
 
@@ -15084,7 +15084,7 @@ function runPepsicoUpdateAll() {
 //  SHELL — sidebar (módulos da indústria) + topo, padrão bic_system
 // ═══════════════════════════════════════════════════════════
 var SB_BADGE = { asa:'ASA', bic:'BIC', bombril:'BOM', cicopal:'CIC', fini:'FIN', fruki:'FRK', gallo:'GAL', gtex:'GTX',
-                 kibon:'KBN', mdias:'MD', mdiassaud:'MDS', marilan:'MRL', peccin:'PCC', pepsico:'PEP' };
+                 kibon:'KBN', mdias:'MD', mdiassaud:'MDS', marilan:'MRL', peccin:'PCC', unilever:'ULV' };
 
 function sbBuildNav() {
   var nav = document.getElementById(_activeTenant === 'bic' ? 'bicTabNav' : _activeTenant + 'TabNav');

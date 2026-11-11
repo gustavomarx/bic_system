@@ -1253,7 +1253,7 @@ const INDUSTRIAS_USUARIOS = [
   { nome: 'M Dias',           orgId: '04645518-424f-44a1-a1f8-7128a253b923', codigos: ['MDIAS', 'mDiasBranco'], grupos: ['mDiasBranco'] },
   { nome: 'M Dias Saudáveis', orgId: '0c30a4c7-6c65-4f2e-b7ea-c8dff61ef0f2', codigos: ['saudaveis'],            grupos: ['mDiasBrancoSaudaveis'] },
   { nome: 'Peccin',           orgId: '2bb30205-3b55-4bf7-bc72-5ce17793ed79', codigos: ['PECCIN'] },
-  { nome: 'Pepsico',          orgId: 'a90f7541-97b5-4da5-a133-76422d1982f2', codigos: ['PEPSICO'] },  { nome: 'Ultracheese',      orgId: '27c5050f-b03a-40e2-ad18-5fee264974b9', codigos: ['ULTRACHEESE'] },
+  { nome: 'Ultracheese',      orgId: '27c5050f-b03a-40e2-ad18-5fee264974b9', codigos: ['ULTRACHEESE'] },
 ];
 
 // Usuários de todas as organizações ativas (consulta aberta, sem filtro de indústria)
@@ -5230,25 +5230,25 @@ app.get('/kibon/atualizar-tudo', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-//  PEPSICO — Tenant isolado
-//  Oracle: mesmas credenciais Marilan (bigeral2) | Drive: PEPSICO_GOOGLE_DRIVE_*
-//  Tabela: sellers.PEPSICO_VENDAS_PARCEIRO
+//  UNILEVER — Tenant isolado
+//  Oracle: mesmas credenciais Marilan (bigeral2) | Drive: UNILEVER_GOOGLE_DRIVE_*
+//  Tabela: sellers.UNILEVER_VENDAS_PARCEIRO
 //  Sem holdings, sem CNPJ
 // ═══════════════════════════════════════════════════════════
 
-async function getPepsicoConn() { return getMarilanConn(); }
+async function getUnileverConn() { return getMarilanConn(); }
 
-// ─── Comparativo Sellout Pepsico ─────────────────────────
-app.get('/pepsico/comparativo', async (req, res) => {
+// ─── Comparativo Sellout Unilever ─────────────────────────
+app.get('/unilever/comparativo', async (req, res) => {
   let conn;
   try {
-    conn = await getPepsicoConn();
+    conn = await getUnileverConn();
     const result = await conn.execute(
       `SELECT
          "PARTNER_NAME"                   AS "PARTNER_NAME",
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
-       FROM sellers.PEPSICO_VENDAS_PARCEIRO
+       FROM sellers.UNILEVER_VENDAS_PARCEIRO
        WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
@@ -5264,27 +5264,27 @@ app.get('/pepsico/comparativo', async (req, res) => {
     (async () => {
       try {
         const drive    = getDriveClient();
-        const folderId = process.env.PEPSICO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
+        const folderId = process.env.UNILEVER_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
         if (!folderId) return;
         const { d, mo, y } = buildBrDateStr();
         const filename = `relatorio_${d}-${mo}-${y}.xlsx`;
         const wsRows   = rows.map(r => ({ PARTNER_NAME: r.customer, ANO_MES: r.anomes, VENDA_VALOR: r.valor }));
         await mdiasSaveXlsx(drive, folderId, filename, wsRows, 'Dados');
-        console.log(`[Drive/Pepsico] Comparativo salvo: "${filename}".`);
-      } catch (e) { console.error('[Drive/Pepsico] Erro ao salvar comparativo:', e.message); }
+        console.log(`[Drive/Unilever] Comparativo salvo: "${filename}".`);
+      } catch (e) { console.error('[Drive/Unilever] Erro ao salvar comparativo:', e.message); }
     })();
   } catch (err) {
-    console.error('[Pepsico/Oracle] Erro /pepsico/comparativo:', err.message);
+    console.error('[Unilever/Oracle] Erro /unilever/comparativo:', err.message);
     res.status(500).json({ error: err.message });
   } finally {
     if (conn) { try { await conn.close(); } catch (_) {} }
   }
 });
 
-app.get('/pepsico/listar-arquivos', async (req, res) => {
+app.get('/unilever/listar-arquivos', async (req, res) => {
   try {
     const drive    = getDriveClient();
-    const folderId = process.env.PEPSICO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
+    const folderId = process.env.UNILEVER_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
     if (!folderId) return res.json([]);
     const listResp = await drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
@@ -5304,11 +5304,11 @@ app.get('/pepsico/listar-arquivos', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/pepsico/ultimo-arquivo', async (req, res) => {
+app.get('/unilever/ultimo-arquivo', async (req, res) => {
   try {
     const drive    = getDriveClient();
-    const folderId = process.env.PEPSICO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
-    if (!folderId) return res.status(500).json({ error: 'PEPSICO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID não configurado.' });
+    const folderId = process.env.UNILEVER_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
+    if (!folderId) return res.status(500).json({ error: 'UNILEVER_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID não configurado.' });
     let fileId = req.query.fileId || null;
     let filename = null;
     if (!fileId) {
@@ -5339,17 +5339,17 @@ app.get('/pepsico/ultimo-arquivo', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ─── Batalha Naval Pepsico ────────────────────────────────
-async function pepsicoSaveBatalhaNavalToDrive() {
+// ─── Batalha Naval Unilever ────────────────────────────────
+async function unileverSaveBatalhaNavalToDrive() {
   let conn;
   try {
-    conn = await getPepsicoConn();
+    conn = await getUnileverConn();
     const result = await conn.execute(
       `SELECT
          "PARTNER_NAME"                      AS "PARTNER_NAME",
          TO_CHAR("VENDA_DATA", 'YYYY-MM-DD') AS "VENDA_DATA",
          COALESCE(SUM("VENDA_VALOR"), 0)     AS "VENDA_VALOR"
-       FROM sellers.PEPSICO_VENDAS_PARCEIRO
+       FROM sellers.UNILEVER_VENDAS_PARCEIRO
        WHERE "VENDA_DATA" >= LEAST(TRUNC(SYSDATE, 'YEAR'), ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1))
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", "VENDA_DATA"`,
@@ -5361,35 +5361,35 @@ async function pepsicoSaveBatalhaNavalToDrive() {
       VENDA_VALOR:  r.VENDA_VALOR,
     }));
     const drive    = getDriveClient();
-    const folderId = process.env.PEPSICO_GOOGLE_DRIVE_BATALHA_FOLDER_ID;
-    if (!folderId) { console.warn('[Drive/Pepsico] PEPSICO_GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado.'); return { rows }; }
+    const folderId = process.env.UNILEVER_GOOGLE_DRIVE_BATALHA_FOLDER_ID;
+    if (!folderId) { console.warn('[Drive/Unilever] UNILEVER_GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado.'); return { rows }; }
     const now     = new Date();
     const pad     = n => String(n).padStart(2, '0');
     const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
-    const fileName = `pepsico_batalha_${dateStr}.xlsx`;
+    const fileName = `unilever_batalha_${dateStr}.xlsx`;
     await mdiasSaveXlsx(drive, folderId, fileName, rows, 'Dados');
-    console.log(`[Drive/Pepsico] Batalha Naval salvo: "${fileName}" (${rows.length} linhas)`);
+    console.log(`[Drive/Unilever] Batalha Naval salvo: "${fileName}" (${rows.length} linhas)`);
     return { fileName, rowCount: rows.length };
   } catch (err) {
-    console.error('[Drive/Pepsico] Erro ao salvar Batalha Naval:', err.message);
+    console.error('[Drive/Unilever] Erro ao salvar Batalha Naval:', err.message);
     throw err;
   } finally {
     if (conn) { try { await conn.close(); } catch (_) {} }
   }
 }
 
-app.post('/pepsico/batalha-naval-atualizar', async (req, res) => {
+app.post('/unilever/batalha-naval-atualizar', async (req, res) => {
   try {
-    const result = await pepsicoSaveBatalhaNavalToDrive();
+    const result = await unileverSaveBatalhaNavalToDrive();
     res.json({ ok: true, ...result });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/pepsico/batalha-naval-arquivo', async (req, res) => {
+app.get('/unilever/batalha-naval-arquivo', async (req, res) => {
   try {
     const drive    = getDriveClient();
-    const folderId = process.env.PEPSICO_GOOGLE_DRIVE_BATALHA_FOLDER_ID;
-    if (!folderId) return res.status(500).json({ error: 'PEPSICO_GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado' });
+    const folderId = process.env.UNILEVER_GOOGLE_DRIVE_BATALHA_FOLDER_ID;
+    if (!folderId) return res.status(500).json({ error: 'UNILEVER_GOOGLE_DRIVE_BATALHA_FOLDER_ID não configurado' });
     const listResp = await drive.files.list({
       q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
       fields: 'files(id, name, createdTime)', orderBy: 'createdTime desc', pageSize: 5,
@@ -5402,7 +5402,7 @@ app.get('/pepsico/batalha-naval-arquivo', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/pepsico/batalha-naval-dados', async (req, res) => {
+app.get('/unilever/batalha-naval-dados', async (req, res) => {
   try {
     const { fileId } = req.query;
     if (!fileId) return res.status(400).json({ error: 'fileId obrigatório' });
@@ -5417,17 +5417,17 @@ app.get('/pepsico/batalha-naval-dados', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ─── Histórico de Vendas Pepsico ──────────────────────────
-app.get('/pepsico/historico-vendas', async (req, res) => {
+// ─── Histórico de Vendas Unilever ──────────────────────────
+app.get('/unilever/historico-vendas', async (req, res) => {
   let conn;
   try {
-    conn = await getPepsicoConn();
+    conn = await getUnileverConn();
     const result = await conn.execute(
       `SELECT
          "PARTNER_NAME"                   AS "PARTNER_NAME",
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
-       FROM sellers.PEPSICO_VENDAS_PARCEIRO
+       FROM sellers.UNILEVER_VENDAS_PARCEIRO
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -5441,25 +5441,25 @@ app.get('/pepsico/historico-vendas', async (req, res) => {
     (async () => {
       try {
         const drive    = getDriveClient();
-        const folderId = process.env.PEPSICO_GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
+        const folderId = process.env.UNILEVER_GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
         if (!folderId) return;
         const { d, mo, y } = buildBrDateStr();
-        const filename = `pepsico_historico_${d}-${mo}-${y}.xlsx`;
+        const filename = `unilever_historico_${d}-${mo}-${y}.xlsx`;
         const wsRows   = rows.map(r => ({ PARTNER_NAME: r.partnerName, ANO_MES: r.anoMes, VENDA_VALOR: r.valor }));
         await mdiasSaveXlsx(drive, folderId, filename, wsRows, 'Histórico');
-        console.log(`[Drive/Pepsico] Histórico salvo: "${filename}".`);
-      } catch (e) { console.error('[Drive/Pepsico] Erro ao salvar histórico:', e.message); }
+        console.log(`[Drive/Unilever] Histórico salvo: "${filename}".`);
+      } catch (e) { console.error('[Drive/Unilever] Erro ao salvar histórico:', e.message); }
     })();
   } catch (err) {
-    console.error('[Pepsico/Oracle] Erro /pepsico/historico-vendas:', err.message);
+    console.error('[Unilever/Oracle] Erro /unilever/historico-vendas:', err.message);
     res.status(500).json({ error: err.message });
   } finally {
     if (conn) { try { await conn.close(); } catch (_) {} }
   }
 });
 
-// ─── Atualizar Tudo Pepsico — SSE ─────────────────────────
-app.get('/pepsico/atualizar-tudo', async (req, res) => {
+// ─── Atualizar Tudo Unilever — SSE ─────────────────────────
+app.get('/unilever/atualizar-tudo', async (req, res) => {
   res.setHeader('Content-Type',  'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection',    'keep-alive');
@@ -5468,14 +5468,14 @@ app.get('/pepsico/atualizar-tudo', async (req, res) => {
   const emit = (pct, step, msg) => res.write(`data: ${JSON.stringify({ pct, step, msg })}\n\n`);
   let conn;
   try {
-    emit(5,  1, 'Conectando ao Oracle Pepsico…');
-    conn = await getPepsicoConn();
+    emit(5,  1, 'Conectando ao Oracle Unilever…');
+    conn = await getUnileverConn();
 
     emit(20, 2, 'Buscando comparativo de sellout…');
     const compResult = await conn.execute(
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
-       FROM sellers.PEPSICO_VENDAS_PARCEIRO
+       FROM sellers.UNILEVER_VENDAS_PARCEIRO
        WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -5487,7 +5487,7 @@ app.get('/pepsico/atualizar-tudo', async (req, res) => {
     const bnResult = await conn.execute(
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR("VENDA_DATA", 'YYYY-MM-DD') AS "VENDA_DATA",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
-       FROM sellers.PEPSICO_VENDAS_PARCEIRO
+       FROM sellers.UNILEVER_VENDAS_PARCEIRO
        WHERE "VENDA_DATA" >= LEAST(TRUNC(SYSDATE, 'YEAR'), ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1)) AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", "VENDA_DATA"`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -5499,7 +5499,7 @@ app.get('/pepsico/atualizar-tudo', async (req, res) => {
     const histResult = await conn.execute(
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
-       FROM sellers.PEPSICO_VENDAS_PARCEIRO
+       FROM sellers.UNILEVER_VENDAS_PARCEIRO
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -5511,7 +5511,7 @@ app.get('/pepsico/atualizar-tudo', async (req, res) => {
     emit(83, 5, 'Salvando comparativo no Drive…');
     {
       const drive    = getDriveClient();
-      const folderId = process.env.PEPSICO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
+      const folderId = process.env.UNILEVER_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID;
       if (folderId) {
         const { d, mo, y } = buildBrDateStr();
         const filename = `relatorio_${d}-${mo}-${y}.xlsx`;
@@ -5524,11 +5524,11 @@ app.get('/pepsico/atualizar-tudo', async (req, res) => {
     emit(90, 6, 'Salvando Batalha Naval no Drive…');
     {
       const drive    = getDriveClient();
-      const folderId = process.env.PEPSICO_GOOGLE_DRIVE_BATALHA_FOLDER_ID;
+      const folderId = process.env.UNILEVER_GOOGLE_DRIVE_BATALHA_FOLDER_ID;
       if (folderId) {
         const now = new Date(); const pad = n => String(n).padStart(2, '0');
         const dateStr  = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
-        const fileName = `pepsico_batalha_${dateStr}.xlsx`;
+        const fileName = `unilever_batalha_${dateStr}.xlsx`;
         await mdiasSaveXlsx(drive, folderId, fileName, bnRows, 'Dados');
       }
     }
@@ -5537,10 +5537,10 @@ app.get('/pepsico/atualizar-tudo', async (req, res) => {
     emit(96, 7, 'Salvando histórico no Drive…');
     {
       const drive    = getDriveClient();
-      const folderId = process.env.PEPSICO_GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
+      const folderId = process.env.UNILEVER_GOOGLE_DRIVE_HISTORICO_FOLDER_ID;
       if (folderId) {
         const { d, mo, y } = buildBrDateStr();
-        const filename = `pepsico_historico_${d}-${mo}-${y}.xlsx`;
+        const filename = `unilever_historico_${d}-${mo}-${y}.xlsx`;
         const wsRows   = histRows.map(r => ({ PARTNER_NAME: r.partnerName, ANO_MES: r.anoMes, VENDA_VALOR: r.valor }));
         await mdiasSaveXlsx(drive, folderId, filename, wsRows, 'Histórico');
       }
@@ -5550,7 +5550,7 @@ app.get('/pepsico/atualizar-tudo', async (req, res) => {
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) {
-    console.error('[Pepsico/atualizar-tudo] Erro:', err.message);
+    console.error('[Unilever/atualizar-tudo] Erro:', err.message);
     res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
     res.end();
   } finally {

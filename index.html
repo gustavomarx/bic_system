@@ -273,6 +273,33 @@
     .al-card { background: #fff; border: 1px solid var(--bic-border); border-radius: 12px; padding: 20px 22px; }
     .al-card h2 { font-size: 15px; font-weight: 700; margin: 0 0 4px; color: var(--text-main); }
     .al-sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; line-height: 1.5; }
+    .eb-input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid var(--bic-border); border-radius: 8px; font-size: 13px; background: #fff; color: var(--text-main); }
+    .eb-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 10px; }
+    .eb-res { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-height: 360px; overflow-y: auto; }
+    .eb-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border: 1px solid #f1f5f9; border-radius: 8px; font-size: 13px; }
+    .eb-item-info { min-width: 0; overflow-wrap: anywhere; }
+    .eb-item small, .eb-table small { color: var(--text-muted); }
+    .eb-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .eb-tag.coord { background: #eff6ff; color: #1d4ed8; }
+    .eb-tag.dist  { background: #f0fdf4; color: #166534; }
+    .eb-tag.off   { background: #f3f4f6; color: #6b7280; }
+    .eb-table-wrap { overflow-x: auto; }
+    .eb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .eb-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); padding: 6px 8px; border-bottom: 1px solid var(--bic-border); }
+    .eb-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    .dp-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; font-size: 13px; color: var(--text-main); }
+    .dp-num { width: 64px; display: inline-block; margin: 0 4px; padding: 6px 8px; }
+    .dp-check { display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+    .dp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .dp-chip { border: 1px solid var(--bic-border); background: #fff; border-radius: 14px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--text-muted); }
+    .dp-chip b { margin-left: 2px; color: var(--text-main); }
+    .dp-chip.tem b { color: #b45309; }
+    .dp-chip.on { background: var(--bic-orange); border-color: var(--bic-orange); color: #fff; }
+    .dp-chip.on b { color: #fff; }
+    .dp-chip.erro { cursor: help; opacity: .7; }
+    .dp-dias { display: inline-block; font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #fef9c3; color: #854d0e; white-space: nowrap; }
+    .dp-dias.medio { background: #ffedd5; color: #9a3412; }
+    .dp-dias.alto  { background: #fee2e2; color: #991b1b; }
     .al-warn { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; border-radius: 10px; padding: 12px 16px; font-size: 13px; }
     .al-quick { display: flex; flex-wrap: wrap; gap: 8px; }
     .al-btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--bic-border); background: #fff; color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s; }
@@ -2323,6 +2350,10 @@
       <span class="nav-icon">🧭</span>
       <span class="nav-label">Painel Geral</span>
     </div>
+    <div class="nav-item" data-module="dados-parados" id="dados-parados-nav-item" style="display:none">
+      <span class="nav-icon">⏸️</span>
+      <span class="nav-label">Dados Parados</span>
+    </div>
 
     <div class="nav-item" data-module="usuarios">
       <span class="nav-icon">👥</span>
@@ -2331,6 +2362,10 @@
     <div class="nav-item nav-sub" data-module="usuarios-email" id="usuarios-email-nav-item" style="display:none">
       <span class="nav-icon">✉️</span>
       <span class="nav-label">Envio de E-mail</span>
+    </div>
+    <div class="nav-item nav-sub" data-module="emails-bloqueados" id="emails-bloqueados-nav-item" style="display:none">
+      <span class="nav-icon">🚫</span>
+      <span class="nav-label">Exclusões de E-mail</span>
     </div>
 
     <div class="nav-item" data-module="alertas" id="alertas-nav-item" style="display:none">
@@ -2759,12 +2794,12 @@ const TENANT_META = {
   gtex:      { label: 'Gtex',             badge: 'GTX' },
   kibon:     { label: 'Kibon',            badge: 'KBN' },
   peccin:    { label: 'Peccin',           badge: 'PCC' },
-  pepsico:   { label: 'Pepsico',          badge: 'PEP' },
+  unilever:   { label: 'Unilever',          badge: 'ULV' },
   mdias:     { label: 'M Dias',           badge: 'MD'  },
   mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS' },
   marilan:   { label: 'Marilan',          badge: 'MRL' },
 };
-const DASH_TENANT_ORDER = ['bic','asa','bombril','cicopal','fini','fruki','gallo','gtex','kibon','peccin','pepsico','mdias','mdiassaud','marilan'];
+const DASH_TENANT_ORDER = ['bic','asa','bombril','cicopal','fini','fruki','gallo','gtex','kibon','peccin','unilever','mdias','mdiassaud','marilan'];
 
 let _dashData = null;
 let _dashRef  = null; // 'anterior' | 'atual' | null (null = padrão do backend: anterior até o dia 10)
@@ -3118,7 +3153,7 @@ function renderComparativo() {
         <label>Arquivo atual</label>
         <select id="sel-curr">${fOpts}</select>
       </div>
-      <div class="holding-filter-wrap" id="holding-filter-wrap" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
+      <div class="holding-filter-wrap" id="holding-filter-wrap" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','unilever'].includes(currentTenant) ? 'display:none' : ''}">
         <label>Filtrar por holding</label>
         <div class="holding-filter-row">
           <input type="text" id="holding-filter" class="holding-filter-input" placeholder="Buscar holding…" list="holdings-datalist" autocomplete="off">
@@ -3127,7 +3162,7 @@ function renderComparativo() {
         </div>
         <span class="holding-filter-hint" id="holding-filter-hint"></span>
       </div>
-      <div class="holding-filter-wrap" id="customer-filter-wrap" style="${!['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
+      <div class="holding-filter-wrap" id="customer-filter-wrap" style="${!['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','unilever'].includes(currentTenant) ? 'display:none' : ''}">
         <label>Filtrar por cliente</label>
         <div class="holding-filter-row">
           <input type="text" id="customer-filter" class="holding-filter-input" placeholder="Buscar cliente…" list="customers-datalist" autocomplete="off">
@@ -3806,6 +3841,12 @@ function navigateTo(mod) {
   } else if (mod === 'usuarios-email') {
     document.getElementById('topbar-title').textContent = 'Envio de E-mail';
     renderEmailMassa();
+  } else if (mod === 'dados-parados') {
+    document.getElementById('topbar-title').textContent = 'Dados Parados';
+    renderDadosParados();
+  } else if (mod === 'emails-bloqueados') {
+    document.getElementById('topbar-title').textContent = 'Exclusões de E-mail';
+    renderEmailsBloqueados();
   } else if (mod === 'batalha') {
     document.getElementById('topbar-title').textContent = 'Batalha Naval';
     renderBatalha();
@@ -5810,7 +5851,7 @@ function batalhaPopularSelects() {
 function batalhaExportarCSV() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
-  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'peccin', 'pepsico'].includes(currentTenant);
+  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'peccin', 'unilever'].includes(currentTenant);
   if (!mes || (!holding && !noHolding)) return;
 
   const rowsFilt = batalhaState.rows.filter(r =>
@@ -5930,7 +5971,7 @@ function bnComputeAlertas(p, idx, diasNoMes, todayDay) {
 function batalhaRenderGrid() {
   const mes     = document.getElementById('bn-mes-sel')?.value;
   const holding = document.getElementById('bn-holding-sel')?.value;
-  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'peccin', 'pepsico'].includes(currentTenant);
+  const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'peccin', 'unilever'].includes(currentTenant);
   const status  = document.getElementById('bn-status');
   const wrap    = document.getElementById('bn-grid-wrap');
 
@@ -6252,7 +6293,7 @@ function renderBatalha() {
   area.innerHTML = `
     <div>
       <div class="bn-toolbar">
-        <div class="bn-toolbar-group" id="bn-holding-group" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico'].includes(currentTenant) ? 'display:none' : ''}">
+        <div class="bn-toolbar-group" id="bn-holding-group" style="${['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','unilever'].includes(currentTenant) ? 'display:none' : ''}">
           <label class="bn-label">Holding</label>
           <select id="bn-holding-sel" class="bn-select"><option value="">— selecione —</option></select>
         </div>
@@ -8131,7 +8172,7 @@ const TENANT_CONFIG = {
   gtex:      { label: 'Gtex',             badge: 'GTX', subtitle: 'Gtex',             modules: ['comparativo','batalha','historico'] },
   kibon:     { label: 'Kibon',            badge: 'KBN', subtitle: 'Kibon',            modules: ['comparativo','batalha','historico'] },
   peccin:    { label: 'Peccin',           badge: 'PCC', subtitle: 'Peccin',           modules: ['comparativo','batalha','historico'] },
-  pepsico:   { label: 'Pepsico',          badge: 'PEP', subtitle: 'Pepsico',          modules: ['comparativo','batalha','historico'] },
+  unilever:   { label: 'Unilever',          badge: 'ULV', subtitle: 'Unilever',          modules: ['comparativo','batalha','historico'] },
   mdias:     { label: 'M Dias',           badge: 'MD',  subtitle: 'M Dias Branco',    modules: ['comparativo','batalha','historico'] },
   mdiassaud: { label: 'M Dias Saudáveis', badge: 'MDS', subtitle: 'M Dias Saudáveis', modules: ['comparativo','batalha','historico'] },
   marilan:   { label: 'Marilan',          badge: 'MRL', subtitle: 'Marilan',          modules: ['comparativo','batalha','historico'] },
@@ -8148,7 +8189,7 @@ function applyTenantNav() {
   document.getElementById('alertas-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('monitor-nav-item').style.display  = (isDash && isAdmin) ? '' : 'none';
   document.getElementById('armazenamento-nav-item').style.display = (isDash && isAdmin) ? '' : 'none';
-  const tenantMods = isDash ? ['usuarios', 'usuarios-email'] : (TENANT_CONFIG[currentTenant]?.modules || []);
+  const tenantMods = isDash ? ['dados-parados', 'usuarios', 'usuarios-email', 'emails-bloqueados'] : (TENANT_CONFIG[currentTenant]?.modules || []);
   document.querySelectorAll('.nav-item[data-module]').forEach(item => {
     const mod = item.dataset.module;
     if (mod === 'admin-users' || mod === 'dashboard' || mod === 'alertas' || mod === 'monitor' || mod === 'armazenamento') return;
@@ -8159,7 +8200,10 @@ function applyTenantNav() {
     item.style.display = (inTenant && hasPermission) ? '' : 'none';
   });
   // Envio de e-mail (submenu de Usuários) é só para admin
-  if (!isAdmin) document.getElementById('usuarios-email-nav-item').style.display = 'none';
+  if (!isAdmin) {
+    document.getElementById('usuarios-email-nav-item').style.display = 'none';
+    document.getElementById('emails-bloqueados-nav-item').style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -8214,6 +8258,202 @@ const ALERTA_DESC = {
   semAtualizacao: 'Distribuidoras cujo valor do mês em aberto ficou igual entre ontem e hoje',
 };
 let _alertaCfg = null;
+
+// ═══ Dados Parados — distribuidores cujas vendas não mudam entre os arquivos diários ═══
+const dpState = { dados: null, minDias: 3, inativos: false, industria: '' };
+const dpFmtData = s => s ? s.split('-').reverse().join('/') : '—';
+
+async function renderDadosParados(force = false) {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `<div class="dist-loading-box"><div class="spinner" style="width:28px;height:28px;border-width:3px"></div><p class="al-sub" style="margin-top:10px">Comparando os arquivos diários de cada indústria…</p></div>`;
+  try {
+    const r = await fetch('/api/dados-parados' + (force ? '?force=1' : ''));
+    if (!r.ok) throw new Error((await r.json()).error || r.status);
+    dpState.dados = await r.json();
+  } catch (e) {
+    area.innerHTML = `<div class="error-banner"><strong>Erro ao carregar:</strong> ${escHtml(e.message)}</div>`;
+    return;
+  }
+  dpDesenhar();
+}
+
+function dpDesenhar() {
+  const area = document.getElementById('content-area');
+  const { industrias, ts } = dpState.dados;
+  const hoje = new Date().toISOString().slice(0, 10);
+  const linhas = [];
+  for (const i of industrias) {
+    if (i.erro || (dpState.industria && i.tenant !== dpState.industria)) continue;
+    for (const d of i.distribuidores) {
+      if (d.dias < dpState.minDias) continue;
+      if (d.limite && !dpState.inativos) continue;
+      linhas.push({ ...d, ind: i });
+    }
+  }
+  linhas.sort((a, b) => b.dias - a.dias || a.ind.label.localeCompare(b.ind.label) || a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  const contagem = industrias.map(i => {
+    if (i.erro) return `<button class="dp-chip erro" title="${escHtml(i.erro)}" disabled>${escHtml(i.label)} ⚠️</button>`;
+    const n = i.distribuidores.filter(d => d.dias >= dpState.minDias && (dpState.inativos || !d.limite)).length;
+    return `<button class="dp-chip ${dpState.industria === i.tenant ? 'on' : ''} ${n ? 'tem' : ''}" onclick="dpFiltrarIndustria('${i.tenant}')">${escHtml(i.label)} <b>${n}</b></button>`;
+  }).join('');
+  const atrasadas = industrias.filter(i => !i.erro && i.dataUltimo < hoje);
+  const ocultos = industrias.reduce((s, i) => s + (i.distribuidores || []).filter(d => d.limite && d.dias >= dpState.minDias).length, 0);
+
+  area.innerHTML = `
+  <div class="al-wrap" style="max-width:1200px">
+    <div class="al-card">
+      <h2>Distribuidores sem alteração de dado</h2>
+      <p class="al-sub">Compara a Batalha Naval salva a cada dia pelo monitor: se nenhuma venda de um distribuidor mudou (valor ou dia) de um arquivo para o outro, o dado está parado — sinal de problema na importação. "Último dado novo" é o dia do arquivo em que o dado mudou pela última vez.</p>
+      ${atrasadas.length ? `<div class="al-warn" style="margin-bottom:12px">⚠️ Sem arquivo de hoje: ${atrasadas.map(i => `${escHtml(i.label)} (último ${dpFmtData(i.dataUltimo)})`).join(', ')}. A contagem dessas indústrias vai até o último arquivo.</div>` : ''}
+      <div class="dp-filtros">
+        <label>Parado há pelo menos <input type="number" min="1" max="60" value="${dpState.minDias}" class="eb-input dp-num" onchange="dpState.minDias = Math.max(1, +this.value || 1); dpDesenhar()"> dias</label>
+        <label class="dp-check"><input type="checkbox" ${dpState.inativos ? 'checked' : ''} onchange="dpState.inativos = this.checked; dpDesenhar()"> Mostrar também os parados em todos os arquivos comparados (inativos/descontinuados${ocultos && !dpState.inativos ? `: ${ocultos} ocultos` : ''})</label>
+        <button class="al-btn" style="margin-left:auto" onclick="renderDadosParados(true)">↻ Recalcular</button>
+      </div>
+      <div class="dp-chips">
+        <button class="dp-chip ${!dpState.industria ? 'on' : ''}" onclick="dpFiltrarIndustria('')">Todas <b>${linhas.length && !dpState.industria ? linhas.length : ''}</b></button>
+        ${contagem}
+      </div>
+    </div>
+    <div class="al-card">
+      ${!linhas.length ? `<p class="al-sub" style="margin:0">Nenhum distribuidor parado há ${dpState.minDias} dia(s) ou mais. 🎉</p>` : `
+      <div class="eb-table-wrap"><table class="eb-table">
+        <thead><tr><th>Indústria</th><th>Distribuidor</th><th>Sem alteração há</th><th>Último dado novo</th><th>Última venda</th><th style="text-align:right">Vendas no mês</th></tr></thead>
+        <tbody>${linhas.map(d => `<tr>
+          <td>${escHtml(d.ind.label)}</td>
+          <td><strong>${escHtml(d.nome)}</strong></td>
+          <td><span class="dp-dias ${d.dias >= 7 ? 'alto' : d.dias >= 4 ? 'medio' : ''}">${d.limite ? '≥ ' : ''}${d.dias} dia${d.dias !== 1 ? 's' : ''}</span></td>
+          <td>${d.limite ? `antes de ${dpFmtData(d.desde)}` : dpFmtData(d.desde)}</td>
+          <td>${dpFmtData(d.ultimaVenda)}</td>
+          <td style="text-align:right">${fmtBRL(d.valorMes || 0)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`}
+      <p class="al-sub" style="margin:12px 0 0">Calculado em ${new Date(ts).toLocaleString('pt-BR')} · até ${industrias.find(i => i.arquivos)?.arquivos || 0} arquivos diários por indústria.</p>
+    </div>
+  </div>`;
+}
+
+function dpFiltrarIndustria(t) { dpState.industria = t; dpDesenhar(); }
+
+// ═══ Exclusões de E-mail (admin) — quem pediu para sair do e-mail em massa ═══
+let _ebBuscaTimer = null;
+async function renderEmailsBloqueados() {
+  const area = document.getElementById('content-area');
+  area.innerHTML = `
+  <div class="al-wrap">
+    <div class="al-card">
+      <h2>Incluir exclusão</h2>
+      <p class="al-sub">Quem está nesta lista nunca recebe o e-mail em massa (ex.: Validação de Fechamento): fica fora dos destinatários, dos coordenadores em cópia, do CC e do CCO, mesmo quando volta na base de usuários ou do BigQuery.</p>
+      <input id="eb-busca" class="eb-input" placeholder="Buscar coordenador ou distribuidor por nome, e-mail ou empresa (mín. 3 letras)" oninput="ebBuscar()">
+      <div id="eb-resultados" class="eb-res"></div>
+      <details class="al-adv" id="eb-manual">
+        <summary>Incluir manualmente</summary>
+        <div class="eb-form">
+          <input id="eb-email" class="eb-input" placeholder="E-mail *">
+          <input id="eb-nome" class="eb-input" placeholder="Nome">
+          <select id="eb-tipo" class="eb-input"><option value="">Tipo *</option><option>Coordenador</option><option>Distribuidor</option></select>
+          <input id="eb-empresa" class="eb-input" placeholder="Empresa">
+          <input id="eb-industria" class="eb-input" placeholder="Indústria">
+          <input id="eb-motivo-m" class="eb-input" placeholder="Motivo (ex.: pediu para sair por e-mail)">
+          <button class="al-btn primary" onclick="ebIncluirManual()">Excluir do mailing</button>
+        </div>
+      </details>
+    </div>
+    <div class="al-card">
+      <h2>Excluídos</h2>
+      <div id="eb-lista"><div class="dist-loading-box"><div class="spinner" style="width:24px;height:24px;border-width:3px"></div></div></div>
+    </div>
+  </div>`;
+  ebCarregarLista();
+}
+
+async function ebCarregarLista() {
+  const box = document.getElementById('eb-lista');
+  if (!box) return;
+  try {
+    const r = await fetch('/api/emails-bloqueados');
+    if (!r.ok) throw new Error((await r.json()).error || r.status);
+    const { itens } = await r.json();
+    if (!itens.length) { box.innerHTML = `<p class="al-sub" style="margin:0">Ninguém excluído.</p>`; return; }
+    box.innerHTML = `<div class="eb-table-wrap"><table class="eb-table">
+      <thead><tr><th>Nome / e-mail</th><th>Tipo</th><th>Empresa · Indústria</th><th>Motivo</th><th>Incluído</th><th></th></tr></thead>
+      <tbody>${itens.map(i => `<tr>
+        <td><strong>${escHtml(i.nome || '—')}</strong><br><small>${escHtml(i.email)}</small></td>
+        <td><span class="eb-tag ${i.tipo === 'Coordenador' ? 'coord' : 'dist'}">${escHtml(i.tipo || '—')}</span></td>
+        <td>${escHtml([i.empresa, i.industria].filter(Boolean).join(' · ') || '—')}</td>
+        <td>${escHtml(i.motivo || '—')}</td>
+        <td><small>${i.em ? new Date(i.em).toLocaleDateString('pt-BR') : '—'}${i.por ? '<br>' + escHtml(i.por) : ''}</small></td>
+        <td><button class="al-btn" data-email="${escHtml(i.email)}" onclick="ebRemover(this.dataset.email)">Voltar a receber</button></td>
+      </tr>`).join('')}</tbody></table></div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="error-banner"><strong>Erro ao carregar:</strong> ${escHtml(e.message)}</div>`;
+  }
+}
+
+let _ebResultados = [];
+function ebBuscar() {
+  clearTimeout(_ebBuscaTimer);
+  const q = document.getElementById('eb-busca').value.trim();
+  const box = document.getElementById('eb-resultados');
+  if (q.length < 3) { box.innerHTML = ''; return; }
+  _ebBuscaTimer = setTimeout(async () => {
+    box.innerHTML = `<p class="al-sub" style="margin:8px 0">Buscando…</p>`;
+    try {
+      const r = await fetch('/api/emails-bloqueados/buscar?q=' + encodeURIComponent(q));
+      if (!r.ok) throw new Error((await r.json()).error || r.status);
+      _ebResultados = (await r.json()).resultados;
+      if (document.getElementById('eb-busca').value.trim() !== q) return;
+      if (!_ebResultados.length) { box.innerHTML = `<p class="al-sub" style="margin:8px 0">Nada encontrado. Use "Incluir manualmente".</p>`; return; }
+      box.innerHTML = _ebResultados.map((p, idx) => `
+        <div class="eb-item">
+          <div class="eb-item-info">
+            <strong>${escHtml(p.nome || p.email)}</strong> <span class="eb-tag ${p.tipo === 'Coordenador' ? 'coord' : 'dist'}">${p.tipo}</span><br>
+            <small>${escHtml(p.email)} · ${escHtml(p.empresas.slice(0, 3).join(', '))}${p.empresas.length > 3 ? ` +${p.empresas.length - 3}` : ''} · ${escHtml(p.industrias.join(', '))}</small>
+          </div>
+          ${p.bloqueado ? `<span class="eb-tag off">Já excluído</span>`
+            : `<button class="al-btn danger" onclick="ebIncluirResultado(${idx})">Excluir</button>`}
+        </div>`).join('');
+    } catch (e) {
+      box.innerHTML = `<div class="error-banner"><strong>Erro na busca:</strong> ${escHtml(e.message)}</div>`;
+    }
+  }, 350);
+}
+
+async function ebSalvar(body) {
+  const r = await fetch('/api/emails-bloqueados', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error((await r.json()).error || r.status);
+}
+
+async function ebIncluirResultado(idx) {
+  const p = _ebResultados[idx];
+  if (!p) return;
+  const motivo = prompt(`Excluir ${p.nome || p.email} (${p.tipo}) do e-mail em massa?\n\nMotivo (opcional):`, 'Pediu para sair do mailing de validação');
+  if (motivo === null) return;
+  try {
+    await ebSalvar({ email: p.email, nome: p.nome, tipo: p.tipo, empresa: p.empresas.join(', '), industria: p.industrias.join(', '), motivo });
+    ebBuscar();
+    ebCarregarLista();
+  } catch (e) { alert('Erro: ' + e.message); }
+}
+
+async function ebIncluirManual() {
+  const v = id => document.getElementById(id).value.trim();
+  try {
+    await ebSalvar({ email: v('eb-email'), nome: v('eb-nome'), tipo: v('eb-tipo'), empresa: v('eb-empresa'), industria: v('eb-industria'), motivo: v('eb-motivo-m') });
+    ['eb-email', 'eb-nome', 'eb-tipo', 'eb-empresa', 'eb-industria', 'eb-motivo-m'].forEach(id => document.getElementById(id).value = '');
+    ebCarregarLista();
+  } catch (e) { alert('Erro: ' + e.message); }
+}
+
+async function ebRemover(email) {
+  if (!confirm(`${email} vai voltar a receber o e-mail em massa. Confirma?`)) return;
+  try {
+    const r = await fetch('/api/emails-bloqueados/' + encodeURIComponent(email), { method: 'DELETE' });
+    if (!r.ok) throw new Error((await r.json()).error || r.status);
+    ebCarregarLista();
+  } catch (e) { alert('Erro: ' + e.message); }
+}
 
 async function renderAlertas() {
   const area = document.getElementById('content-area');

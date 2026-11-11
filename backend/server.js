@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const uploadMemory = multer({ storage: multer.memoryStorage() });
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -311,11 +312,11 @@ function getTenantFolders(tenant) {
       historico:   process.env.CICOPAL_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
     };
   }
-  if (tenant === 'pepsico') {
+  if (tenant === 'unilever') {
     return {
-      comparativo: process.env.PEPSICO_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
-      batalha:     process.env.PEPSICO_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
-      historico:   process.env.PEPSICO_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
+      comparativo: process.env.UNILEVER_GOOGLE_DRIVE_COMPARATIVO_FOLDER_ID,
+      batalha:     process.env.UNILEVER_GOOGLE_DRIVE_BATALHA_FOLDER_ID,
+      historico:   process.env.UNILEVER_GOOGLE_DRIVE_HISTORICO_FOLDER_ID,
     };
   }
   if (tenant === 'fini') {
@@ -467,7 +468,7 @@ app.get('/api/arquivo', async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
 
-    const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'pepsico', 'peccin'].includes(req.query.tenant || 'bic');
+    const noHolding = ['mdias', 'marilan', 'asa', 'bombril', 'cicopal', 'fini', 'fruki', 'gallo', 'gtex', 'mdiassaud', 'kibon', 'unilever', 'peccin'].includes(req.query.tenant || 'bic');
     const rows = rawData
       .map(normalizeRow)
       .filter(r => noHolding ? (r.customer && r.vendaValor !== null) : (r.holding && r.vendaValor !== null));
@@ -1687,6 +1688,89 @@ function normalizeStr(str) {
     .trim();
 }
 
+// E-mails que pediram para sair do mailing (Firestore system_config/emails_bloqueados, campo emails[]).
+// Nunca entram como destinatário, coordenador, CC ou CCO, mesmo que voltem na base de usuários/BigQuery.
+let _bloqCache = { set: null, ts: 0 };
+async function emailsBloqueados() {
+  if (_bloqCache.set && Date.now() - _bloqCache.ts < 60 * 1000) return _bloqCache.set;
+  const doc = await getFirebaseAdmin().firestore().collection('system_config').doc('emails_bloqueados').get();
+  const set = new Set((doc.exists ? doc.data().emails || [] : []).map(e => String(e).trim().toLowerCase()));
+  _bloqCache = { set, ts: Date.now() };
+  return set;
+}
+
+// Tela "Exclusões de E-mail" (admin). Doc: { emails: [email], itens: [{ email, nome, tipo, empresa, industria, motivo, em, por }] }
+const bloqRef = () => getFirebaseAdmin().firestore().collection('system_config').doc('emails_bloqueados');
+const TIPOS_BLOQ = ['Coordenador', 'Distribuidor'];
+
+app.get('/api/emails-bloqueados', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const doc = await bloqRef().get();
+    const d = doc.exists ? doc.data() : {};
+    const itens = (d.itens || []).slice().sort((a, b) => String(b.em).localeCompare(String(a.em)));
+    res.json({ itens });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/emails-bloqueados/buscar?q= — procura nome/e-mail/empresa nos coordenadores e nos usuários de distribuidor
+app.get('/api/emails-bloqueados/buscar', requireAuth, requireAdmin, async (req, res) => {
+  const q = normalizeStr(req.query.q || '');
+  if (q.length < 3) return res.json({ resultados: [] });
+  try {
+    const [{ rows: coords }, { rows: users }, bloq] = await Promise.all([coordenadoresArquivo(), usuariosGeralRows(), emailsBloqueados()]);
+    const porChave = new Map();
+    const add = (tipo, r) => {
+      const email = String(r.Email || '').trim().toLowerCase();
+      if (!email.includes('@')) return;
+      const nome = String(r.Nome || '').trim(), empresa = String(r.Empresa || '').trim(), industria = String(r.Industria || '').trim();
+      if (!normalizeStr(`${nome} ${email} ${empresa}`).includes(q)) return;
+      const k = `${tipo}|${email}`;
+      const e = porChave.get(k) || { email, nome, tipo, empresas: new Set(), industrias: new Set(), bloqueado: bloq.has(email) };
+      if (empresa) e.empresas.add(empresa);
+      if (industria) e.industrias.add(industria);
+      porChave.set(k, e);
+    };
+    coords.forEach(r => add('Coordenador', r));
+    users.filter(r => r.Tipo === 'Distribuidor').forEach(r => add('Distribuidor', r));
+    const resultados = [...porChave.values()].slice(0, 50).map(e => ({ ...e, empresas: [...e.empresas], industrias: [...e.industrias] }));
+    res.json({ resultados });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/emails-bloqueados', requireAuth, requireAdmin, async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const tipo  = TIPOS_BLOQ.includes(req.body?.tipo) ? req.body.tipo : null;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'E-mail inválido' });
+  if (!tipo) return res.status(400).json({ error: 'Informe se é Coordenador ou Distribuidor' });
+  const s = v => String(v || '').trim().slice(0, 300);
+  try {
+    await getFirebaseAdmin().firestore().runTransaction(async tx => {
+      const doc = await tx.get(bloqRef());
+      const d = doc.exists ? doc.data() : {};
+      const itens = (d.itens || []).filter(i => i.email !== email);
+      itens.push({ email, tipo, nome: s(req.body.nome), empresa: s(req.body.empresa), industria: s(req.body.industria),
+        motivo: s(req.body.motivo), em: new Date().toISOString(), por: req.user.email || '' });
+      tx.set(bloqRef(), { emails: [...new Set(itens.map(i => i.email))], itens }, { merge: true });
+    });
+    _bloqCache = { set: null, ts: 0 };
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/emails-bloqueados/:email', requireAuth, requireAdmin, async (req, res) => {
+  const email = String(req.params.email || '').trim().toLowerCase();
+  try {
+    await getFirebaseAdmin().firestore().runTransaction(async tx => {
+      const doc = await tx.get(bloqRef());
+      const d = doc.exists ? doc.data() : {};
+      const itens = (d.itens || []).filter(i => i.email !== email);
+      tx.set(bloqRef(), { emails: [...new Set(itens.map(i => i.email))], itens }, { merge: true });
+    });
+    _bloqCache = { set: null, ts: 0 };
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Coordenadores da indústria. Fonte principal: coordenadores_DD-MM-AAAA.xlsx gerado pelo monitor
 // (BigQuery bigdata.partner_user_permission, na pasta dos usuários). Sem linhas da indústria no
 // arquivo, cai no mapa importado manualmente no Firestore (legado).
@@ -1710,10 +1794,10 @@ async function coordenadoresArquivo() {
 // { porId: id da distribuidora → [{nome,email}], porNome: empresa normalizada → [{nome,email}], fonte, arquivo, total }
 async function coordenadoresDe(tenant) {
   const industria = TENANT_LABELS[tenant];
-  const { arquivo, rows } = await coordenadoresArquivo();
+  const [{ arquivo, rows }, bloq] = await Promise.all([coordenadoresArquivo(), emailsBloqueados()]);
   const porId = {}, porNome = {};
   const add = (mapa, k, c) => {
-    if (!k) return;
+    if (!k || bloq.has(String(c.email || '').toLowerCase())) return;
     const lista = mapa[k] ||= [];
     if (!lista.some(x => x.email === c.email)) lista.push(c);
   };
@@ -1740,12 +1824,12 @@ const coordDaEmpresa = (coord, id, norm) => (id && coord.porId[id]) || coord.por
 // empresa normalizada → { nome original, emails: [{ nome, email }] } — distribuidores da indústria
 // Só usuários com permissão BI (mesmo padrão da lista de usuários)
 async function emailsPorEmpresa(industria) {
-  const { rows } = await usuariosGeralRows();
+  const [{ rows }, bloq] = await Promise.all([usuariosGeralRows(), emailsBloqueados()]);
   const porEmpresa = {};
   for (const r of rows) {
     if (r.Industria !== industria || r.Tipo !== 'Distribuidor' || r.Tem_Permissao !== 'Sim') continue;
     const email = r.Email.toLowerCase();
-    if (!r.Empresa || !email.includes('@')) continue;
+    if (!r.Empresa || !email.includes('@') || bloq.has(email)) continue;
     const k = normalizeStr(r.Empresa);
     const e = porEmpresa[k] ||= { nome: r.Empresa, id: r.Id_Organizacao, emails: new Map() };
     if (!e.emails.has(email)) e.emails.set(email, { nome: r.Nome, email });
@@ -2014,14 +2098,18 @@ app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) 
 
     send({ tipo: 'inicio', total: holdings.length });
 
+    const bloq = await emailsBloqueados();
+    const ok   = e => e && !bloq.has(String(e).trim().toLowerCase());
+
     for (let i = 0; i < holdings.length; i++) {
       const h = holdings[i];
       send({ tipo: 'iniciando', holding: h.holding, indice: i + 1, total: holdings.length });
 
       try {
-        const toList  = h.emails.map(e => e.email);
-        const ccList  = [...(h.coordenadores || []).map(c => c.email), ...cc].filter(Boolean);
-        const bccList = [...cco].filter(Boolean);
+        const toList  = h.emails.map(e => e.email).filter(ok);
+        const ccList  = [...(h.coordenadores || []).map(c => c.email), ...cc].filter(ok);
+        const bccList = [...cco].filter(ok);
+        if (!toList.length) throw new Error('Nenhum destinatário restante (todos bloqueados)');
 
         const holdingNome  = h.holding;
         const tags = t => t.replace(/\{\{holding\}\}/gi, holdingNome)
@@ -2064,10 +2152,111 @@ app.post('/api/email-massa/enviar', requireAuth, requireAdmin, async (req, res) 
   res.end();
 });
 
+// ─── Dados parados ────────────────────────────────────────────────────────────
+// Compara os arquivos diários da Batalha Naval (um por dia, por indústria) e acha os distribuidores
+// cujas vendas não mudaram nada entre os dias (ex.: ACL / M Dias Saudáveis idêntica de 04/11 em diante).
+// Cada arquivo vira um resumo (assinatura por distribuidor) guardado no Firestore em
+// dados_parados_resumos/{fileId}: arquivo no Drive não muda, então é lido uma vez só.
+const DP_LOOKBACK = 30;               // arquivos diários comparados por indústria
+const DP_CACHE_TTL = 10 * 60 * 1000;
+let _dpCache = null;                  // { payload, ts }
+
+function dpDataDoArquivo(f) {
+  const m = f.name.match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : String(f.createdTime).slice(0, 10);
+}
+
+async function dpResumoArquivo(drive, db, tenant, f, data) {
+  const ref = db.collection('dados_parados_resumos').doc(f.id);
+  const doc = await ref.get();
+  if (doc.exists) return doc.data();
+  const resp = await drive.files.get({ fileId: f.id, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
+  const wb   = XLSX.read(resp.data, { type: 'array' });
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets['Dados'] || wb.Sheets[wb.SheetNames[0]], { defval: null });
+  const mesAtual = data.slice(0, 7);
+  const porParc = new Map();
+  for (const r of rows) {
+    const nome = String(r.PARTNER_NAME || '').trim();
+    if (!nome) continue;
+    const dia = String(r.VENDA_DATA || '').slice(0, 10);
+    const val = Number(r.VENDA_VALOR) || 0;
+    const p = porParc.get(nome) || { linhas: [], u: '', v: 0 };
+    p.linhas.push(`${dia}=${val.toFixed(2)}`);
+    if (val !== 0 && dia > p.u) p.u = dia;
+    if (dia.startsWith(mesAtual)) p.v += val;
+    porParc.set(nome, p);
+  }
+  const p = [...porParc].map(([n, x]) => ({
+    n, u: x.u, v: Math.round(x.v * 100) / 100,
+    h: crypto.createHash('md5').update(x.linhas.sort().join(';')).digest('hex').slice(0, 12),
+  }));
+  const resumo = { tenant, data, arquivo: f.name, p, criadoEm: new Date().toISOString() };
+  await ref.set(resumo);
+  return resumo;
+}
+
+async function dpTenant(drive, db, tenant) {
+  const folderId = getTenantFolders(tenant).batalha;
+  if (!folderId) return { tenant, label: TENANT_LABELS[tenant], erro: 'Pasta da Batalha Naval não configurada' };
+  const list = await drive.files.list({
+    q: `'${folderId}' in parents and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`,
+    fields: 'files(id, name, createdTime)', orderBy: 'createdTime desc', pageSize: DP_LOOKBACK * 2,
+    supportsAllDrives: true, includeItemsFromAllDrives: true,
+  });
+  // Um arquivo por dia: o mais recente daquela data, ignorando cópias "[OLD]"
+  const porDia = new Map();
+  for (const f of list.data.files || []) {
+    if (/OLD/i.test(f.name)) continue;
+    const d = dpDataDoArquivo(f);
+    if (!porDia.has(d)) porDia.set(d, f);
+  }
+  const dias = [...porDia.keys()].sort().reverse().slice(0, DP_LOOKBACK);
+  if (!dias.length) return { tenant, label: TENANT_LABELS[tenant], erro: 'Nenhum arquivo da Batalha Naval' };
+  const resumos = [];
+  for (let i = 0; i < dias.length; i += 6) {   // baixa no máximo 6 por vez
+    const lote = dias.slice(i, i + 6);
+    resumos.push(...await Promise.all(lote.map(d => dpResumoArquivo(drive, db, tenant, porDia.get(d), d))));
+  }
+  const mapas = resumos.map(r => new Map(r.p.map(x => [x.n, x])));
+  const ultimo = resumos[0];
+  const distribuidores = [];
+  for (const atual of ultimo.p) {
+    let k = 0;
+    while (k + 1 < mapas.length && mapas[k + 1].get(atual.n)?.h === atual.h) k++;
+    const desde = resumos[k].data;
+    const diasParado = Math.round((Date.parse(ultimo.data) - Date.parse(desde)) / 86400000);
+    distribuidores.push({
+      nome: atual.n, desde, dias: diasParado,
+      limite: k === mapas.length - 1 && mapas.length > 1,   // igual em todos os arquivos olhados: está parado há pelo menos isso
+      ultimaVenda: atual.u || null, valorMes: atual.v,
+    });
+  }
+  distribuidores.sort((a, b) => b.dias - a.dias || a.nome.localeCompare(b.nome, 'pt-BR'));
+  return { tenant, label: TENANT_LABELS[tenant], ultimoArquivo: ultimo.arquivo, dataUltimo: ultimo.data,
+           primeiroComparado: resumos[resumos.length - 1].data, arquivos: resumos.length, distribuidores };
+}
+
+// GET /api/dados-parados[?force=1] — todas as indústrias; o filtro de dias é feito na tela
+app.get('/api/dados-parados', requireAuth, async (req, res) => {
+  try {
+    if (req.query.force !== '1' && _dpCache && Date.now() - _dpCache.ts < DP_CACHE_TTL) return res.json(_dpCache.payload);
+    const drive = getDriveClient(true);
+    const db    = getFirebaseAdmin().firestore();
+    const industrias = await Promise.all(DASHBOARD_TENANTS.map(t =>
+      dpTenant(drive, db, t).catch(e => ({ tenant: t, label: TENANT_LABELS[t], erro: e.message }))));
+    const payload = { industrias, ts: new Date().toISOString() };
+    _dpCache = { payload, ts: Date.now() };
+    res.json(payload);
+  } catch (err) {
+    console.error('Erro /api/dados-parados:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-const DASHBOARD_TENANTS = ['bic','asa','bombril','cicopal','fini','fruki','gallo','gtex','kibon','peccin','pepsico','mdias','mdiassaud','marilan'];
-const DASHBOARD_NO_HOLDING = new Set(['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','pepsico']);
+const DASHBOARD_TENANTS = ['bic','asa','bombril','cicopal','fini','fruki','gallo','gtex','kibon','peccin','unilever','mdias','mdiassaud','marilan'];
+const DASHBOARD_NO_HOLDING = new Set(['mdias','marilan','asa','bombril','cicopal','fini','fruki','gallo','gtex','mdiassaud','kibon','peccin','unilever']);
 
 // In-memory cache: evita múltiplas chamadas ao Drive em sequência rápida
 const _dashCache = {}; // { 'YYYY-MM': { payload, ts } }
@@ -2658,7 +2847,7 @@ async function alertaEnviarSlack(webhookUrl, msgs) {
 
 const TENANT_LABELS = {
   bic: 'BIC', asa: 'Asa', bombril: 'Bombril', cicopal: 'Cicopal', fini: 'Fini', fruki: 'Fruki',
-  gallo: 'Gallo', gtex: 'Gtex', kibon: 'Kibon', peccin: 'Peccin', pepsico: 'Pepsico',
+  gallo: 'Gallo', gtex: 'Gtex', kibon: 'Kibon', peccin: 'Peccin', unilever: 'Unilever',
   mdias: 'M Dias', mdiassaud: 'M Dias Saudáveis', marilan: 'Marilan',
 };
 

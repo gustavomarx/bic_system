@@ -1253,6 +1253,7 @@ const INDUSTRIAS_USUARIOS = [
   { nome: 'M Dias',           orgId: '04645518-424f-44a1-a1f8-7128a253b923', codigos: ['MDIAS', 'mDiasBranco'], grupos: ['mDiasBranco'] },
   { nome: 'M Dias Saudáveis', orgId: '0c30a4c7-6c65-4f2e-b7ea-c8dff61ef0f2', codigos: ['saudaveis'],            grupos: ['mDiasBrancoSaudaveis'] },
   { nome: 'Peccin',           orgId: '2bb30205-3b55-4bf7-bc72-5ce17793ed79', codigos: ['PECCIN'] },
+  { nome: 'Unilever',         orgId: 'cccb7621-d866-4f12-b13b-6e8d7b3d2ff9', codigos: ['UNILEVER'] },
   { nome: 'Ultracheese',      orgId: '27c5050f-b03a-40e2-ad18-5fee264974b9', codigos: ['ULTRACHEESE'] },
 ];
 

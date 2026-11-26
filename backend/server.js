@@ -2307,22 +2307,30 @@ function dashCompareAnomalies(prevRows, currRows, noHolding) {
     ? (row.customer || '').trim()
     : (row.holding || row.customer || '').trim();
 
-  // Conjunto global do ano inteiro (todos os meses)
+  // Conjunto global do ano inteiro (todos os meses): chave → distribuidores (customer) dela
   const allKeys = rows => {
-    const set = new Set();
+    const map = new Map(), customers = new Set();
     for (const row of rows) {
       const k = keyFn(row);
-      if (k) set.add(k);
+      if (!k) continue;
+      const c = (row.customer || '').trim();
+      if (!map.has(k)) map.set(k, new Set());
+      if (c) { map.get(k).add(c); customers.add(c); }
     }
-    return set;
+    return { map, customers };
   };
 
   const prev = allKeys(prevRows);
   const curr = allKeys(currRows);
   const gone = [], newH = [];
 
-  for (const k of prev) if (!curr.has(k)) gone.push(k);
-  for (const k of curr) if (!prev.has(k)) newH.push(k);
+  // Só é anomalia se nem a chave nem nenhum distribuidor dela aparece no outro arquivo.
+  // Evita falso "Saiu/Entrou" quando o holding muda (ex.: vazio → preenchido).
+  const sumiu = (k, custs, outro) =>
+    !outro.map.has(k) && ![...custs].some(c => outro.customers.has(c) || outro.map.has(c));
+
+  for (const [k, custs] of prev.map) if (sumiu(k, custs, curr)) gone.push(k);
+  for (const [k, custs] of curr.map) if (sumiu(k, custs, prev)) newH.push(k);
 
   gone.sort(); newH.sort();
 

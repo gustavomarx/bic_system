@@ -2677,6 +2677,13 @@ function fmtMes(anoMes) {
 }
 
 function compare(prevRows, currRows) {
+  // Meses que o arquivo anterior nem buscava (escopo ampliado para 2024+) não contam como "Nova"
+  const minPrev = prevRows.reduce((m, r) => {
+    const v = String(r.anoMes || '').trim().replace('-', '');
+    return v && (m === null || v < m) ? v : m;
+  }, null);
+  if (minPrev !== null) currRows = currRows.filter(r => String(r.anoMes || '').trim().replace('-', '') >= minPrev);
+
   const prev = groupByMonthHolding(prevRows);
   const curr = groupByMonthHolding(currRows);
 
@@ -3619,12 +3626,59 @@ function renderResult(r) {
   `;
 
   const tbody = document.getElementById('months-tbody');
+
+  // ── Agrupa por ano: só o ano atual vem expandido, anos fechados recolhidos ──
+  const anoAtual = String(new Date().getFullYear());
+  const anoDe = m => String(m.mes).replace('-', '').slice(0, 4);
+  const anosLinhas = {}; // ano → [tr...] (linhas de mês + expansões)
+  let anoCorrente = null;
+
   r.monthRows.forEach((mRow, mi) => {
+    const ano = anoDe(mRow);
+    if (ano !== anoCorrente) {
+      anoCorrente = ano;
+      const meses = r.monthRows.filter(m => anoDe(m) === ano);
+      const aPrev = meses.reduce((s, m) => s + m.prev, 0);
+      const aCurr = meses.reduce((s, m) => s + m.curr, 0);
+      const aVar  = aCurr - aPrev;
+      const aPct  = aPrev !== 0 ? (aVar / Math.abs(aPrev)) * 100 : null;
+      const aberto = ano === anoAtual;
+      const trAno = document.createElement('tr');
+      trAno.className = rowClass(aVar > 0 ? 'up' : aVar < 0 ? 'down' : 'equal');
+      trAno.style.cssText = 'cursor:pointer;background:var(--bic-gray)';
+      trAno.innerHTML = `
+        <td class="ano-chevron" style="text-align:center;color:var(--text-muted);font-size:12px;user-select:none">${aberto ? '▼' : '▶'}</td>
+        <td><strong>${ano}</strong> <span style="color:var(--text-muted);font-size:12px">${meses.length} ${meses.length === 1 ? 'mês' : 'meses'}${aberto ? '' : ' · fechado'}</span></td>
+        <td class="right"><strong>${fmt(aPrev)}</strong></td>
+        <td class="right"><strong>${fmt(aCurr)}</strong></td>
+        <td class="right ${colorClass(aVar)}"><strong>${aVar >= 0 ? '+' : ''}${fmt(aVar)}</strong></td>
+        <td class="right ${colorClass(aPct)}"><strong>${fmtPct(aPct)}</strong></td>
+      `;
+      anosLinhas[ano] = [];
+      const anoKey = ano;
+      trAno.addEventListener('click', () => {
+        const chev = trAno.querySelector('.ano-chevron');
+        const abrir = chev.textContent === '▶';
+        chev.textContent = abrir ? '▼' : '▶';
+        for (const tr of anosLinhas[anoKey]) {
+          if (tr.dataset.expandFor !== undefined) {
+            tr.style.display = 'none'; // expansões sempre voltam fechadas
+          } else {
+            tr.style.display = abrir ? '' : 'none';
+            const c = tr.querySelector('.chevron-cell'); if (c) c.textContent = '▶';
+          }
+        }
+      });
+      tbody.appendChild(trAno);
+    }
+
     // ── Linha do mês ──────────────────────────────────────────────
     const trMes = document.createElement('tr');
     trMes.className = rowClass(mRow.status);
     trMes.style.cursor = 'pointer';
     trMes.dataset.mesIdx = mi;
+    if (ano !== anoAtual) trMes.style.display = 'none';
+    anosLinhas[ano].push(trMes);
     trMes.innerHTML = `
       <td class="chevron-cell" style="text-align:center;color:var(--text-muted);font-size:12px;user-select:none">▶</td>
       <td><strong>${mRow.mesLabel}</strong></td>
@@ -3638,6 +3692,7 @@ function renderResult(r) {
     const trExpand = document.createElement('tr');
     trExpand.style.display = 'none';
     trExpand.dataset.expandFor = mi;
+    anosLinhas[ano].push(trExpand);
     const tdExpand = document.createElement('td');
     tdExpand.colSpan = 6;
     tdExpand.style.padding = '0';

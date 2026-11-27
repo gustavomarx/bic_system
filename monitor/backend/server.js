@@ -285,7 +285,7 @@ app.get('/dados-atual', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.bic_vendas_PARCEIRO v0
-       WHERE "VENDA_DATA" BETWEEN TRUNC(SYSDATE, 'YEAR') AND SYSDATE
+       WHERE "VENDA_DATA" BETWEEN DATE '2024-01-01' AND SYSDATE
        GROUP BY
          "HOLDING",
          "PARTNER_NAME",
@@ -1026,7 +1026,7 @@ app.get('/atualizar-tudo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.bic_vendas_PARCEIRO v0
-       WHERE "VENDA_DATA" BETWEEN TRUNC(SYSDATE, 'YEAR') AND SYSDATE
+       WHERE "VENDA_DATA" BETWEEN DATE '2024-01-01' AND SYSDATE
        GROUP BY
          "HOLDING",
          "PARTNER_NAME",
@@ -1608,7 +1608,7 @@ app.get('/mdias/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.sellers_sellersv2_vendas_PARCEIRO v0
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -1847,7 +1847,7 @@ app.get('/mdias/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.sellers_sellersv2_vendas_PARCEIRO v0
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -1955,7 +1955,7 @@ app.get('/marilan/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.MARILAN_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -2182,7 +2182,7 @@ app.get('/marilan/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.MARILAN_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -2284,7 +2284,7 @@ app.get('/asa/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.ASA_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -2511,7 +2511,7 @@ app.get('/asa/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.ASA_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -2619,7 +2619,7 @@ app.get('/bombril/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.bombril_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -2846,7 +2846,7 @@ app.get('/bombril/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.bombril_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -2948,7 +2948,7 @@ app.get('/cicopal/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.CICOPAL_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -3175,7 +3175,7 @@ app.get('/cicopal/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.CICOPAL_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -3279,7 +3279,7 @@ app.get('/fini/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.FINI_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -3504,7 +3504,7 @@ app.get('/fini/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.FINI_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -3608,7 +3608,7 @@ app.get('/fruki/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.FRUKI_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -3833,7 +3833,7 @@ app.get('/fruki/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.FRUKI_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -3941,7 +3941,7 @@ app.get('/gallo/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.GALLO_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -4166,7 +4166,7 @@ app.get('/gallo/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.GALLO_vendas_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -4268,7 +4268,7 @@ app.get('/gtex/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.GTEX_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -4493,7 +4493,7 @@ app.get('/gtex/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.GTEX_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -4595,7 +4595,7 @@ app.get('/mdiassaud/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.mdias_saudaveis_vendas_parceiro
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -4820,7 +4820,7 @@ app.get('/mdiassaud/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.mdias_saudaveis_vendas_parceiro
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -4923,7 +4923,7 @@ app.get('/kibon/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')        AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR_BRUTO"), 0) AS "VENDA_VALOR_BRUTO"
        FROM sellers.sellers_kibon_vendas_parceiro
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -5148,7 +5148,7 @@ app.get('/kibon/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR_BRUTO"), 0) AS "VENDA_VALOR_BRUTO"
        FROM sellers.sellers_kibon_vendas_parceiro
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -5250,7 +5250,7 @@ app.get('/unilever/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.UNILEVER_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -5477,7 +5477,7 @@ app.get('/unilever/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.UNILEVER_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -5579,7 +5579,7 @@ app.get('/peccin/comparativo', async (req, res) => {
          TO_CHAR(VENDA_DATA, 'YYYY-MM')   AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0)  AS "VENDA_VALOR"
        FROM sellers.PECCIN_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR')
+       WHERE "VENDA_DATA" >= DATE '2024-01-01'
          AND "VENDA_DATA" <  ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -5804,7 +5804,7 @@ app.get('/peccin/atualizar-tudo', async (req, res) => {
       `SELECT "PARTNER_NAME" AS "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM') AS "ANO_MES_FIX",
          COALESCE(SUM("VENDA_VALOR"), 0) AS "VENDA_VALOR"
        FROM sellers.PECCIN_VENDAS_PARCEIRO
-       WHERE "VENDA_DATA" >= TRUNC(SYSDATE, 'YEAR') AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
+       WHERE "VENDA_DATA" >= DATE '2024-01-01' AND "VENDA_DATA" < ADD_MONTHS(TRUNC(SYSDATE, 'YEAR'), 12)
        GROUP BY "PARTNER_NAME", TO_CHAR(VENDA_DATA, 'YYYY-MM')`,
       [], { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );

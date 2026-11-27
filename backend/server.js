@@ -2302,7 +2302,19 @@ async function dashDownloadParse(fileId, { sheetName = null, normalize = true } 
   return normalize ? raw.map(normalizeRow) : raw;
 }
 
+// Meses que o arquivo anterior nem buscava (ex.: escopo ampliado para 2024+) não contam como "Entrou".
+function dashCortarEscopo(prevRows, currRows) {
+  let minPrev = null;
+  for (const r of prevRows) {
+    const m = String(r.anoMes || '').trim().replace('-', '');
+    if (m && (minPrev === null || m < minPrev)) minPrev = m;
+  }
+  if (minPrev === null) return currRows;
+  return currRows.filter(r => String(r.anoMes || '').trim().replace('-', '') >= minPrev);
+}
+
 function dashCompareAnomalies(prevRows, currRows, noHolding) {
+  currRows = dashCortarEscopo(prevRows, currRows);
   const keyFn = row => noHolding
     ? (row.customer || '').trim()
     : (row.holding || row.customer || '').trim();
